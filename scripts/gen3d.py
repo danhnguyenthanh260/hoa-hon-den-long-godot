@@ -8,6 +8,7 @@ from gradio_client import Client, handle_file
 
 IMG = sys.argv[1] if len(sys.argv) > 1 else "shots/chara/input-crop.png"
 OUT = Path(sys.argv[2] if len(sys.argv) > 2 else "assets/models")
+TAG = sys.argv[3] if len(sys.argv) > 3 else "minh_shape"
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -51,7 +52,7 @@ def try_hunyuan_shape():
         randomize_seed=False,
         api_name="/shape_generation",
     )
-    return save_meshes(result, "minh_shape")
+    return save_meshes(result, TAG)
 
 
 def try_trellis():
