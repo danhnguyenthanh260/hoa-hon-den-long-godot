@@ -33,6 +33,7 @@ var world: Node3D
 var player: Node3D
 var ui: CanvasLayer
 var dialogue: CanvasLayer
+var audio: Node
 var camera: Camera3D
 var cam_look := Vector3(0, 1.3, 7)
 var checkpoint := Vector3(0, 0, 7)
@@ -63,6 +64,8 @@ func _ready() -> void:
 	camera.position = Vector3(0, 3.4, 13)
 	camera.current = true
 	_make_dust()
+	audio = preload("res://scripts/audio_manager.gd").new()
+	add_child(audio)
 
 	chapters = {1: C1.new(), 2: C2.new(), 3: C3.new(), 4: C4.new(), 5: C5.new()}
 	for n in chapters:
@@ -277,6 +280,7 @@ func _process(delta: float) -> void:
 		current_chapter().update(delta)
 	world.update_world(delta)
 	_dust.position = player.position
+	audio.update(delta, self)
 	_update_camera(delta)
 
 
