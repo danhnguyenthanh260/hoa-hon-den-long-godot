@@ -44,17 +44,9 @@ var _lacquer := Build.mat(Color(0.32, 0.06, 0.04), 0.55)   # sơn ta đỏ sậm
 
 
 func _ready() -> void:
-	# vữa vôi vàng nghệ + gỗ ván — texture sinh procedural, chiếu triplanar
-	_plaster = StandardMaterial3D.new()
-	_plaster.albedo_texture = Textures.plaster()
-	_plaster.uv1_triplanar = true
-	_plaster.uv1_scale = Vector3(0.55, 0.55, 0.55)
-	_plaster.roughness = 0.93
-	_wood = StandardMaterial3D.new()
-	_wood.albedo_texture = Textures.wood()
-	_wood.uv1_triplanar = true
-	_wood.uv1_scale = Vector3(1.1, 1.1, 1.1)
-	_wood.roughness = 0.85
+	# vữa vôi vàng nghệ + gỗ — PBR thật (ambientCG, CC0), normal map bắt ánh đèn nổi khối
+	_plaster = Build.pbr("res://assets/textures/Plaster001", 0.5, Color(0.82, 0.58, 0.27), 1.4)
+	_wood = Build.pbr("res://assets/textures/WoodFloor043", 0.85, Color(0.5, 0.38, 0.27), 1.2)
 	_build_environment()
 	_build_ground()
 	_build_houses()
@@ -119,12 +111,7 @@ func _apply_zone(z: Dictionary, w: float) -> void:
 
 
 func _build_ground() -> void:
-	var gmat := StandardMaterial3D.new()
-	gmat.albedo_texture = Textures.brick()
-	gmat.albedo_color = Color(0.85, 0.82, 0.8)
-	gmat.uv1_triplanar = true
-	gmat.uv1_scale = Vector3(0.45, 0.45, 0.45)
-	gmat.roughness = 0.92
+	var gmat := Build.pbr("res://assets/textures/PavingStones138", 0.42, Color(0.72, 0.68, 0.64), 1.5)
 	var ground := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(30, 70)
@@ -188,7 +175,7 @@ func _build_tube_house(side: float, z: float, h: float, idx: int) -> void:
 		slab.size = Vector3(2.1, 0.07, 4.0)
 		var slab_mi := MeshInstance3D.new()
 		slab_mi.mesh = slab
-		slab_mi.material_override = Build.mat(Color(0.1, 0.09, 0.105), 0.7)
+		slab_mi.material_override = Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, Color(0.5, 0.47, 0.5), 1.2)
 		slope.add_child(slab_mi)
 		Build.tile_rows(slope, 2.1, 4.0)
 	# đòn dông + đầu đao vểnh hai đầu hồi

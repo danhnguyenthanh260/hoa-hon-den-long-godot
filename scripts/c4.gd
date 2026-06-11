@@ -43,7 +43,7 @@ func _take_kim() -> void:
 func build(main) -> void:
 	m = main
 	# bãi bến + sông
-	var ground := Build.box(self, Vector3(16, 0.2, RIVER_Z - (-78.0)), Vector3(0, -0.1, (BANK_Z0 - 35.0)), Build.mat(Color(0.15, 0.11, 0.1), 0.95))
+	var ground := Build.box(self, Vector3(16, 0.2, RIVER_Z - (-78.0)), Vector3(0, -0.1, (BANK_Z0 - 35.0)), Build.pbr("res://assets/textures/Ground068", 0.5, Color(0.55, 0.46, 0.4), 1.4))
 	ground.position = Vector3(0, -0.1, -51.5)
 	var water := Build.box(self, Vector3(16, 0.1, 18), Vector3(0, -0.04, -67.0), null)
 	var wmat := StandardMaterial3D.new()

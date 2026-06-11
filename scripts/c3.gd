@@ -24,7 +24,7 @@ var _grow_t := -1.0
 
 func build(main) -> void:
 	m = main
-	var wood_floor := Build.mat(Color(0.14, 0.1, 0.07), 0.9)
+	var wood_floor := Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.4, 0.31, 0.23), 1.3)
 	var wall := Build.mat(Color(0.12, 0.095, 0.07), 0.95)
 	# sàn + tường + trần (rất cao — bên trong to hơn bên ngoài)
 	Build.box(self, Vector3(15, 0.2, 20), O + Vector3(0, -0.1, 0), wood_floor)

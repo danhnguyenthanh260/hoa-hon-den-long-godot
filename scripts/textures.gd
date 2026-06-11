@@ -65,6 +65,19 @@ static func plaster(size: int = 256, base := Color(0.52, 0.36, 0.16)) -> ImageTe
 	return ImageTexture.create_from_image(img)
 
 
+# đốm sáng mềm cho particle (tàn lửa, đom đóm)
+static func soft_dot(size: int = 64) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var c := size / 2.0
+	for y in range(size):
+		for x in range(size):
+			var d := Vector2(x - c, y - c).length() / c
+			var a := clampf(1.0 - d, 0.0, 1.0)
+			a = a * a * (0.4 + 0.6 * a)
+			img.set_pixel(x, y, Color(1.0, 0.9, 0.75, a))
+	return ImageTexture.create_from_image(img)
+
+
 # lá cọ chằm nón — vành ngang sáng tối xen kẽ + sống lá
 static func straw(size: int = 128) -> ImageTexture:
 	var img := Image.create(size, size, false, Image.FORMAT_RGB8)

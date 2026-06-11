@@ -32,7 +32,7 @@ func build(main) -> void:
 	var bridge := Node3D.new()
 	bridge.position = C + Vector3(0, 0, -6.5)
 	add_child(bridge)
-	var deckwood := Build.mat(Color(0.3, 0.19, 0.1), 0.8)
+	var deckwood := Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.5, 0.34, 0.2), 1.2)
 	var redcol := Build.mat(Color(0.42, 0.1, 0.07), 0.6)
 	# mặt cầu cong vòm: 7 nhịp ván
 	for s in range(7):

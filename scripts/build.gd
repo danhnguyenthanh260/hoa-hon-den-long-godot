@@ -9,6 +9,27 @@ static func mat(c: Color, rough: float = 0.9) -> StandardMaterial3D:
 	return m
 
 
+# vật liệu PBR từ bộ texture ambientCG (CC0): Color + NormalGL + Roughness, chiếu triplanar
+static func pbr(folder: String, scale: float, tint := Color(1, 1, 1), normal_strength := 1.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	var dir := DirAccess.open(folder)
+	if dir != null:
+		for f in dir.get_files():
+			if f.ends_with("_Color.jpg"):
+				m.albedo_texture = load(folder + "/" + f)
+			elif f.ends_with("_NormalGL.jpg"):
+				m.normal_enabled = true
+				m.normal_texture = load(folder + "/" + f)
+				m.normal_scale = normal_strength
+			elif f.ends_with("_Roughness.jpg"):
+				m.roughness_texture = load(folder + "/" + f)
+	m.albedo_color = tint
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(scale, scale, scale)
+	return m
+
+
 static func emis(albedo: Color, emission: Color, energy: float, rough: float = 0.6) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = albedo

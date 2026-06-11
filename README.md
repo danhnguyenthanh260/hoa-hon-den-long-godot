@@ -41,8 +41,15 @@ GDScript thuần — texture sinh procedural, không asset ngoài.
   đòn dông + đầu đao
 - Giếng cổ **vuông kiểu Bá Lễ** với khung gỗ kéo nước (C2), hoành phi - câu đối -
   bát nhang (C3), **Chùa Cầu** vòm cong, miếu giữa cầu, tượng linh thú hai đầu (C5)
+- **PBR texture thật** (ambientCG, CC0): đá lát, vữa tường, gỗ ván, ngói, đất —
+  đủ Color + Normal + Roughness, normal map bắt ánh đèn lồng nổi khối
 - Render: Forward+, volumetric fog, glow/bloom, ACES, **SDFGI**, **SSAO**, SSR,
-  hạt tàn tro lơ lửng, mỗi chương một bảng màu riêng
+  tàn lửa lơ lửng (particle texture), mỗi chương một bảng màu riêng
+
+## Ghi công
+
+- Texture PBR: [ambientCG.com](https://ambientcg.com) — giấy phép CC0
+  (Plaster001, PavingStones138, WoodFloor043, RoofingTiles013A, Ground068)
 
 ## Kiểm tra tự động
 
