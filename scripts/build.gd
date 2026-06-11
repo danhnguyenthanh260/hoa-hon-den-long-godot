@@ -205,6 +205,30 @@ static func door_eye(parent: Node3D, pos: Vector3, side: float) -> void:
 	dot.rotation.z = PI / 2.0
 
 
+# dựng tượng từ file .glb (mesh AI sinh hoặc asset ngoài): scale về chiều cao cho trước,
+# đáy chạm mặt đất của parent, tùy chọn phủ vật liệu
+static func glb_statue(parent: Node3D, path: String, height: float, material: Material = null) -> Node3D:
+	var scene := load(path)
+	if scene == null:
+		return Node3D.new()
+	var inst: Node3D = scene.instantiate()
+	parent.add_child(inst)
+	var aabb := AABB()
+	var first := true
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		var a: AABB = mi.global_transform * mi.get_aabb()
+		aabb = a if first else aabb.merge(a)
+		first = false
+		if material != null:
+			mi.material_override = material
+	if first:
+		return inst
+	var k := height / aabb.size.y
+	inst.scale = Vector3.ONE * k
+	inst.position.y = -(aabb.position.y - parent.global_position.y) * k
+	return inst
+
+
 # đốm Sắc Ngũ Hành lơ lửng
 static func color_orb(parent: Node3D, pos: Vector3, color: Color) -> Node3D:
 	var orb := Node3D.new()

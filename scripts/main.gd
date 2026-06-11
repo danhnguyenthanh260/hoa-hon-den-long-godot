@@ -76,6 +76,8 @@ func _ready() -> void:
 		_flow_test()
 	elif args.has("--chara"):
 		_chara_shots()
+	elif args.has("--aiview"):
+		_aiview()
 
 
 func is_play() -> bool:
@@ -472,6 +474,51 @@ func _chara_shots() -> void:
 	await get_tree().create_timer(0.3).timeout
 	await _shot(dir + "/walk2.png")
 	print("CHARA DONE")
+	get_tree().quit()
+
+
+# ---------- xem mesh AI sinh cạnh Minh procedural ----------
+func _aiview() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	var dir := ProjectSettings.globalize_path("res://shots/chara")
+	DirAccess.make_dir_recursive_absolute(dir)
+	state = State.PLAY
+	ui.hide_intro()
+	free_cam = true
+	camera.fov = 45
+	player.position = Vector3(-0.75, 0, 2)
+	var scene := load("res://assets/models/minh_shape_0.glb")
+	var inst: Node3D = scene.instantiate()
+	add_child(inst)
+	# đo AABB toàn cục, scale về cao ~1.8m và đặt đứng trên nền
+	await get_tree().process_frame
+	var aabb := AABB()
+	var first := true
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		var a: AABB = mi.global_transform * mi.get_aabb()
+		aabb = a if first else aabb.merge(a)
+		first = false
+	var k := 1.8 / aabb.size.y
+	inst.scale = Vector3.ONE * k
+	inst.position = Vector3(0.75, -aabb.position.y * k, 2)
+	# đèn studio
+	for cfg in [[Vector3(1.6, 2.6, 5.6), Color(1.0, 0.92, 0.8), 2.4], [Vector3(-2.2, 1.6, 2.8), Color(0.5, 0.62, 1.0), 1.0], [Vector3(0.5, 2.4, -0.6), Color(1.0, 0.75, 0.45), 1.4]]:
+		var l := OmniLight3D.new()
+		l.position = cfg[0]
+		l.light_color = cfg[1]
+		l.light_energy = cfg[2]
+		l.omni_range = 10.0
+		add_child(l)
+	await get_tree().create_timer(1.0).timeout
+	var center := Vector3(0, 0.95, 2)
+	var angles := {"front": PI, "side": PI / 2.0, "back": 0.0}
+	for vname in angles:
+		var a: float = angles[vname]
+		camera.position = center + Vector3(sin(a) * 3.4, 0.3, cos(a) * 3.4)
+		camera.look_at(center)
+		await get_tree().create_timer(0.4).timeout
+		await _shot(dir + "/ai-%s.png" % vname)
+	print("AIVIEW DONE")
 	get_tree().quit()
 
 

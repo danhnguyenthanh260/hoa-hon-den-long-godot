@@ -181,12 +181,18 @@ func _defeat() -> void:
 	defeated = true
 	fight_active = false
 	m.ui.set_objective("")
-	# bóng tối nhỏ lại thành một người gánh đèn
+	# bóng tối nhỏ lại thành một người gánh đèn — bức tượng trắng nhòe của chính Minh
+	# (mesh do AI tái tạo từ ảnh Minh: một "ký ức đã phai" theo đúng nghĩa đen)
 	for b in _blobs:
 		b.visible = false
 	_core.visible = false
 	_neg.light_energy = 0.0
-	var figure := Build.faceless_npc(_boss, Vector3.ZERO, Color(0.13, 0.2, 0.42))
+	var ghost_mat := StandardMaterial3D.new()
+	ghost_mat.albedo_color = Color(0.9, 0.93, 1.0)
+	ghost_mat.emission_enabled = true
+	ghost_mat.emission = Color(0.6, 0.66, 0.95)
+	ghost_mat.emission_energy_multiplier = 0.65
+	var figure := Build.glb_statue(_boss, "res://assets/models/minh_shape_0.glb", 1.7, ghost_mat)
 	figure.rotation.y = PI
 	m.say([
 		["Minh (nghĩ)", "Pha cuối vỡ ra. Nó không gầm. Nó NHỎ LẠI — thành một bóng người gầy, đội nón, gánh sào đèn."],
