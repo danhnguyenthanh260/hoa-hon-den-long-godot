@@ -50,6 +50,9 @@ GDScript thuần — texture sinh procedural, không asset ngoài.
 
 - Texture PBR: [ambientCG.com](https://ambientcg.com) — giấy phép CC0
   (Plaster001, PavingStones138, WoodFloor043, RoofingTiles013A, Ground068)
+- Tượng "người giữ đèn" (cảnh kết): mesh tái tạo bằng
+  [Hunyuan3D-2](https://huggingface.co/spaces/tencent/Hunyuan3D-2) (Tencent, open source)
+  từ render một asset CC BY 4.0 sinh bởi Meshy — xem `scripts/gen3d.py`
 
 ## Kiểm tra tự động
 
