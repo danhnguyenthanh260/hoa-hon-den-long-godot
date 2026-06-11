@@ -157,6 +157,12 @@ func _build_main_street() -> void:
 			prev = top
 			_string_lanterns.append([Build.lantern(self, 0.13, 0.24, Vector3(sx, y, z)), palette[idx % palette.size()]])
 			idx += 1
+	# cây xanh phá đường mái — phố thật luôn có tán cây chen giữa nhà
+	for tp in [Vector3(-9.5, 0, 12.9), Vector3(16.5, 0, 12.9)]:
+		Build.cyl(self, 0.14, 0.2, 2.8, tp + Vector3(0, 1.4, 0), Build.mat(Color(0.16, 0.12, 0.09), 0.95), 8)
+		for fb in range(4):
+			var off := Vector3(sin(fb * 1.9) * 0.65, 3.1 + (fb % 2) * 0.55, cos(fb * 1.9) * 0.55)
+			Build.ball(self, 0.62 + 0.18 * (fb % 2), 1.1, tp + off, Build.mat(Color(0.09, 0.16, 0.07), 0.95))
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
 		var mist := Build.box(self, Vector3(0.4, 7.0, 14.0), Vector3(mx, 3.5, 11.0), null)
@@ -213,7 +219,7 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	add_child(a)
 	# mỗi căn một sắc vữa hơi khác — phố thật không nhà nào trùng màu nhà nào
 	var pm: StandardMaterial3D = _plaster.duplicate()
-	pm.albedo_color = Color(0.82, 0.58, 0.27) * (0.84 + 0.11 * ((idx * 7) % 3)) + Color(0.0, 0.02, 0.0) * ((idx * 13) % 2)
+	pm.albedo_color = Color(0.95, 0.66, 0.24) * (0.84 + 0.11 * ((idx * 7) % 3)) + Color(0.0, 0.02, 0.0) * ((idx * 13) % 2)
 	# thân nhà ống: sâu 5m, bề ngang 4m LIỀN KỀ nhà bên (phố là dải mặt tiền liên tục)
 	Build.box(a, Vector3(5.0, h, 4.0), Vector3(2.5, h / 2.0, 0), pm)
 	Build.box(a, Vector3(5.04, 0.42, 4.02), Vector3(2.5, 0.21, 0), _moss)
@@ -253,11 +259,30 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	Build.box(a, Vector3(0.08, 0.1, 2.25), Vector3(0.02, 1.92, 0), _darkwood)
 	for ez in [-0.32, 0.32]:
 		Build.door_eye(a, Vector3(-0.04, 2.14, ez), 1.0)
+	# biển hiệu gỗ viền vàng trên cửa — nhà buôn nào cũng có
+	Build.box(a, Vector3(0.07, 0.46, 1.68), Vector3(-0.05, 2.45, 0), Build.mat(Color(0.55, 0.42, 0.15), 0.5))
+	Build.box(a, Vector3(0.09, 0.38, 1.56), Vector3(-0.06, 2.45, 0), Build.mat(Color(0.09, 0.05, 0.04), 0.6))
+	# nhà hai tầng: TẦNG TRÊN ỐP VÁN GỖ NÂU — tương phản vữa vàng tầng dưới
+	if h > 3.3:
+		Build.box(a, Vector3(0.08, h * 0.42, 4.02), Vector3(-0.02, h * 0.76, 0), _wood)
 	# cửa sổ chấn song gác
-	var win := Build.box(a, Vector3(0.06, 0.65, 0.95), Vector3(0.03, h - 0.75, 1.0), Build.mat(Color(0.07, 0.055, 0.045), 0.8))
+	var win := Build.box(a, Vector3(0.1, 0.65, 0.95), Vector3(0.03, h - 0.75, 1.0), Build.mat(Color(0.07, 0.055, 0.045), 0.8))
 	_windows.append(win)
 	for bz in range(4):
-		Build.cyl(a, 0.018, 0.018, 0.6, Vector3(-0.01, h - 0.75, 0.62 + bz * 0.25), _darkwood, 6)
+		Build.cyl(a, 0.018, 0.018, 0.6, Vector3(-0.08, h - 0.75, 0.62 + bz * 0.25), _darkwood, 6)
+	# dãy đèn lồng treo dọc hiên — phố Hội là phố của đèn
+	var row_y := (h - 1.42) if h > 3.3 else 2.28
+	for lz in [-1.5, -0.5, 0.5, 1.5]:
+		_hanging.append(Build.lantern(a, 0.13, 0.24, Vector3(-0.55, row_y, lz)))
+	# hoa giấy rủ — mỗi ba nhà một giàn
+	if (idx * 11) % 3 == 0:
+		var base_p := Vector3(-0.75, (h - 1.0) if h > 3.3 else 2.35, 1.45)
+		for fi in range(16):
+			var fx := sin(fi * 2.39 + idx) * 0.32
+			var fy := -absf(sin(fi * 1.7)) * 0.65
+			var fz := cos(fi * 2.39 + idx) * 0.3
+			var fc := Color(0.78, 0.12, 0.4) if fi % 4 != 0 else Color(0.1, 0.22, 0.08)
+			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.mat(fc, 0.85))
 	# ban công nhà hai tầng
 	if h > 3.3:
 		var by := h - 1.35
