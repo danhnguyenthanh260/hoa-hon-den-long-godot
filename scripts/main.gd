@@ -74,6 +74,8 @@ func _ready() -> void:
 		_autoplay()
 	elif args.has("--flow"):
 		_flow_test()
+	elif args.has("--chara"):
+		_chara_shots()
 
 
 func is_play() -> bool:
@@ -417,6 +419,60 @@ func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 	print("shot: ", path)
+
+
+# ---------- chụp nhân vật full HD: turntable 8 góc + cận mặt + tư thế bước ----------
+func _chara_shots() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	var dir := ProjectSettings.globalize_path("res://shots/chara")
+	DirAccess.make_dir_recursive_absolute(dir)
+	state = State.PLAY
+	ui.hide_intro()
+	free_cam = true
+	camera.fov = 45
+	player.position = Vector3(0, 0, 2)
+	var key_l := OmniLight3D.new()
+	key_l.light_color = Color(1.0, 0.92, 0.8)
+	key_l.light_energy = 2.4
+	key_l.omni_range = 9.0
+	key_l.position = Vector3(1.6, 2.6, 3.6)
+	add_child(key_l)
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.5, 0.62, 1.0)
+	fill.light_energy = 1.0
+	fill.omni_range = 9.0
+	fill.position = Vector3(-2.2, 1.6, 0.8)
+	add_child(fill)
+	var rim := OmniLight3D.new()
+	rim.light_color = Color(1.0, 0.75, 0.45)
+	rim.light_energy = 1.4
+	rim.omni_range = 8.0
+	rim.position = Vector3(0.5, 2.4, -2.6)
+	add_child(rim)
+	await get_tree().create_timer(1.0).timeout
+	# turntable 8 góc — nhân vật choán đầy khung 1080p
+	var center: Vector3 = player.position + Vector3(0, 0.95, 0)
+	for i in range(8):
+		var a := TAU * i / 8.0 + PI   # bắt đầu từ chính diện (mặt hướng -z)
+		camera.position = center + Vector3(sin(a) * 2.35, 0.25, cos(a) * 2.35)
+		camera.look_at(center)
+		await get_tree().create_timer(0.35).timeout
+		await _shot(dir + "/turn-%d.png" % i)
+	# cận mặt
+	camera.position = player.position + Vector3(0.18, 1.56, -0.78)
+	camera.look_at(player.position + Vector3(0, 1.56, 0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/face.png")
+	# tư thế bước (góc 3/4)
+	player.force_walk = true
+	camera.position = player.position + Vector3(1.7, 1.15, -1.5)
+	camera.look_at(player.position + Vector3(0, 0.9, 0))
+	await get_tree().create_timer(0.85).timeout
+	await _shot(dir + "/walk.png")
+	await get_tree().create_timer(0.3).timeout
+	await _shot(dir + "/walk2.png")
+	print("CHARA DONE")
+	get_tree().quit()
 
 
 # ---------- flow test: chơi hết 5 chương bằng chính các handler thật (headless) ----------

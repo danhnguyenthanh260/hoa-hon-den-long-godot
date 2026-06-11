@@ -88,50 +88,72 @@ func _ready() -> void:
 	_flap_f = _make_flap(0.115)
 	_flap_b = _make_flap(-0.115)
 
-	# ---- đầu: mặt, mắt, tóc, nón lá quai thao ----
+	# ---- đầu: gương mặt đầy đủ, tóc, nón lá quai thao ----
 	_head = Node3D.new()
 	_head.position = Vector3(0, 1.58, 0)
 	_visual.add_child(_head)
-	Build.ball(_head, 0.115, 0.215, Vector3.ZERO, skin)
-	for ex in [-0.042, 0.042]:
-		Build.ball(_head, 0.012, 0.02, Vector3(ex, 0.01, 0.102), Build.mat(Color(0.05, 0.04, 0.04), 0.4))
-	# tóc ôm gáy dưới vành nón
-	var hair_m := Build.ball(_head, 0.115, 0.2, Vector3(0, 0.015, -0.025), hair)
-	hair_m.scale = Vector3(1.04, 0.95, 1.04)
-	# nón lá: chóp thẳng, texture lá cọ, vành + quai
+	var face := Build.ball(_head, 0.115, 0.215, Vector3.ZERO, skin)
+	face.scale = Vector3(0.96, 1.05, 1.0)
+	# mắt: lòng trắng hạnh nhân + con ngươi đen
+	var eye_white := Build.mat(Color(0.93, 0.91, 0.86), 0.25)
+	var pupil_m := Build.mat(Color(0.07, 0.05, 0.04), 0.2)
+	for ex in [-1.0, 1.0]:
+		var ew := Build.ball(_head, 0.02, 0.036, Vector3(ex * 0.046, 0.008, 0.098), eye_white)
+		ew.scale = Vector3(1.25, 0.85, 0.55)
+		Build.ball(_head, 0.0105, 0.02, Vector3(ex * 0.044, 0.006, 0.112), pupil_m)
+		# lông mày mảnh
+		var brow := Build.box(_head, Vector3(0.04, 0.006, 0.008), Vector3(ex * 0.046, 0.042, 0.105), hair)
+		brow.rotation.z = -ex * 0.1
+		# tai
+		var ear := Build.ball(_head, 0.022, 0.042, Vector3(ex * 0.112, -0.005, 0.005), skin)
+		ear.scale = Vector3(0.45, 0.9, 0.7)
+	# mũi
+	var nose := Build.ball(_head, 0.016, 0.03, Vector3(0, -0.018, 0.115), skin)
+	nose.scale = Vector3(0.75, 1.1, 0.85)
+	# miệng
+	var mouth := Build.box(_head, Vector3(0.042, 0.008, 0.01), Vector3(0, -0.06, 0.103), Build.mat(Color(0.6, 0.28, 0.22), 0.5))
+	mouth.rotation.y = 0.0
+	# tóc ôm gáy dưới vành nón + mái lưa thưa trước trán
+	var hair_m := Build.ball(_head, 0.115, 0.2, Vector3(0, 0.02, -0.02), hair)
+	hair_m.scale = Vector3(1.05, 0.92, 1.02)
+	Build.box(_head, Vector3(0.115, 0.014, 0.014), Vector3(0, 0.094, 0.09), hair)
+	# nón lá: chóp thẳng, texture lá cọ — đội cao và ngửa nhẹ để lộ mặt
 	var hat_mat := StandardMaterial3D.new()
 	hat_mat.albedo_texture = Textures.straw()
 	hat_mat.roughness = 0.92
 	hat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var hat := CylinderMesh.new()
 	hat.top_radius = 0.008
-	hat.bottom_radius = 0.37
-	hat.height = 0.21
+	hat.bottom_radius = 0.34
+	hat.height = 0.2
 	hat.radial_segments = 22
 	var hat_mi := MeshInstance3D.new()
 	hat_mi.mesh = hat
 	hat_mi.material_override = hat_mat
-	hat_mi.position = Vector3(0, 0.155, 0)
+	hat_mi.position = Vector3(0, 0.185, -0.01)
+	hat_mi.rotation.x = -0.1
 	_head.add_child(hat_mi)
-	Build.cyl(_head, 0.012, 0.012, 0.03, Vector3(0, 0.27, 0), Build.mat(Color(0.5, 0.38, 0.2), 0.8), 8)
-	# quai nón hai bên
+	Build.cyl(_head, 0.012, 0.012, 0.03, Vector3(0, 0.295, -0.012), Build.mat(Color(0.5, 0.38, 0.2), 0.8), 8)
+	# quai nón: hai dây ôm má chụm dưới cằm + nơ nhỏ
 	for qx in [-1.0, 1.0]:
-		var strap := Build.cyl(_head, 0.006, 0.006, 0.22, Vector3(qx * 0.1, -0.02, 0.01), Build.mat(Color(0.45, 0.1, 0.1), 0.7), 6)
-		strap.rotation.z = qx * 0.5
+		var strap := Build.cyl(_head, 0.0035, 0.0035, 0.27, Vector3(qx * 0.052, -0.045, 0.062), Build.mat(Color(0.38, 0.08, 0.08), 0.7), 6)
+		strap.rotation.z = qx * 0.82
+		strap.rotation.x = -0.22
+	Build.ball(_head, 0.011, 0.022, Vector3(0, -0.135, 0.075), Build.mat(Color(0.45, 0.1, 0.1), 0.6))
 
-	# ---- tay phải ghì sào trên vai (tư thế cố định) ----
+	# ---- tay phải ghì sào trên vai: khuỷu sát thân, bàn tay nắm sào trước vai ----
 	var arm_r := Node3D.new()
-	arm_r.position = Vector3(0.19, 1.34, 0)
-	arm_r.rotation.z = -0.5
-	arm_r.rotation.x = 0.35
+	arm_r.position = Vector3(0.185, 1.36, 0)
+	arm_r.rotation.z = -0.12
+	arm_r.rotation.x = 0.42
 	_visual.add_child(arm_r)
-	Build.ball(arm_r, 0.052, 0.3, Vector3(0, -0.12, 0), _robe_mat)
+	Build.ball(arm_r, 0.05, 0.28, Vector3(0, -0.11, 0), _robe_mat)
 	var elbow_r := Node3D.new()
-	elbow_r.position = Vector3(0, -0.24, 0)
-	elbow_r.rotation.x = -1.85
+	elbow_r.position = Vector3(0, -0.22, 0)
+	elbow_r.rotation.x = -1.5
 	arm_r.add_child(elbow_r)
-	Build.ball(elbow_r, 0.046, 0.26, Vector3(0, -0.1, 0), _robe_mat)
-	Build.ball(elbow_r, 0.05, 0.1, Vector3(0, -0.22, 0), skin)
+	Build.ball(elbow_r, 0.044, 0.24, Vector3(0, -0.09, 0), _robe_mat)
+	Build.ball(elbow_r, 0.048, 0.095, Vector3(0, -0.2, 0), skin)
 
 	# ---- tay trái vung theo nhịp bước ----
 	_arm_swing = Node3D.new()
@@ -209,8 +231,9 @@ func _make_leg(x: float, linen: Material, sandal: Material) -> Node3D:
 	knee.position = Vector3(0, -0.38, 0)
 	hip.add_child(knee)
 	Build.ball(knee, 0.05, 0.36, Vector3(0, -0.15, 0), linen)  # ống chân
-	var foot := Build.box(knee, Vector3(0.085, 0.045, 0.17), Vector3(0, -0.37, 0.035), sandal)
-	foot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# bàn chân + dép bo tròn
+	var foot := Build.ball(knee, 0.05, 0.1, Vector3(0, -0.36, 0.04), sandal)
+	foot.scale = Vector3(0.85, 0.42, 1.75)
 	return hip
 
 
@@ -218,11 +241,8 @@ func _make_flap(z: float) -> Node3D:
 	var pivot := Node3D.new()
 	pivot.position = Vector3(0, 0.84, z)
 	_visual.add_child(pivot)
-	# tà áo: tấm mỏng hơi cong (3 đoạn nối)
-	for k in range(3):
-		var seg := Build.box(pivot, Vector3(0.235 - k * 0.012, 0.235, 0.014),
-			Vector3(0, -0.1 - k * 0.205, sign(z) * k * 0.006), _robe_mat)
-		seg.rotation.x = sign(z) * k * 0.04
+	# tà áo: dải vải liền cong mượt, hơi thu nhỏ về đuôi tà
+	Build.ribbon(pivot, 0.26, 0.64, sign(z) * 0.18, 0.14, _robe_mat, 10)
 	return pivot
 
 

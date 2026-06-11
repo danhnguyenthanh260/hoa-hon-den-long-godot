@@ -137,6 +137,38 @@ static func lathe(parent: Node3D, profile: Array, pos: Vector3, material: Materi
 	return mi
 
 
+# dải vải mềm: lưới đỉnh cong dần về cuối, normal mịn — cho tà áo, rèm
+static func ribbon(parent: Node3D, width: float, length: float, curve: float, taper: float, material: Material, segs: int = 9) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(0)
+	var rows := []
+	for i in range(segs + 1):
+		var t := float(i) / segs
+		var w := width * (1.0 - taper * t) * 0.5
+		rows.append([
+			Vector3(-w, -length * t, curve * length * t * t),
+			Vector3(w, -length * t, curve * length * t * t),
+		])
+	for i in range(segs):
+		var a: Vector3 = rows[i][0]
+		var b: Vector3 = rows[i][1]
+		var c: Vector3 = rows[i + 1][0]
+		var d: Vector3 = rows[i + 1][1]
+		st.add_vertex(a)
+		st.add_vertex(c)
+		st.add_vertex(d)
+		st.add_vertex(a)
+		st.add_vertex(d)
+		st.add_vertex(b)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = material
+	parent.add_child(mi)
+	return mi
+
+
 # mái ngói âm dương: hàng ống ngói chạy dọc dốc mái (MultiMesh cho rẻ)
 # slope_node đặt tại tâm slab, đã xoay sẵn — ngói rải trên mặt local XZ.
 static func tile_rows(slope_node: Node3D, width: float, depth: float) -> void:
