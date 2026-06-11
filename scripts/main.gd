@@ -354,6 +354,19 @@ func _autoplay() -> void:
 	player.position = Vector3(0, 0, 7)
 	await get_tree().create_timer(0.8).timeout
 	await _shot(dir + "/c1-alley.png")
+	# phố Trần Phú — camera đặt dọc trục phố
+	free_cam = true
+	player.position = Vector3(-14, 0, 11)
+	camera.position = Vector3(-4, 2.8, 11.2)
+	camera.look_at(Vector3(-18, 1.2, 10.8))
+	await get_tree().create_timer(1.0).timeout
+	await _shot(dir + "/c1-street.png")
+	player.position = Vector3(-31, 0, 11)
+	camera.position = Vector3(-24, 2.4, 11.5)
+	camera.look_at(Vector3(-40, 1.5, 11))
+	await get_tree().create_timer(1.0).timeout
+	await _shot(dir + "/c1-bridge-mist.png")
+	free_cam = false
 	# C1: câu đố bóng
 	player.position = Vector3(3.2, 0, -14.8)
 	var c1 = chapters[1]

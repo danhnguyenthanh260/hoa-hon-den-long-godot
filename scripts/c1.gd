@@ -12,6 +12,11 @@ var web_burned := false
 var _web: Node3D
 var _brazier_pos := Vector3(-4.2, 0.5, -6.0)
 var _orb: Node3D
+var _cat: Node3D
+var _cat_met := false
+var _knocked := false
+var _street_lamps: Array = []
+var _lamps_lit := 0
 
 
 func build(main) -> void:
@@ -62,6 +67,42 @@ func build(main) -> void:
 	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Nói chuyện với bà hàng nước", Callable(self, "_talk_ba"), false)
 	m.add_interact(puzzle.stand_pos(), 2.6, "Thắp sáng ký ức (đèn lồng phong ấn)", Callable(self, "_enter_puzzle"), false)
 	m.add_interact(Vector3(0, 0, -21.2), 2.4, "Rào tơ nhện chắn lối — cần một ngọn lửa", Callable(self, "_try_burn"), false)
+	_build_street_life()
+
+
+# ---- phố Trần Phú: những thứ chạm vào được (và vài thứ không nên chạm) ----
+func _build_street_life() -> void:
+	# mèo đen trên bậu cửa — nó nhìn cậu trước khi cậu thấy nó
+	_cat = Node3D.new()
+	_cat.position = Vector3(14.5, 0.45, 8.6)
+	add_child(_cat)
+	var fur := Build.mat(Color(0.04, 0.04, 0.05), 0.9)
+	Build.ball(_cat, 0.13, 0.2, Vector3(0, 0.1, 0), fur)
+	Build.ball(_cat, 0.085, 0.16, Vector3(0, 0.26, 0.06), fur)
+	for ex in [-0.045, 0.045]:
+		Build.cyl(_cat, 0.005, 0.028, 0.06, Vector3(ex, 0.36, 0.05), fur, 4)
+		Build.ball(_cat, 0.009, 0.018, Vector3(ex, 0.27, 0.13), Build.emis(Color(0.9, 0.75, 0.2), Color(0.9, 0.7, 0.1), 1.4))
+	var tail := Build.cyl(_cat, 0.018, 0.025, 0.3, Vector3(-0.1, 0.18, -0.12), fur, 6)
+	tail.rotation.z = 0.9
+	m.add_interact(Vector3(14.5, 0, 8.6), 1.8, "Con mèo đen", Callable(self, "_pet_cat"), false)
+	# cửa nhà gõ được — đừng gõ lần hai
+	m.add_interact(Vector3(-19.5, 0, 14.0), 1.8, "Gõ cửa ngôi nhà tối", Callable(self, "_knock_door"), false)
+	# Chùa Cầu sau sương Tây
+	m.add_interact(Vector3(-36.5, 0, 11.0), 2.5, "Nhìn về phía cây cầu", Callable(self, "_seal_bridge"), false)
+	# chợ sau sương Đông
+	m.add_interact(Vector3(36.5, 0, 11.0), 2.5, "Lắng nghe phía chợ", Callable(self, "_seal_market"), false)
+	# gánh hoa đăng bỏ không
+	Build.box(self, Vector3(0.9, 0.06, 0.5), Vector3(8.0, 0.25, 12.8), Build.mat(Color(0.3, 0.22, 0.12)))
+	for hk in range(3):
+		Build.cyl(self, 0.08, 0.1, 0.07, Vector3(7.7 + hk * 0.3, 0.32, 12.8), Build.mat(Color(0.75, 0.4, 0.45), 0.7), 8)
+	m.add_interact(Vector3(8.0, 0, 12.8), 1.8, "Gánh hoa đăng bỏ không", Callable(self, "_hoa_dang_stall"), false)
+	# sáu trụ đèn phố thắp được bằng Sắc Hỏa
+	for i in range(6):
+		var lx := -30.0 + i * 12.0
+		Build.cyl(self, 0.05, 0.07, 2.3, Vector3(lx, 1.15, 10.2), Build.mat(Color(0.13, 0.09, 0.06)), 8)
+		var lan := Build.lantern(self, 0.15, 0.28, Vector3(lx, 2.5, 10.2))
+		_street_lamps.append(lan)
+		m.add_interact(Vector3(lx, 0, 10.2), 1.7, "Trụ đèn phố nguội lạnh", Callable(self, "_light_lamp").bind(_street_lamps.size() - 1), false)
 
 
 func intro_beat() -> void:
@@ -132,6 +173,80 @@ func _try_burn() -> void:
 		["Minh (nghĩ)", "...Đèn vừa tắt một nhịp. Cả phố. Cùng một nhịp."],
 		["Minh (nghĩ)", "Có thứ gì vừa đi qua. Không phải đi qua ngõ. Đi qua TÔI."],
 	], func(): m.ui.set_objective("Đi qua cổng — sân giếng đôi ở phía sau"))
+
+
+func _pet_cat() -> void:
+	if not _cat_met:
+		_cat_met = true
+		m.say([
+			["Minh (nghĩ)", "Một con mèo đen. Nó không chớp mắt. Mèo phố này hồi xưa thấy người là chạy..."],
+			["Minh (nghĩ)", "Nó không nhìn tôi. Nó nhìn... cái đèn sau vai tôi."],
+		])
+	elif _cat.visible:
+		_cat.visible = false
+		m.say([["Minh (nghĩ)", "...Nó không còn ở đó. Mà tôi chưa từng thấy nó rời đi."]])
+	else:
+		m.say([["Minh (nghĩ)", "Bậu cửa trống. Ấm — như có gì vừa ngồi đây rất lâu."]])
+
+
+func _knock_door() -> void:
+	if not _knocked:
+		_knocked = true
+		m.say([
+			["Minh (nghĩ)", "Cốc. Cốc. Cốc."],
+			["Minh (nghĩ)", "..."],
+			["Minh (nghĩ)", "Cốc. Cốc. Cốc. — từ BÊN TRONG. Đúng nhịp tôi vừa gõ."],
+			["Minh (nghĩ)", "Tôi sẽ không gõ nữa."],
+		])
+	else:
+		m.say([["Minh (nghĩ)", "Không. Tôi đã bảo là không gõ nữa."]])
+
+
+func _seal_bridge() -> void:
+	m.say([
+		["Minh (nghĩ)", "Chùa Cầu. Sương đặc đến mức cây cầu chỉ còn là một nét mực tàu."],
+		["Minh (nghĩ)", "Có gì đó bên kia sương... vẫn nhớ tôi. Chưa phải lúc. Nhưng sẽ phải đến."],
+	])
+
+
+func _seal_market() -> void:
+	m.say([
+		["Minh (nghĩ)", "Phía chợ. Tôi nghe tiếng rao, tiếng dao thớt, tiếng cãi giá..."],
+		["Minh (nghĩ)", "...vọng ra từ một khu chợ trống không. Âm thanh không có người. Như đĩa hát quay trong căn nhà bỏ hoang."],
+	])
+
+
+func _hoa_dang_stall() -> void:
+	m.say([
+		["Minh (nghĩ)", "Gánh hoa đăng bỏ không. Ba đóa sen giấy còn nguyên, giấy chưa ố."],
+		["Minh (nghĩ)", "Người bán chỉ vừa rời đi — hai mươi năm trước."],
+	])
+
+
+func _light_lamp(i: int) -> void:
+	var lamp: MeshInstance3D = _street_lamps[i]
+	if lamp.get_meta("lit", false):
+		m.say([["Minh (nghĩ)", "Ngọn đèn này đã ấm lại rồi."]])
+		return
+	if m.player.current_color != "hoa":
+		m.say([["Minh (nghĩ)", "Bấc đèn còn nguyên, chỉ thiếu lửa. (Sắc Hỏa — phím 1)"]])
+		return
+	lamp.set_meta("lit", true)
+	Build.light_lantern(lamp, Color(1.0, 0.45, 0.12), 2.6)
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.55, 0.25)
+	l.light_energy = 1.1
+	l.omni_range = 6.0
+	l.position = lamp.position
+	add_child(l)
+	_lamps_lit += 1
+	if _lamps_lit >= 6:
+		m.say([
+			["Minh (nghĩ)", "Sáu trụ đèn — cả phố Trần Phú ấm lại."],
+			["Minh (nghĩ)", "Sau lưng tôi... cảm giác như có rất nhiều người vừa khẽ mỉm cười. Tôi không quay lại nhìn."],
+		])
+	else:
+		m.ui.toast("Đèn phố đã thắp: %d / 6" % _lamps_lit)
 
 
 func update(_delta: float) -> void:
