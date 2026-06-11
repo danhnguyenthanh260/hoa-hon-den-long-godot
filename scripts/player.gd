@@ -22,6 +22,10 @@ var current_color := ""
 var move_dir := Vector3.ZERO
 var facing_yaw := PI
 var force_walk := false       # cho bot chụp ảnh tư thế bước
+var first_person := false     # ẩn thân, đi theo hướng nhìn; sào đèn vẫn hiện
+var fp_yaw := PI
+var _body_parts: Array = []
+var _pole_holder: Node3D
 
 var _visual: Node3D
 var _hang: Node3D
@@ -174,6 +178,7 @@ func _ready() -> void:
 	pole_holder.rotation.x = -0.36
 	pole_holder.rotation.y = 0.5
 	_visual.add_child(pole_holder)
+	_pole_holder = pole_holder
 	var pole := CylinderMesh.new()
 	pole.top_radius = 0.016
 	pole.bottom_radius = 0.02
@@ -220,6 +225,16 @@ func _ready() -> void:
 	_light.omni_range = 9.0
 	_light.position.y = -0.43
 	_hang.add_child(_light)
+	# gom các phần THÂN (trừ sào đèn) để ẩn khi vào góc nhìn thứ nhất
+	for c in _visual.get_children():
+		if c != _pole_holder:
+			_body_parts.append(c)
+
+
+func set_first_person(v: bool) -> void:
+	first_person = v
+	for c in _body_parts:
+		c.visible = not v
 
 
 func _make_leg(x: float, linen: Material, sandal: Material) -> Node3D:
@@ -284,14 +299,18 @@ func update_move(delta: float, clamp_cb: Callable) -> void:
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
 		dir.x += 1.0
 	_moving = dir.length_squared() > 0.0
+	if first_person and _moving:
+		dir = dir.rotated(Vector3.UP, fp_yaw - PI)
 	move_dir = dir
 	if _moving:
 		dir = dir.normalized()
-		if Input.is_key_pressed(KEY_SHIFT):
-			position += dir * SPEED * 0.7 * delta
+		position += dir * SPEED * delta
+		if first_person:
+			_target_yaw = fp_yaw
 		else:
-			position += dir * SPEED * delta
 			_target_yaw = atan2(dir.x, dir.z)
+	elif first_person:
+		_target_yaw = fp_yaw
 	position = clamp_cb.call(position)
 	facing_yaw = _visual.rotation.y
 

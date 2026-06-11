@@ -211,8 +211,21 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	a.position = pos
 	a.rotation.y = yrot
 	add_child(a)
-	Build.box(a, Vector3(3.0, h, 3.6), Vector3(1.55, h / 2.0, 0), _plaster)
+	# mỗi căn một sắc vữa hơi khác — phố thật không nhà nào trùng màu nhà nào
+	var pm: StandardMaterial3D = _plaster.duplicate()
+	pm.albedo_color = Color(0.82, 0.58, 0.27) * (0.84 + 0.11 * ((idx * 7) % 3)) + Color(0.0, 0.02, 0.0) * ((idx * 13) % 2)
+	Build.box(a, Vector3(3.0, h, 3.6), Vector3(1.55, h / 2.0, 0), pm)
 	Build.box(a, Vector3(3.04, 0.42, 3.64), Vector3(1.55, 0.21, 0), _moss)
+	# tam cấp đá trước cửa + ván diềm dưới mái
+	Build.box(a, Vector3(0.5, 0.12, 1.3), Vector3(-0.3, 0.06, 0), Build.mat(Color(0.3, 0.3, 0.32), 0.95))
+	Build.box(a, Vector3(0.06, 0.25, 3.75), Vector3(-0.06, h - 0.02, 0), _darkwood)
+	# ánh đèn hắt từ trong nhà ra sau song cửa — phố chưa chết hẳn
+	if idx % 3 != 0:
+		var glow := Build.box(a, Vector3(0.02, 0.85, 1.0), Vector3(0.16, 1.45, 0), Build.emis(Color(1.0, 0.75, 0.45), Color(1.0, 0.55, 0.22), 0.45))
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if idx % 2 == 0:
+		var wglow := Build.box(a, Vector3(0.02, 0.55, 0.85), Vector3(0.14, h - 0.75, 1.0), Build.emis(Color(1.0, 0.7, 0.4), Color(1.0, 0.5, 0.2), 0.35))
+		wglow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for dz in [-1.7, -0.6, 0.6, 1.7]:
 		Build.box(a, Vector3(0.13, h, 0.13), Vector3(0, h / 2.0, dz), _wood)
 	for dz in [-0.6, 0.6]:

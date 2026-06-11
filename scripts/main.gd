@@ -40,6 +40,10 @@ var checkpoint := Vector3(0, 0, 7)
 var chapter_no := 1
 var chapters := {}
 var active_puzzle = null
+var first_person := true
+var fp_yaw := PI
+var fp_pitch := -0.08
+var bot_mode := false
 var free_cam := false
 var _interacts: Array = []
 var _say_then: Callable = Callable()
@@ -73,6 +77,9 @@ func _ready() -> void:
 		chapters[n].build(self)
 
 	var args := OS.get_cmdline_user_args()
+	bot_mode = args.size() > 0
+	if bot_mode:
+		first_person = false
 	if args.has("--autoplay"):
 		_autoplay()
 	elif args.has("--flow"):
@@ -143,8 +150,10 @@ func _on_dialogue_finished() -> void:
 
 
 # ---------- tương tác ----------
-func add_interact(pos: Vector3, r: float, prompt: String, cb: Callable, once: bool) -> void:
-	_interacts.append({"pos": pos, "r": r, "prompt": prompt, "cb": cb, "once": once, "used": false})
+func add_interact(pos: Vector3, r: float, prompt: String, cb: Callable, once: bool) -> Dictionary:
+	var it := {"pos": pos, "r": r, "prompt": prompt, "cb": cb, "once": once, "used": false}
+	_interacts.append(it)
+	return it
 
 
 func _nearest_interact():
@@ -232,12 +241,21 @@ func ending_sequence() -> void:
 
 # ---------- input ----------
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and first_person and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		fp_yaw -= event.relative.x * 0.0028
+		fp_pitch = clampf(fp_pitch - event.relative.y * 0.0028, -1.15, 0.65)
+		player.fp_yaw = fp_yaw
+		return
 	if dialogue.active:
 		return
 	if state == State.INTRO:
 		if (event is InputEventKey and event.is_pressed()) or (event is InputEventMouseButton and event.is_pressed()):
 			state = State.PLAY
 			ui.hide_intro()
+			if first_person:
+				player.set_first_person(true)
+				player.fp_yaw = fp_yaw
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			current_chapter().intro_beat()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -252,6 +270,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_interact_key()
 		elif event.keycode == KEY_R and state == State.WON:
 			get_tree().reload_current_scene()
+		elif event.keycode == KEY_V:
+			first_person = not first_person
+			player.set_first_person(first_person)
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if first_person else Input.MOUSE_MODE_VISIBLE
+		elif event.keycode == KEY_ESCAPE:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 	ui.update_colors()
 
 
@@ -299,6 +323,11 @@ func _update_camera(delta: float) -> void:
 		var lp: Vector3 = active_puzzle.light_pos
 		desired = lp + Vector3(-2.2, 0.9, 4.9)
 		look = Vector3(lp.x, lp.y + 0.1, lp.z - 2.5)
+	elif first_person and state == State.PLAY:
+		# góc nhìn thứ nhất: mắt ở đầu, lắc nhẹ theo nhịp bước
+		camera.position = player.position + Vector3(0, 1.56 + player._visual.position.y * 0.6, 0)
+		camera.rotation = Vector3(fp_pitch, fp_yaw - PI, 0)
+		return
 	else:
 		desired = player.position + Vector3(0, 3.2, 5.6)
 		look = player.position + Vector3(0, 1.3, 0)
@@ -611,8 +640,17 @@ func _flow_test() -> void:
 	await _wait_dialogue()
 	c2._take_thuy()
 	await _wait_dialogue()
-	c2.passed = true
-	goto_chapter(3)
+	assert(c2.quest_stage == 1)
+	chapters[1]._talk_ba()      # bà kể sự tích giếng → cần sen giấy
+	await _wait_dialogue()
+	assert(c2.quest_stage == 2)
+	chapters[1]._hoa_dang_stall()  # lấy sen từ gánh hoa đăng
+	await _wait_dialogue()
+	assert(c2.quest_stage == 3)
+	c2._offer_lotus()           # trả lễ — vệt nước dẫn đường, cổng mở
+	await _wait_dialogue()
+	assert(c2.quest_stage == 4)
+	player.position = Vector3(0, 0, -43.0)
 	await _until(func(): return chapter_no == 3 and state == State.PLAY, "vào c3", 30.0)
 	var c3 = chapters[3]
 	c3._take_moc()

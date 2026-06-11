@@ -30,7 +30,7 @@ func _ready() -> void:
 
 	_intro = _build_intro()
 	add_child(_intro)
-	_hud = _label("WASD di chuyển · E tương tác · Shift đi lùi · 1-5 đổi màu đèn", 14, Color(CREAM.r, CREAM.g, CREAM.b, 0.75), HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_BOTTOM)
+	_hud = _label("WASD di chuyển · chuột nhìn quanh · E tương tác · V đổi góc nhìn · 1-5 màu đèn", 14, Color(CREAM.r, CREAM.g, CREAM.b, 0.75), HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_BOTTOM)
 	_hud.visible = false
 	add_child(_hud)
 	_objective = _label("", 16, GOLD, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP, 18)
@@ -123,7 +123,7 @@ func _build_intro() -> Control:
 		["Khi những câu chuyện xưa bị lãng quên, bóng tối sẽ tìm đến", 16, Color(0.73, 0.66, 0.5)],
 		["để lấp đầy những khoảng trống của ký ức...\"", 16, Color(0.73, 0.66, 0.5)],
 		["", 8, CREAM],
-		["WASD — di chuyển · E — tương tác / thoại · Shift — đi lùi · 1-5 — màu Ngũ Hành", 15, CREAM],
+		["WASD — di chuyển · chuột — nhìn quanh · E — tương tác / thoại · 1-5 — màu Ngũ Hành", 15, CREAM],
 	])
 	var box: VBoxContainer = root.get_child(1).get_child(0)
 	_start_label = Label.new()

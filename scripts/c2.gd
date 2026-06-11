@@ -14,6 +14,10 @@ const POOL_Z1 := -37.5
 var m
 var loops := 0
 var has_thuy := false
+# nhiệm vụ điều tra: 0 chưa biết gì → 1 hỏi bà hàng nước → 2 tìm sen giấy
+# → 3 có sen → 4 đã trả lễ, cổng mở
+var quest_stage := 0
+var _trail: Array = []
 var _child: Node3D
 var _plank: MeshInstance3D
 var _tiles: Array = []   # [mesh, Vector3]
@@ -93,6 +97,7 @@ func build(main) -> void:
 
 	m.add_interact(Vector3(3.4, 0, -26.6), 2.0, "Nói chuyện với đứa trẻ", Callable(self, "_talk_child"), false)
 	m.add_interact(Vector3(2.2, 0, -27.0), 1.7, "Nhìn xuống giếng", Callable(self, "_look_well"), false)
+	m.add_interact(Vector3(2.2, 0, -27.8), 1.6, "Thả đóa sen xuống giếng", Callable(self, "_offer_lotus"), false)
 
 	# hồn dân phố đã phai — đi mãi những vòng quen thuộc của ngày còn sống
 	var w1 := GhostWalker.new()
@@ -159,10 +164,33 @@ func _take_thuy() -> void:
 	m.player.unlock_color("thuy")
 	m.ui.update_colors()
 	has_thuy = true
+	quest_stage = 1
 	m.say([
 		["Minh (nghĩ)", "Lạnh. Như cầm một vốc đáy sông trong lòng bàn tay."],
 		["Đứa Trẻ Soi Giếng", "Ánh nước soi được những thứ giả vờ là không có. Cả đường đi cũng giả vờ được, anh biết không?"],
-	], func(): m.ui.set_objective("SẮC THỦY (phím 2): tìm đường qua vũng tối — rồi qua cổng vòm theo cách của nơi này (giữ Shift đi lùi)"))
+		["Minh", "Còn cái cổng? Làm sao qua được cái cổng gập?"],
+		["Đứa Trẻ Soi Giếng", "Cổng chỉ mở cho người mang ĐÚNG THỨ nó chờ. Em không nhớ là thứ gì... nhưng bà hàng nước thì nhớ. Bà ấy múc nước giếng này cả một đời mà."],
+	], func(): m.ui.set_objective("Quay ra phố — hỏi bà hàng nước về cánh cổng gập"))
+
+
+# bà hàng nước kể sự tích giếng — gọi từ c1 khi quest_stage == 1
+func ba_lore() -> void:
+	quest_stage = 2
+	m.say([
+		["Bà Hàng Nước", "Cái cổng sau sân giếng hả... Cậu nhỏ hỏi đúng người rồi đấy."],
+		["Bà Hàng Nước", "Giếng đó người Chăm đào, trước cả phố này. Nước ngọt quanh năm — nhưng xưa nay XIN NƯỚC PHẢI TRẢ LỄ. Một đóa sen giấy thả xuống lòng giếng, để nước biết mình không lấy không của đất."],
+		["Bà Hàng Nước", "Hai mươi năm nay không ai trả lễ nữa. Nên cái sân ấy... nó giận. Nó gập đường lại, không cho ai đi qua mà tay không."],
+		["Minh", "Sen giấy... giờ tìm đâu ra?"],
+		["Bà Hàng Nước", "Gánh hoa đăng nhà con Tư còn bỏ ngoài phố kìa. Nó đi rồi, nhưng sen thì còn. Lấy một đóa — nó không trách đâu. Người bán hoa đăng chưa bao giờ trách người cần ánh sáng."],
+	], func(): m.ui.set_objective("Lấy một đóa sen giấy ở gánh hoa đăng trên phố"))
+
+
+func take_lotus() -> void:
+	quest_stage = 3
+	m.ui.toast("Nhận: ĐÓA SEN GIẤY")
+	m.say([
+		["Minh (nghĩ)", "Một đóa sen giấy hồng, giấy đã ngả màu nhưng nếp gấp vẫn sắc. Người gấp nó có đôi tay rất khéo."],
+	], func(): m.ui.set_objective("Thả đóa sen xuống giếng phải — trả lễ cho nước"))
 
 
 func _gate_loop_beat() -> void:
@@ -182,7 +210,40 @@ func _gate_loop_beat() -> void:
 			["Minh (nghĩ)", "...Tấm ván bắc qua vũng nước. Lúc nãy nó còn ở đó. LÚC NÃY NÓ CÒN Ở ĐÓ MÀ."],
 		])
 	else:
-		m.say([["Minh (nghĩ)", "Đi tới là vô vọng rồi. 'Đi như người ở đây đi'... Ở đây cái gì cũng ngược."]])
+		m.say([["Minh (nghĩ)", "Lại quay về. Cái cổng này muốn một thứ gì đó... mà tôi chưa có."]])
+
+
+# trả lễ: sen chạm nước — vệt sáng xanh chảy từ giếng ra cổng, dẫn đường qua vũng tối
+func _offer_lotus() -> void:
+	if quest_stage < 3:
+		if quest_stage >= 1:
+			m.say([["Minh (nghĩ)", "Giếng chờ một lễ vật. Tay tôi đang trống không."]])
+		return
+	if quest_stage >= 4:
+		return
+	quest_stage = 4
+	m.ui.play_chime()
+	# đóa sen nổi trên mặt giếng
+	var lotus := Node3D.new()
+	lotus.position = Vector3(2.2, 0.56, -27.0)
+	add_child(lotus)
+	Build.cyl(lotus, 0.07, 0.09, 0.06, Vector3.ZERO, Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.6, 0.25), 2.5), 8)
+	for pk in range(6):
+		var ang := TAU * pk / 6.0
+		Build.ball(lotus, 0.06, 0.05, Vector3(cos(ang) * 0.1, 0.01, sin(ang) * 0.1), Build.mat(Color(0.85, 0.4, 0.5), 0.7))
+	# vệt nước dẫn đường: giếng → phiến đá ẩn → cổng
+	var path_pts := [Vector3(2.2, 0.04, -28.5), Vector3(1.6, 0.04, -31.0), Vector3(1.2, 0.04, -33.6),
+		Vector3(0.1, 0.04, -34.5), Vector3(1.0, 0.04, -35.4), Vector3(-0.2, 0.04, -36.2),
+		Vector3(0.8, 0.04, -37.0), Vector3(0.4, 0.04, -39.5), Vector3(0.0, 0.04, -42.0)]
+	for pp in path_pts:
+		var dot := Build.cyl(self, 0.16, 0.2, 0.025, pp, Build.emis(Color(0.5, 0.8, 1.0), Color(0.3, 0.65, 1.0), 2.0), 10)
+		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_trail.append(dot)
+	m.say([
+		["Minh (nghĩ)", "Đóa sen chạm nước — và lòng giếng SÁNG LÊN, như ai vừa thắp đèn dưới đó."],
+		["Minh (nghĩ)", "Một vệt nước phát sáng tràn ra khỏi thành giếng... chảy NGƯỢC dốc, băng qua vũng tối, vẽ một con đường thẳng ra cổng."],
+		["Đứa Trẻ Soi Giếng", "Nước nhớ anh rồi đó. Đi theo nó đi. Nhớ giữ ánh nước trên đèn — đường trên vũng tối chỉ chịu chân người mang Thủy."],
+	], func(): m.ui.set_objective("Theo vệt nước ra cổng (giữ Sắc Thủy — phím 2 — khi qua vũng tối)"))
 
 
 func update(delta: float) -> void:
@@ -210,14 +271,13 @@ func update(delta: float) -> void:
 		if not safe:
 			m.respawn(Vector3(0, 0, -31.5), "Lạnh thấu xương. Vũng nước này không có đáy — nó nhả tôi ra như nhả một hạt sạn.")
 			return
-	# cổng vòm: đi tới = lặp; đi GIẬT LÙI (Shift) = thoát
+	# cổng vòm: chưa trả lễ thì gập đường về chỗ cũ; trả lễ rồi thì mở
 	if p.z < Z1 + 0.9 and _gate_cooldown <= 0.0 and not passed:
-		var backward: bool = Input.is_key_pressed(KEY_SHIFT) and m.player.move_dir.z < 0.0
-		if backward and loops >= 1 and has_thuy:
+		if quest_stage >= 4:
 			passed = true
 			m.say([
-				["Minh (nghĩ)", "Sư phụ từng nói: trong mơ, muốn về thì đừng chạy về phía cửa."],
-				["Minh (nghĩ)", "Hóa ra... thầy không nói về giấc mơ."],
+				["Minh (nghĩ)", "Cánh cổng không động đậy — chỉ là con đường sau nó THẲNG ra. Như tờ giấy gập được vuốt phẳng."],
+				["Minh (nghĩ)", "Xin thì phải trả. Phố này chưa từng quên phép tắc — chỉ có người là quên."],
 			], func(): m.goto_chapter(3))
 		else:
 			_gate_cooldown = 1.0

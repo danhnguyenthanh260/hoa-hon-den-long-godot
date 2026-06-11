@@ -17,6 +17,13 @@ var _cat_met := false
 var _knocked := false
 var _street_lamps: Array = []
 var _lamps_lit := 0
+# mèo đi dạo: các bậu cửa nó hay ngồi
+const CAT_PERCHES := [Vector3(14.5, 0.45, 8.6), Vector3(22.0, 0.45, 13.4), Vector3(-10.5, 0.45, 13.4), Vector3(5.0, 0.45, 8.6)]
+var _cat_target := 0
+var _cat_state := 0.0     # >0: đang ngồi đếm ngược; <=0: đang đi
+var _cat_interact: Dictionary
+var _cat_t := 0.0
+var _cat_tail: Node3D
 
 
 func build(main) -> void:
@@ -82,9 +89,10 @@ func _build_street_life() -> void:
 	for ex in [-0.045, 0.045]:
 		Build.cyl(_cat, 0.005, 0.028, 0.06, Vector3(ex, 0.36, 0.05), fur, 4)
 		Build.ball(_cat, 0.009, 0.018, Vector3(ex, 0.27, 0.13), Build.emis(Color(0.9, 0.75, 0.2), Color(0.9, 0.7, 0.1), 1.4))
-	var tail := Build.cyl(_cat, 0.018, 0.025, 0.3, Vector3(-0.1, 0.18, -0.12), fur, 6)
-	tail.rotation.z = 0.9
-	m.add_interact(Vector3(14.5, 0, 8.6), 1.8, "Con mèo đen", Callable(self, "_pet_cat"), false)
+	_cat_tail = Build.cyl(_cat, 0.018, 0.025, 0.3, Vector3(-0.1, 0.18, -0.12), fur, 6)
+	_cat_tail.rotation.z = 0.9
+	_cat_interact = m.add_interact(Vector3(14.5, 0, 8.6), 1.8, "Con mèo đen", Callable(self, "_pet_cat"), false)
+	_cat_state = 4.0
 	# cửa nhà gõ được — đừng gõ lần hai
 	m.add_interact(Vector3(-19.5, 0, 14.0), 1.8, "Gõ cửa ngôi nhà tối", Callable(self, "_knock_door"), false)
 	# Chùa Cầu sau sương Tây
@@ -115,6 +123,9 @@ func intro_beat() -> void:
 
 var _ba_talked := false
 func _talk_ba() -> void:
+	if m.chapters[2].quest_stage == 1:
+		m.chapters[2].ba_lore()
+		return
 	if not _ba_talked:
 		_ba_talked = true
 		m.say([
@@ -217,6 +228,9 @@ func _seal_market() -> void:
 
 
 func _hoa_dang_stall() -> void:
+	if m.chapters[2].quest_stage == 2:
+		m.chapters[2].take_lotus()
+		return
 	m.say([
 		["Minh (nghĩ)", "Gánh hoa đăng bỏ không. Ba đóa sen giấy còn nguyên, giấy chưa ố."],
 		["Minh (nghĩ)", "Người bán chỉ vừa rời đi — hai mươi năm trước."],
@@ -249,9 +263,44 @@ func _light_lamp(i: int) -> void:
 		m.ui.toast("Đèn phố đã thắp: %d / 6" % _lamps_lit)
 
 
-func update(_delta: float) -> void:
+func update(delta: float) -> void:
+	_update_cat(delta)
 	if web_burned and m.player.position.z < -23.0:
 		m.goto_chapter(2)
+
+
+# mèo đi dạo giữa các bậu cửa; người lại gần là nó lảng — đúng kiểu mèo
+func _update_cat(delta: float) -> void:
+	if _cat == null or not _cat.visible:
+		return
+	_cat_t += delta
+	var pdist: float = m.player.position.distance_to(_cat.position)
+	if _cat_state > 0.0:
+		_cat_state -= delta
+		_cat_tail.rotation.x = sin(_cat_t * 1.8) * 0.25
+		if pdist < 2.0:
+			# người tới gần — đứng dậy lảng sang bậu cửa xa nhất
+			var best := 0
+			var best_d := 0.0
+			for i in range(CAT_PERCHES.size()):
+				var d: float = m.player.position.distance_to(CAT_PERCHES[i])
+				if d > best_d:
+					best_d = d
+					best = i
+			_cat_target = best
+			_cat_state = 0.0
+	else:
+		var target: Vector3 = CAT_PERCHES[_cat_target]
+		var to_t := target - _cat.position
+		if to_t.length() < 0.2:
+			_cat_state = 5.0 + fmod(_cat_t, 4.0)
+		else:
+			var speed := 3.4 if pdist < 3.0 else 1.3
+			_cat.position += to_t.normalized() * speed * delta
+			_cat.rotation.y = atan2(to_t.x, to_t.z)
+			_cat.position.y = 0.45 + absf(sin(_cat_t * 9.0)) * 0.05
+			_cat_tail.rotation.x = sin(_cat_t * 6.0) * 0.4
+	_cat_interact["pos"] = Vector3(_cat.position.x, 0, _cat.position.z)
 
 
 func clamp_player(pos: Vector3) -> Vector3:
