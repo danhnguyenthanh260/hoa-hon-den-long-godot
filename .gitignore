@@ -1,4 +1,5 @@
 .godot/
 tools/
 shots/
+.agent-profiles/
 *.tmp

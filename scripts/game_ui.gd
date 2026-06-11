@@ -1,42 +1,72 @@
-# Toàn bộ UI 2D: màn hình mở đầu, HUD, lời nhắc, thông báo, màn thắng + tiếng chuông.
+# UI: intro, HUD, mục tiêu, bảng màu Ngũ Hành, prompt, toast, fade, title card, credits, màn thắng.
 extends CanvasLayer
 
 const GOLD := Color(1.0, 0.82, 0.29)
 const CREAM := Color(0.95, 0.87, 0.69)
 
+var player: Node3D   # main gán sau khi tạo
+
 var _font: SystemFont
 var _intro: Control
 var _hud: Label
+var _objective: Label
 var _prompt: Label
 var _hint: Label
 var _toast: Label
 var _win: Control
+var _fade: ColorRect
+var _title: Label
+var _subtitle: Label
+var _colors_box: HBoxContainer
 var _start_label: Label
 var _toast_timer := 0.0
 var _pulse_t := 0.0
 
 
 func _ready() -> void:
+	layer = 10
 	_font = SystemFont.new()
 	_font.font_names = PackedStringArray(["Segoe UI", "Arial"])
 
 	_intro = _build_intro()
 	add_child(_intro)
-	_hud = _label("WASD — di chuyển · E — tương tác", 15, CREAM, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_BOTTOM)
+	_hud = _label("WASD di chuyển · E tương tác · Shift đi lùi · 1-5 đổi màu đèn", 14, Color(CREAM.r, CREAM.g, CREAM.b, 0.75), HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_BOTTOM)
 	_hud.visible = false
 	add_child(_hud)
-	_prompt = _label("Nhấn E để thắp sáng ký ức", 21, CREAM, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_BOTTOM, -70)
-	_prompt.visible = false
+	_objective = _label("", 16, GOLD, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP, 18)
+	add_child(_objective)
+	_prompt = _label("", 20, CREAM, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_BOTTOM, -70)
 	add_child(_prompt)
-	_hint = _label("A / D — xoay đèn lồng cho bóng Chim Lạc khớp với hình mờ trên tường", 21, CREAM, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_BOTTOM, -70)
+	_hint = _label("", 20, CREAM, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_BOTTOM, -70)
 	_hint.visible = false
 	add_child(_hint)
-	_toast = _label("", 24, GOLD, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_TOP, 60)
+	_toast = _label("", 23, GOLD, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_TOP, 60)
 	_toast.visible = false
 	add_child(_toast)
+
+	_colors_box = HBoxContainer.new()
+	_colors_box.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_colors_box.position = Vector2(-250, -46)
+	_colors_box.add_theme_constant_override("separation", 10)
+	add_child(_colors_box)
+
 	_win = _build_win()
 	_win.visible = false
 	add_child(_win)
+
+	_fade = ColorRect.new()
+	_fade.color = Color(0, 0, 0, 0)
+	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fade)
+
+	_title = _label("", 46, GOLD, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
+	_title.modulate.a = 0.0
+	add_child(_title)
+	_subtitle = _label("", 20, Color(0.85, 0.75, 0.54), HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, 0.0)
+	_subtitle.offset_top = 60
+	_subtitle.modulate.a = 0.0
+	add_child(_subtitle)
 
 
 func _label(text: String, size: int, color: Color, halign: int, valign: int, voffset: float = -16.0) -> Label:
@@ -56,11 +86,11 @@ func _label(text: String, size: int, color: Color, halign: int, valign: int, vof
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	l.add_theme_constant_override("outline_size", 7)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
 
 func _centered_column(lines: Array, dim_alpha: float = 0.8) -> Control:
-	# lines: mảng [text, size, color]
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
@@ -87,13 +117,13 @@ func _centered_column(lines: Array, dim_alpha: float = 0.8) -> Control:
 func _build_intro() -> Control:
 	var root := _centered_column([
 		["HỌA HỒN ĐÈN LỒNG", 54, GOLD],
-		["— Demo: Ngõ Nhỏ —", 18, Color(0.85, 0.75, 0.54)],
+		["— Soul Painter —", 18, Color(0.85, 0.75, 0.54)],
 		["", 8, CREAM],
 		["\"Đã bao lâu rồi, phố hội không còn ánh lửa?", 16, Color(0.73, 0.66, 0.5)],
 		["Khi những câu chuyện xưa bị lãng quên, bóng tối sẽ tìm đến", 16, Color(0.73, 0.66, 0.5)],
 		["để lấp đầy những khoảng trống của ký ức...\"", 16, Color(0.73, 0.66, 0.5)],
 		["", 8, CREAM],
-		["W A S D — di chuyển  ·  E — tương tác  ·  A / D — xoay đèn khi giải đố", 15, CREAM],
+		["WASD — di chuyển · E — tương tác / thoại · Shift — đi lùi · 1-5 — màu Ngũ Hành", 15, CREAM],
 	])
 	var box: VBoxContainer = root.get_child(1).get_child(0)
 	_start_label = Label.new()
@@ -108,27 +138,33 @@ func _build_intro() -> Control:
 
 func _build_win() -> Control:
 	return _centered_column([
-		["", 120, CREAM],
-		["Ký ức phố hội đã được thắp sáng", 42, GOLD],
+		["Họa hồn — nghĩa là vẽ hồn mình vào trong đèn.", 30, GOLD],
 		["", 8, CREAM],
-		["Minh: \"Sư phụ nói... chừng nào lòng người còn mong cầu cái đẹp,", 17, Color(0.85, 0.75, 0.54)],
-		["ánh sáng sẽ không bao giờ tắt.\"", 17, Color(0.85, 0.75, 0.54)],
+		["Trong một tiệm đèn ở phố hội đêm nay, có một chiếc đèn cổ không ai bán.", 16, Color(0.85, 0.75, 0.54)],
+		["Trong lớp giấy dó, thấp thoáng một bóng chim Lạc bay —", 16, Color(0.85, 0.75, 0.54)],
+		["và đèn tự sáng, không cần lửa.", 16, Color(0.85, 0.75, 0.54)],
 		["", 8, CREAM],
-		["Nhấn R để chơi lại", 16, CREAM],
-	], 0.45)
+		["Nhấn R để chơi lại", 15, CREAM],
+	], 0.6)
 
 
 func hide_intro() -> void:
 	_intro.visible = false
 	_hud.visible = true
+	update_colors()
 
 
-func show_prompt(v: bool) -> void:
-	_prompt.visible = v
+func set_objective(text: String) -> void:
+	_objective.text = ("◆ " + text) if text != "" else ""
 
 
-func show_hint(v: bool) -> void:
-	_hint.visible = v
+func show_prompt(text: String) -> void:
+	_prompt.text = ("E — " + text) if text != "" else ""
+
+
+func show_hint(text: String) -> void:
+	_hint.text = text
+	_hint.visible = text != ""
 
 
 func toast(msg: String) -> void:
@@ -137,10 +173,77 @@ func toast(msg: String) -> void:
 	_toast_timer = 3.5
 
 
+func update_colors() -> void:
+	for c in _colors_box.get_children():
+		c.queue_free()
+	if player == null:
+		return
+	for id in player.COLOR_ORDER:
+		if not player.unlocked.has(id):
+			continue
+		var def: Dictionary = player.COLOR_DEFS[id]
+		var l := Label.new()
+		var key_num: int = def["key"] - KEY_0
+		l.text = "%d %s" % [key_num, def["name"]]
+		l.add_theme_font_override("font", _font)
+		l.add_theme_font_size_override("font_size", 16)
+		var c: Color = def["color"]
+		l.add_theme_color_override("font_color", c if player.current_color == id else Color(c.r, c.g, c.b, 0.45))
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		l.add_theme_constant_override("outline_size", 6)
+		_colors_box.add_child(l)
+
+
 func show_win() -> void:
 	_hud.visible = false
-	_prompt.visible = false
+	_prompt.text = ""
+	_objective.text = ""
 	_win.visible = true
+
+
+func fade_to(alpha: float, dur: float, color: Color = Color(0, 0, 0)) -> void:
+	_fade.color = Color(color.r, color.g, color.b, _fade.color.a)
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", alpha, dur)
+	await tw.finished
+
+
+func title_card(title: String, subtitle: String) -> void:
+	_title.text = title
+	_subtitle.text = subtitle
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(_title, "modulate:a", 1.0, 0.8)
+	tw.tween_property(_subtitle, "modulate:a", 1.0, 0.8)
+	await tw.finished
+	await get_tree().create_timer(2.2).timeout
+	var tw2 := create_tween()
+	tw2.set_parallel(true)
+	tw2.tween_property(_title, "modulate:a", 0.0, 0.8)
+	tw2.tween_property(_subtitle, "modulate:a", 0.0, 0.8)
+	await tw2.finished
+
+
+func roll_credits() -> void:
+	var lines := [
+		["HỌA HỒN ĐÈN LỒNG", 40, GOLD],
+		["", 10, CREAM],
+		["Kịch bản · Thiết kế · Lập trình", 16, Color(0.7, 0.62, 0.48)],
+		["Minh — người giữ đèn cuối cùng", 18, CREAM],
+		["", 10, CREAM],
+		["Cảm ơn bạn đã thắp lại phố hội.", 18, Color(0.85, 0.75, 0.54)],
+	]
+	var card := _centered_column(lines, 0.0)
+	card.modulate.a = 0.0
+	add_child(card)
+	var tw := create_tween()
+	tw.tween_property(card, "modulate:a", 1.0, 1.2)
+	await tw.finished
+	await get_tree().create_timer(3.0).timeout
+	var tw2 := create_tween()
+	tw2.tween_property(card, "modulate:a", 0.0, 1.0)
+	await tw2.finished
+	card.queue_free()
 
 
 func _process(delta: float) -> void:
@@ -153,7 +256,6 @@ func _process(delta: float) -> void:
 		_start_label.modulate.a = 0.5 + 0.5 * absf(sin(_pulse_t * 2.2))
 
 
-# hợp âm ngũ cung gợi tiếng đàn tranh
 func play_chime() -> void:
 	var p := AudioStreamPlayer.new()
 	var gen := AudioStreamGenerator.new()
