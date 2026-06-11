@@ -39,6 +39,7 @@ var checkpoint := Vector3(0, 0, 7)
 var chapter_no := 1
 var chapters := {}
 var active_puzzle = null
+var free_cam := false
 var _interacts: Array = []
 var _say_then: Callable = Callable()
 var _dust: GPUParticles3D
@@ -272,6 +273,8 @@ func _process(delta: float) -> void:
 
 
 func _update_camera(delta: float) -> void:
+	if free_cam:
+		return
 	var desired: Vector3
 	var look: Vector3
 	if state == State.PUZZLE and active_puzzle != null:
@@ -296,6 +299,41 @@ func _autoplay() -> void:
 	await _shot(dir + "/01-intro.png")
 	state = State.PLAY
 	ui.hide_intro()
+	# ---- chụp cận nhân vật 4 góc dưới đèn studio tạm ----
+	free_cam = true
+	player.position = Vector3(0, 0, 2)
+	var studio := OmniLight3D.new()
+	studio.light_color = Color(1.0, 0.92, 0.8)
+	studio.light_energy = 2.2
+	studio.omni_range = 8.0
+	studio.position = Vector3(1.5, 2.6, 3.5)
+	add_child(studio)
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.5, 0.6, 1.0)
+	fill.light_energy = 0.9
+	fill.omni_range = 8.0
+	fill.position = Vector3(-2.0, 1.8, 0.5)
+	add_child(fill)
+	var views := {
+		"front": Vector3(0, 1.25, -2.3),
+		"side": Vector3(2.3, 1.25, 0.2),
+		"back": Vector3(0.4, 1.45, 2.4),
+	}
+	for vname in views:
+		camera.position = player.position + views[vname]
+		camera.look_at(player.position + Vector3(0, 1.05, 0))
+		await get_tree().create_timer(0.5).timeout
+		await _shot(dir + "/chara-%s.png" % vname)
+	player.force_walk = true
+	camera.position = player.position + Vector3(1.9, 1.2, -1.6)
+	camera.look_at(player.position + Vector3(0, 0.95, 0))
+	await get_tree().create_timer(0.9).timeout
+	await _shot(dir + "/chara-walk.png")
+	player.force_walk = false
+	studio.queue_free()
+	fill.queue_free()
+	free_cam = false
+	player.position = Vector3(0, 0, 7)
 	await get_tree().create_timer(0.8).timeout
 	await _shot(dir + "/c1-alley.png")
 	# C1: câu đố bóng

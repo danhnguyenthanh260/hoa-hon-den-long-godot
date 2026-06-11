@@ -65,6 +65,26 @@ static func plaster(size: int = 256, base := Color(0.52, 0.36, 0.16)) -> ImageTe
 	return ImageTexture.create_from_image(img)
 
 
+# lá cọ chằm nón — vành ngang sáng tối xen kẽ + sống lá
+static func straw(size: int = 128) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	var r := _rng(41)
+	var base := Color(0.74, 0.6, 0.36)
+	var band := 5
+	var shades := []
+	for i in range(size / band + 1):
+		shades.append(0.86 + r.randf() * 0.26)
+	for y in range(size):
+		var s: float = shades[y / band]
+		for x in range(size):
+			var seam := 0.0
+			if (x % 21) < 1:
+				seam = -0.12
+			var n := (r.randf() - 0.5) * 0.05
+			img.set_pixel(x, y, Color(base.r * s + n + seam, base.g * s + n + seam, base.b * s + n * 0.6 + seam))
+	return ImageTexture.create_from_image(img)
+
+
 # gỗ ván nâu sậm — cửa và vách
 static func wood(size: int = 256, base := Color(0.21, 0.135, 0.08)) -> ImageTexture:
 	var img := Image.create(size, size, false, Image.FORMAT_RGB8)

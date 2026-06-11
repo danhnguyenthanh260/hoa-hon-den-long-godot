@@ -86,6 +86,36 @@ static func faceless_npc(parent: Node3D, pos: Vector3, robe_color: Color, scale_
 	return npc
 
 
+# mesh tròn xoay từ profile 2D (radius, y) — cho thân áo, vật dụng cong mượt
+static func lathe(parent: Node3D, profile: Array, pos: Vector3, material: Material, segs: int = 20) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(0)
+	for i in range(profile.size() - 1):
+		var p0: Vector2 = profile[i]
+		var p1: Vector2 = profile[i + 1]
+		for s in range(segs):
+			var a0 := TAU * s / segs
+			var a1 := TAU * (s + 1) / segs
+			var v00 := Vector3(cos(a0) * p0.x, p0.y, sin(a0) * p0.x)
+			var v01 := Vector3(cos(a1) * p0.x, p0.y, sin(a1) * p0.x)
+			var v10 := Vector3(cos(a0) * p1.x, p1.y, sin(a0) * p1.x)
+			var v11 := Vector3(cos(a1) * p1.x, p1.y, sin(a1) * p1.x)
+			st.add_vertex(v00)
+			st.add_vertex(v10)
+			st.add_vertex(v11)
+			st.add_vertex(v00)
+			st.add_vertex(v11)
+			st.add_vertex(v01)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.position = pos
+	mi.material_override = material
+	parent.add_child(mi)
+	return mi
+
+
 # mái ngói âm dương: hàng ống ngói chạy dọc dốc mái (MultiMesh cho rẻ)
 # slope_node đặt tại tâm slab, đã xoay sẵn — ngói rải trên mặt local XZ.
 static func tile_rows(slope_node: Node3D, width: float, depth: float) -> void:
