@@ -111,7 +111,8 @@ func _apply_zone(z: Dictionary, w: float) -> void:
 
 
 func _build_ground() -> void:
-	var gmat := Build.pbr("res://assets/textures/PavingStones138", 0.42, Color(0.72, 0.68, 0.64), 1.5)
+	# phố Hội An lát gạch PHẲNG — normal hạ thấp để hết cảm giác lồi lõm ổ gà
+	var gmat := Build.pbr("res://assets/textures/PavingStones138", 0.6, Color(0.68, 0.62, 0.58), 0.35)
 	var ground := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(110, 76)
@@ -133,14 +134,13 @@ func _build_houses() -> void:
 
 # phố Trần Phú chạy Đông-Tây ngang đầu ngõ + Chùa Cầu đầu Tây, chợ đầu Đông
 func _build_main_street() -> void:
-	var i := 0
-	for k in range(9):
-		var x := -34.0 + k * 8.5
+	# nhà LIỀN KỀ: bước = đúng bề ngang nhà (4m) — mặt tiền phố liên tục
+	for k in range(18):
+		var x := -34.0 + k * 4.0
 		var h_n := 2.9 + ((k + 1) % 3) * 0.5
-		_house(Vector3(x + 2.0, 0, 14.2), -PI / 2.0, h_n, k)        # dãy Bắc, mặt quay Nam
+		_house(Vector3(x, 0, 14.2), -PI / 2.0, h_n, k)               # dãy Bắc, mặt quay Nam
 		if absf(x) > 7.0:                                            # chừa miệng ngõ ở dãy Nam
 			_house(Vector3(x, 0, 7.9), PI / 2.0, 2.9 + (k % 3) * 0.5, k + 1)
-		i += 1
 	# dây đèn giăng ngang phố
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(0.95, 0.25, 0.4)]
 	var idx := 0
@@ -214,8 +214,24 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	# mỗi căn một sắc vữa hơi khác — phố thật không nhà nào trùng màu nhà nào
 	var pm: StandardMaterial3D = _plaster.duplicate()
 	pm.albedo_color = Color(0.82, 0.58, 0.27) * (0.84 + 0.11 * ((idx * 7) % 3)) + Color(0.0, 0.02, 0.0) * ((idx * 13) % 2)
-	Build.box(a, Vector3(3.0, h, 3.6), Vector3(1.55, h / 2.0, 0), pm)
-	Build.box(a, Vector3(3.04, 0.42, 3.64), Vector3(1.55, 0.21, 0), _moss)
+	# thân nhà ống: sâu 5m, bề ngang 4m LIỀN KỀ nhà bên (phố là dải mặt tiền liên tục)
+	Build.box(a, Vector3(5.0, h, 4.0), Vector3(2.5, h / 2.0, 0), pm)
+	Build.box(a, Vector3(5.04, 0.42, 4.02), Vector3(2.5, 0.21, 0), _moss)
+	# hiên che vỉa hè + cột hiên (nhà một tầng — nhà hai tầng có ban công che thay)
+	if h <= 3.3:
+		var porch := Node3D.new()
+		porch.position = Vector3(-0.62, 2.42, 0)
+		porch.rotation.z = 0.5
+		a.add_child(porch)
+		var pslab := BoxMesh.new()
+		pslab.size = Vector3(1.45, 0.06, 4.0)
+		var pmi := MeshInstance3D.new()
+		pmi.mesh = pslab
+		pmi.material_override = Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, Color(0.5, 0.47, 0.5), 1.0)
+		porch.add_child(pmi)
+		Build.tile_rows(porch, 1.45, 4.0)
+		for pz in [-1.55, 1.55]:
+			Build.cyl(a, 0.07, 0.08, 2.15, Vector3(-1.15, 1.08, pz), _wood, 8)
 	# tam cấp đá trước cửa + ván diềm dưới mái
 	Build.box(a, Vector3(0.5, 0.12, 1.3), Vector3(-0.3, 0.06, 0), Build.mat(Color(0.3, 0.3, 0.32), 0.95))
 	Build.box(a, Vector3(0.06, 0.25, 3.75), Vector3(-0.06, h - 0.02, 0), _darkwood)
@@ -230,11 +246,11 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 		Build.box(a, Vector3(0.13, h, 0.13), Vector3(0, h / 2.0, dz), _wood)
 	for dz in [-0.6, 0.6]:
 		Build.box(a, Vector3(0.025, 1.5, 0.3), Vector3(-0.08, 1.5, dz), _lacquer)
-	# cửa thượng song hạ bản + mắt cửa
-	Build.box(a, Vector3(0.06, 0.95, 1.1), Vector3(0.02, 0.48, 0), _wood)
-	for bz in range(5):
-		Build.cyl(a, 0.022, 0.022, 0.85, Vector3(0.02, 1.42, -0.44 + bz * 0.22), _darkwood, 6)
-	Build.box(a, Vector3(0.08, 0.1, 1.2), Vector3(0.02, 1.92, 0), _darkwood)
+	# cửa buôn rộng gần hết gian: thượng song hạ bản + mắt cửa
+	Build.box(a, Vector3(0.06, 0.95, 2.1), Vector3(0.02, 0.48, 0), _wood)
+	for bz in range(9):
+		Build.cyl(a, 0.022, 0.022, 0.85, Vector3(0.02, 1.42, -0.88 + bz * 0.22), _darkwood, 6)
+	Build.box(a, Vector3(0.08, 0.1, 2.25), Vector3(0.02, 1.92, 0), _darkwood)
 	for ez in [-0.32, 0.32]:
 		Build.door_eye(a, Vector3(-0.04, 2.14, ez), 1.0)
 	# cửa sổ chấn song gác
@@ -250,22 +266,22 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 		for bz in range(6):
 			Build.cyl(a, 0.022, 0.022, 0.6, Vector3(-0.55, by + 0.32, -1.2 + bz * 0.4), _darkwood, 6)
 		_hanging.append(Build.lantern(a, 0.13, 0.24, Vector3(-0.6, by - 0.32, -1.3)))
-	# mái âm dương + đòn dông + đầu đao
+	# mái âm dương DỐC CAO + đòn dông + đầu đao (đòn dông giữa thân nhà sâu 5m)
 	for k in [-1.0, 1.0]:
 		var slope := Node3D.new()
-		slope.position = Vector3(1.55 + k * 0.95, h + 0.42, 0)
-		slope.rotation.z = -k * 0.42
+		slope.position = Vector3(2.5 + k * 1.22, h + 0.68, 0)
+		slope.rotation.z = -k * 0.55
 		a.add_child(slope)
 		var slab := BoxMesh.new()
-		slab.size = Vector3(2.1, 0.07, 4.0)
+		slab.size = Vector3(2.95, 0.07, 4.0)
 		var slab_mi := MeshInstance3D.new()
 		slab_mi.mesh = slab
 		slab_mi.material_override = Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, Color(0.5, 0.47, 0.5), 1.2)
 		slope.add_child(slab_mi)
-		Build.tile_rows(slope, 2.1, 4.0)
-	Build.cyl(a, 0.09, 0.09, 4.05, Vector3(1.55, h + 0.9, 0), _darkwood).rotation.x = PI / 2.0
+		Build.tile_rows(slope, 2.95, 4.0)
+	Build.cyl(a, 0.09, 0.09, 4.05, Vector3(2.5, h + 1.42, 0), _darkwood).rotation.x = PI / 2.0
 	for ke in [-1.0, 1.0]:
-		var horn := Build.cyl(a, 0.01, 0.09, 0.5, Vector3(1.55, h + 1.0, ke * 2.0), _darkwood, 8)
+		var horn := Build.cyl(a, 0.01, 0.09, 0.5, Vector3(2.5, h + 1.52, ke * 2.0), _darkwood, 8)
 		horn.rotation.x = -ke * 0.9
 	_hanging.append(Build.lantern(a, 0.16, 0.3, Vector3(-0.15, h - 0.45, -1.2)))
 

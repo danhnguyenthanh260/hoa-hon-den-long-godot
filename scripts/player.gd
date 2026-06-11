@@ -26,6 +26,7 @@ var first_person := false     # ẩn thân, đi theo hướng nhìn; sào đèn 
 var fp_yaw := PI
 var _body_parts: Array = []
 var _pole_holder: Node3D
+var _pole_mi: MeshInstance3D
 
 var _visual: Node3D
 var _hang: Node3D
@@ -183,12 +184,12 @@ func _ready() -> void:
 	pole.top_radius = 0.016
 	pole.bottom_radius = 0.02
 	pole.height = 1.55
-	var pole_mi := MeshInstance3D.new()
-	pole_mi.mesh = pole
-	pole_mi.material_override = Build.mat(Color(0.52, 0.42, 0.2), 0.85)
-	pole_mi.rotation.x = PI / 2.0
-	pole_mi.position.z = 0.42
-	pole_holder.add_child(pole_mi)
+	_pole_mi = MeshInstance3D.new()
+	_pole_mi.mesh = pole
+	_pole_mi.material_override = Build.mat(Color(0.52, 0.42, 0.2), 0.85)
+	_pole_mi.rotation.x = PI / 2.0
+	_pole_mi.position.z = 0.42
+	pole_holder.add_child(_pole_mi)
 	# đốt tre
 	for kz in [0.0, 0.35, 0.7]:
 		Build.cyl(pole_holder, 0.021, 0.021, 0.015, Vector3(0, 0, 0.1 + kz), Build.mat(Color(0.42, 0.33, 0.15), 0.85), 8).rotation.x = PI / 2.0
@@ -235,6 +236,15 @@ func set_first_person(v: bool) -> void:
 	first_person = v
 	for c in _body_parts:
 		c.visible = not v
+	# góc nhìn thứ nhất: rút ngắn sào để đèn không chọc xuyên tường nhà
+	if v:
+		_pole_mi.scale.y = 0.55
+		_pole_mi.position.z = 0.24
+		_hang.position.z = 0.68
+	else:
+		_pole_mi.scale.y = 1.0
+		_pole_mi.position.z = 0.42
+		_hang.position.z = 1.16
 
 
 func _make_leg(x: float, linen: Material, sandal: Material) -> Node3D:

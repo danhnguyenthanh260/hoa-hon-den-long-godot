@@ -323,8 +323,8 @@ func _update_camera(delta: float) -> void:
 		var lp: Vector3 = active_puzzle.light_pos
 		desired = lp + Vector3(-2.2, 0.9, 4.9)
 		look = Vector3(lp.x, lp.y + 0.1, lp.z - 2.5)
-	elif first_person and state == State.PLAY:
-		# góc nhìn thứ nhất: mắt ở đầu, lắc nhẹ theo nhịp bước
+	elif first_person and (state == State.PLAY or state == State.DIALOGUE):
+		# góc nhìn thứ nhất: mắt ở đầu, lắc nhẹ theo nhịp bước — giữ nguyên cả khi thoại
 		camera.position = player.position + Vector3(0, 1.56 + player._visual.position.y * 0.6, 0)
 		camera.rotation = Vector3(fp_pitch, fp_yaw - PI, 0)
 		return
