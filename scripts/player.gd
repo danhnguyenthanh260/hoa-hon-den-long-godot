@@ -9,11 +9,11 @@ const Textures := preload("res://scripts/textures.gd")
 const SPEED := 4.0
 
 const COLOR_DEFS := {
-	"hoa": {"name": "Hỏa", "color": Color(1.0, 0.3, 0.1), "key": KEY_1},
-	"thuy": {"name": "Thủy", "color": Color(0.25, 0.55, 1.0), "key": KEY_2},
-	"moc": {"name": "Mộc", "color": Color(0.3, 1.0, 0.38), "key": KEY_3},
-	"kim": {"name": "Kim", "color": Color(1.0, 0.96, 0.82), "key": KEY_4},
-	"tho": {"name": "Thổ", "color": Color(1.0, 0.78, 0.2), "key": KEY_5},
+	"hoa": {"name": "Hỏa", "color": Color(1.0, 0.3, 0.1), "num": 1, "keys": [KEY_1, KEY_KP_1]},
+	"thuy": {"name": "Thủy", "color": Color(0.25, 0.55, 1.0), "num": 2, "keys": [KEY_2, KEY_KP_2]},
+	"moc": {"name": "Mộc", "color": Color(0.3, 1.0, 0.38), "num": 3, "keys": [KEY_3, KEY_KP_3]},
+	"kim": {"name": "Kim", "color": Color(1.0, 0.96, 0.82), "num": 4, "keys": [KEY_4, KEY_KP_4]},
+	"tho": {"name": "Thổ", "color": Color(1.0, 0.78, 0.2), "num": 5, "keys": [KEY_5, KEY_KP_5]},
 }
 const COLOR_ORDER := ["hoa", "thuy", "moc", "kim", "tho"]
 
@@ -264,11 +264,13 @@ func set_color(id: String) -> void:
 	_paper_mat.albedo_color = c.lerp(Color(1, 1, 1), 0.35)
 
 
-func handle_color_keys(event: InputEvent) -> void:
+# trả về id màu ứng với phím (kể cả numpad), "" nếu không phải phím màu
+func color_for_key(event: InputEvent) -> String:
 	if event is InputEventKey and event.pressed and not event.echo:
 		for id in COLOR_ORDER:
-			if event.keycode == COLOR_DEFS[id]["key"] and unlocked.has(id):
-				set_color(id)
+			if event.keycode in COLOR_DEFS[id]["keys"]:
+				return id
+	return ""
 
 
 func update_move(delta: float, clamp_cb: Callable) -> void:

@@ -241,7 +241,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			current_chapter().intro_beat()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		player.handle_color_keys(event)
+		var cid: String = player.color_for_key(event)
+		if cid != "":
+			if player.has_color(cid):
+				player.set_color(cid)
+				ui.toast("Đèn chuyển sắc %s" % player.COLOR_DEFS[cid]["name"])
+			else:
+				ui.toast("Chưa tìm thấy Sắc %s — nó còn ở đâu đó trong phố..." % player.COLOR_DEFS[cid]["name"])
 		if event.keycode == KEY_E:
 			_on_interact_key()
 		elif event.keycode == KEY_R and state == State.WON:

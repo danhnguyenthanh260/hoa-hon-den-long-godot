@@ -183,8 +183,7 @@ func update_colors() -> void:
 			continue
 		var def: Dictionary = player.COLOR_DEFS[id]
 		var l := Label.new()
-		var key_num: int = def["key"] - KEY_0
-		l.text = "%d %s" % [key_num, def["name"]]
+		l.text = "%d %s" % [def["num"], def["name"]]
 		l.add_theme_font_override("font", _font)
 		l.add_theme_font_size_override("font_size", 16)
 		var c: Color = def["color"]
