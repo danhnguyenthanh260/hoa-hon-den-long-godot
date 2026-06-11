@@ -4,6 +4,7 @@
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
+const GhostWalker := preload("res://scripts/ghost_walker.gd")
 
 const Z0 := -20.6
 const Z1 := -43.6
@@ -92,6 +93,17 @@ func build(main) -> void:
 
 	m.add_interact(Vector3(3.4, 0, -26.6), 2.0, "Nói chuyện với đứa trẻ", Callable(self, "_talk_child"), false)
 	m.add_interact(Vector3(2.2, 0, -27.0), 1.7, "Nhìn xuống giếng", Callable(self, "_look_well"), false)
+
+	# hồn dân phố đã phai — đi mãi những vòng quen thuộc của ngày còn sống
+	var w1 := GhostWalker.new()
+	add_child(w1)
+	w1.setup("res://assets/models/minh_rigged.glb", 1.7,
+		[Vector3(-5.2, 0, -24.0), Vector3(-5.2, 0, -30.5), Vector3(-1.2, 0, -30.5), Vector3(-1.2, 0, -24.0)])
+	var w2 := GhostWalker.new()
+	add_child(w2)
+	w2.speed = 0.4
+	w2.setup("res://assets/models/minh_rigged.glb", 1.65,
+		[Vector3(6.0, 0, -23.5), Vector3(6.0, 0, -41.5)])
 
 
 func enter_beat() -> void:

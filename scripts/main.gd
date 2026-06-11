@@ -78,6 +78,8 @@ func _ready() -> void:
 		_chara_shots()
 	elif args.has("--aiview"):
 		_aiview()
+	elif args.has("--rigview"):
+		_rigview()
 
 
 func is_play() -> bool:
@@ -519,6 +521,37 @@ func _aiview() -> void:
 		await get_tree().create_timer(0.4).timeout
 		await _shot(dir + "/ai-%s.png" % vname)
 	print("AIVIEW DONE")
+	get_tree().quit()
+
+
+# ---------- xem hồn ma rig bước đi cận cảnh ----------
+func _rigview() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	var dir := ProjectSettings.globalize_path("res://shots/chara")
+	DirAccess.make_dir_recursive_absolute(dir)
+	state = State.PLAY
+	ui.hide_intro()
+	free_cam = true
+	camera.fov = 45
+	player.position = Vector3(0, 0, 9)
+	var walker := preload("res://scripts/ghost_walker.gd").new()
+	add_child(walker)
+	walker.setup("res://assets/models/minh_rigged.glb", 1.7,
+		[Vector3(-2.0, 0, 2.0), Vector3(2.0, 0, 2.0)])
+	var key_l := OmniLight3D.new()
+	key_l.light_color = Color(1.0, 0.92, 0.8)
+	key_l.light_energy = 2.0
+	key_l.omni_range = 9.0
+	key_l.position = Vector3(1.5, 2.6, 4.6)
+	add_child(key_l)
+	await get_tree().create_timer(1.5).timeout
+	for i in range(4):
+		camera.position = walker.position + Vector3(1.4, 1.1, 2.2)
+		camera.look_at(walker.position + Vector3(0, 0.9, 0))
+		await get_tree().create_timer(0.0).timeout
+		await _shot(dir + "/rig-%d.png" % i)
+		await get_tree().create_timer(0.8).timeout
+	print("RIGVIEW DONE")
 	get_tree().quit()
 
 

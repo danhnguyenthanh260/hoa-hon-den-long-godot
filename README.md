@@ -77,6 +77,9 @@ GDScript thuần — texture sinh procedural, không asset ngoài.
 | `scripts/ghost.gd` | Hồn Ma Phai Nhạt (đèn âm nuốt sáng) |
 | `scripts/build.gd` | Thư viện dựng hình: ngói âm dương, mắt cửa, đèn lồng, NPC không mặt |
 | `scripts/textures.gd` | Texture procedural: gạch, vữa, gỗ |
+| `scripts/gen3d.py` | Ảnh → mesh 3D qua HF Space Hunyuan3D-2 (miễn phí) |
+| `scripts/rig_glb.py` | Auto-rig mesh người đứng: đặt xương heuristic + trọng số da → glb skinned |
+| `scripts/ghost_walker.gd` | Hồn dân phố: điều khiển xương walk cycle, đi theo waypoint |
 | `scripts/game_ui.gd` | HUD, mục tiêu, bảng màu, title card, credits |
 
 ## Trần đồ họa hiện tại & đường lên tiếp
