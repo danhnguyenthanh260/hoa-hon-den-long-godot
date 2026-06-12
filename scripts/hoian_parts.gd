@@ -324,6 +324,46 @@ static func balcony_breeze(a: Node3D, w: float, y_floor: float, m: Dictionary) -
 	pot_plant(a, Vector3(-depth + 0.32, y_floor + 0.05, w / 2.0 - 0.38), 1, 0.7)
 
 
+# ---------- phòng nông sau cửa buôn: sàn gỗ, vách, quầy + kệ thờ silhouette, đèn ấm ----------
+# nhìn được qua khe cửa mở hé — không phải nội thất đầy đủ, chỉ là chiều sâu + ánh ấm
+static func shop_interior(a: Node3D, jamb_z: float, h_base: float, head_y: float, m: Dictionary, depth: float = 1.5, x0: float = 0.12) -> void:
+	var iw := jamb_z * 2.0 - 0.04
+	var ih := head_y - h_base
+	# sàn gỗ + trần gỗ + hai vách hồi
+	Build.box(a, Vector3(depth, 0.06, iw), Vector3(x0 + depth / 2.0, h_base + 0.03, 0), m["wood"])
+	Build.box(a, Vector3(depth, 0.06, iw), Vector3(x0 + depth / 2.0, head_y + 0.03, 0), m["wood"])
+	for sv in [-1.0, 1.0]:
+		Build.box(a, Vector3(depth, ih, 0.08), Vector3(x0 + depth / 2.0, h_base + ih / 2.0, sv * (iw / 2.0)), m["wood"])
+	# vách hậu gỗ ám sáng ấm — căn phòng tự phát sáng dịu để đọc được qua khe cửa
+	Build.box(a, Vector3(0.1, ih, iw), Vector3(x0 + depth + 0.05, h_base + ih / 2.0, 0), Build.emis(Color(0.4, 0.28, 0.17), Color(0.85, 0.5, 0.22), 0.22, 0.9))
+	# quầy gỗ sậm giữa phòng + kệ thờ cao sát vách hậu với đốm nhang đỏ
+	Build.box(a, Vector3(0.5, 0.85, iw * 0.6), Vector3(x0 + depth - 0.5, h_base + 0.425, -iw * 0.12), m["shutter"])
+	Build.box(a, Vector3(0.3, 0.5, 0.66), Vector3(x0 + depth - 0.2, head_y - 0.66, iw * 0.26), m["frame"])
+	var inc := Build.box(a, Vector3(0.02, 0.03, 0.02), Vector3(x0 + depth - 0.33, head_y - 0.38, iw * 0.26), Build.emis(Color(1.0, 0.5, 0.3), Color(1.0, 0.35, 0.1), 1.6))
+	inc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# đèn dầu treo giữa phòng — nguồn ấm chính hắt ra cửa
+	var lamp := Build.ball(a, 0.07, 0.13, Vector3(x0 + depth * 0.5, head_y - 0.32, 0), Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.62, 0.28), 2.2))
+	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+# ---------- rèm vải hai lớp che hờ khe cửa mở hé ----------
+static func door_curtain(a: Node3D, z_c: float, top_y: float, length: float, w: float) -> void:
+	var cloth := Build.mat(Color(0.48, 0.11, 0.1), 0.95)
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var cloth2 := Build.mat(Color(0.58, 0.18, 0.13), 0.95)
+	cloth2.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var hold := Node3D.new()
+	hold.position = Vector3(0.1, top_y, z_c)
+	hold.rotation.y = PI / 2.0
+	a.add_child(hold)
+	Build.ribbon(hold, w, length, -0.05, 0.05, cloth, 7)
+	var r2 := Build.ribbon(hold, w * 0.55, length * 0.96, -0.09, 0.12, cloth2, 7)
+	r2.position = Vector3(w * 0.16, 0, -0.015)
+	# thanh treo gỗ
+	var rod := Build.cyl(a, 0.02, 0.02, w + 0.2, Vector3(0.1, top_y + 0.02, z_c), Build.mat(Color(0.2, 0.13, 0.08), 0.8), 6)
+	rod.rotation.x = PI / 2.0
+
+
 # ---------- cửa sổ chớp tầng trệt (hai bên cửa buôn) ----------
 # cánh chớp gỗ sậm đóng kín trong viền vữa trắng + bậu nhô — đặt nổi trên mặt tường x=0
 static func window_ground(a: Node3D, z_c: float, h_base: float, m: Dictionary) -> void:
