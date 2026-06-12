@@ -49,12 +49,12 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.6, o
 	awn.rotation.z = 0.4
 	a.add_child(awn)
 	var awn_slab := BoxMesh.new()
-	awn_slab.size = Vector3(1.45, 0.06, W + 0.4)
+	awn_slab.size = Vector3(1.45, 0.06, W - 0.04)
 	var awn_mi := MeshInstance3D.new()
 	awn_mi.mesh = awn_slab
 	awn_mi.material_override = m["roof_tex"]
 	awn.add_child(awn_mi)
-	Build.tile_rows(awn, 1.45, W + 0.4, m["tile_c"])
+	Build.tile_rows(awn, 1.45, W - 0.04, m["tile_c"])
 	for cz in [-jamb_z, jamb_z]:
 		Build.box(a, Vector3(0.5, 0.13, 0.16), Vector3(-0.28, Y1 - 0.62, cz), m["frame"])
 
@@ -66,18 +66,18 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.6, o
 
 	# ---------- sân thượng nửa trước: sàn gạch + lan can bông gió + cây ----------
 	var ty := Y1 + 0.12
-	Build.box(a, Vector3(2.5, 0.14, W + 0.06), Vector3(1.25, ty - 0.07, 0), Build.mat(Color(0.52, 0.34, 0.26).lerp(Color(0.4, 0.3, 0.24), age), 0.9))
+	Build.box(a, Vector3(2.5, 0.14, W - 0.04), Vector3(1.25, ty - 0.07, 0), Build.mat(Color(0.52, 0.34, 0.26).lerp(Color(0.4, 0.3, 0.24), age), 0.9))
 	Build.breeze_panel(a, Vector3(0.08, ty + 0.4, 0), 14, 2, 0.36)
-	Build.box(a, Vector3(0.12, 0.07, W + 0.06), Vector3(0.08, ty + 0.82, 0), m["trim"])
+	Build.box(a, Vector3(0.12, 0.07, W - 0.04), Vector3(0.08, ty + 0.82, 0), m["trim"])
 	for pz in [-1.0, 1.0]:
-		Build.box(a, Vector3(0.14, 1.0, 0.14), Vector3(0.08, ty + 0.5, pz * (W / 2.0 - 0.04)), m["trim"])
-		# tường hồi chạy kín từ trụ góc trước tới khối gác sau — không hở khe
-		Build.box(a, Vector3(2.48, 0.45, 0.08), Vector3(1.27, ty + 0.28, pz * (W / 2.0 - 0.01)), m["trim"])
+		# trụ góc + tường hồi lùi vào trong biên nhà (mép ngoài ≤ W/2)
+		Build.box(a, Vector3(0.14, 1.0, 0.14), Vector3(0.08, ty + 0.5, pz * (W / 2.0 - 0.08)), m["trim"])
+		Build.box(a, Vector3(2.48, 0.45, 0.08), Vector3(1.27, ty + 0.28, pz * (W / 2.0 - 0.05)), m["trim"])
 	for pk in range(4):
 		Parts.pot_plant(a, Vector3(0.6 + (pk % 2) * 0.9, ty, -2.0 + pk * 1.3), (pk * 2 + 1) % 4, 0.85, age)
 	# dây leo tràn qua mép lan can — um tùm như ref-06
-	var leaf := Build.mat(Color(0.24, 0.44, 0.14), 0.9)
-	var moss := Build.mat(Color(0.17, 0.26, 0.11), 0.95)
+	var leaf := Build.leaf_mat("ForestLeaves03", Color(0.6, 0.85, 0.45), 0.03, 1.4, 1.0)
+	var moss := Build.leaf_mat("ForestLeaves03", Color(0.42, 0.6, 0.32), 0.03, 1.4, 1.0)
 	for vi in range(8):
 		var vz := -2.4 + fposmod(vi * 1.37, 4.8)
 		Build.ball(a, 0.14 + 0.1 * fposmod(vi * 0.83, 1.0), 0.22,

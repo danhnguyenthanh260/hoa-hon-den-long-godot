@@ -510,7 +510,8 @@ func _house_view() -> void:
 	fl.position = base
 	add_child(fl)
 	preload("res://scripts/house01.gd").build(self, base, 0.0)
-	var base2 := base + Vector3(0, 0, -10)
+	# house02 đặt SÁT house01 (đúng 6m như phố liền kề) — soát khối thò qua biên
+	var base2 := base + Vector3(0, 0, -6)
 	preload("res://scripts/house02.gd").build(self, base2, 0.0)
 	camera.fov = 38
 	await get_tree().create_timer(1.2).timeout
@@ -546,7 +547,7 @@ func _house_view() -> void:
 	# house03/04/05 trên sân khấu: chính diện + cận cửa từng mẫu (audit khe hở/đè khối)
 	var stage3 := [
 		[preload("res://scripts/house03.gd"), base + Vector3(0, 0, 12), "03"],
-		[preload("res://scripts/house04.gd"), base + Vector3(0, 0, 20), "04"],
+		[preload("res://scripts/house04.gd"), base + Vector3(0, 0, 18), "04"],
 		[preload("res://scripts/house05.gd"), base + Vector3(10, 0, 6), "05"],
 	]
 	for hd in stage3:
@@ -560,6 +561,15 @@ func _house_view() -> void:
 		camera.look_at(hb + Vector3(0.4, 1.9, 0))
 		await get_tree().create_timer(0.4).timeout
 		await _shot(dir + "/door" + hd[2] + ".png")
+	# cận BIÊN giáp ranh hai nhà liền kề — soát khối/khung trắng thò sang nhà bên
+	camera.position = base + Vector3(-6.0, 2.6, -3.0)
+	camera.look_at(base + Vector3(0.3, 2.4, -3.0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/boundary12.png")
+	camera.position = base + Vector3(-6.0, 3.0, 15.0)
+	camera.look_at(base + Vector3(0.3, 2.8, 15.0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/boundary34.png")
 	# dàn đạo cụ phố trên sân khấu: xe đạp, xe Cub, chậu cây, bụi chuối (ref-07/08/09)
 	var parts3 := preload("res://scripts/hoian_parts.gd")
 	var pbase := base2 + Vector3(0, 0, -10)

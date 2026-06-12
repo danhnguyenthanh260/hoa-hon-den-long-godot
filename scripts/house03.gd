@@ -66,7 +66,7 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.4, o
 				slat.rotation.z = 0.55
 	out["windows"] = wins
 	# ván diềm sát mái
-	Build.box(a, Vector3(0.06, 0.24, W + 0.04), Vector3(-0.045, Y2 - 0.1, 0), m["frame"])
+	Build.box(a, Vector3(0.06, 0.24, W - 0.02), Vector3(-0.045, Y2 - 0.1, 0), m["frame"])
 
 	# 4 đèn lồng đỏ sát mép mái ngay trên ban công (ref-05)
 	var lans: Array = out.get("lanterns", [])

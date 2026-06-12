@@ -67,8 +67,9 @@ static func roof_vines(slope: Node3D, slab_l: float, roof_w: float, m: Dictionar
 
 # đế đá rêu + gờ đỉnh + tam cấp 5 bậc giữa, má bậc và trụ đầu bậc hai bên
 static func plinth_steps(a: Node3D, w: float, d: float, h_base: float, m: Dictionary) -> void:
-	Build.box(a, Vector3(d + 0.18, h_base, w + 0.22), Vector3(d / 2.0, h_base / 2.0, 0), m["stone"])
-	Build.box(a, Vector3(d + 0.3, 0.09, w + 0.34), Vector3(d / 2.0, h_base - 0.045, 0), m["step"])
+	# đế + gờ KHÔNG vượt bề ngang nhà — nhà phố liền kề 6m/căn, thò là đè nhà bên
+	Build.box(a, Vector3(d + 0.18, h_base, w - 0.04), Vector3(d / 2.0, h_base / 2.0, 0), m["stone"])
+	Build.box(a, Vector3(d + 0.3, 0.09, w - 0.02), Vector3(d / 2.0, h_base - 0.045, 0), m["step"])
 	# rêu bám chân đế + lan lên mặt đá theo tuổi nhà
 	var age: float = m["age"]
 	if age > 0.25:
@@ -91,7 +92,7 @@ static func plinth_steps(a: Node3D, w: float, d: float, h_base: float, m: Dictio
 
 # mặt sàn người đi được (LOCAL): mặt đế + từng bậc — world đổi sang rect thế giới
 static func floor_rects(w: float, d: float, h_base: float) -> Array:
-	var out: Array = [{"x0": -0.09, "x1": d + 0.09, "z0": -(w / 2.0 + 0.11), "z1": w / 2.0 + 0.11, "y": h_base}]
+	var out: Array = [{"x0": -0.09, "x1": d + 0.09, "z0": -(w / 2.0 - 0.02), "z1": w / 2.0 - 0.02, "y": h_base}]
 	var rise := h_base / 5.0
 	for i in range(5):
 		out.append({"x0": -0.28 * (i + 1), "x1": -0.28 * i, "z0": -1.55, "z1": 1.55, "y": h_base - i * rise})
@@ -427,10 +428,11 @@ static func door_vent(a: Node3D, y_c: float, w: float, m: Dictionary) -> void:
 static func pilasters(a: Node3D, w: float, h_base: float, h1: float, m: Dictionary) -> void:
 	for pz in [-1.0, 1.0]:
 		var zc: float = pz * (w / 2.0 - 0.28)
-		Build.box(a, Vector3(0.14, h1, 0.56), Vector3(-0.065, h_base + h1 / 2.0, zc), m["plaster"])
-		Build.box(a, Vector3(0.18, 0.07, 0.64), Vector3(-0.075, h_base + h1 - 0.1, zc), m["trim"])
-		Build.box(a, Vector3(0.16, 0.06, 0.6), Vector3(-0.07, h_base + h1 - 0.2, zc), m["trim"])
-		Build.box(a, Vector3(0.17, 0.55, 0.6), Vector3(-0.07, h_base + 0.275, zc), m["stone"])
+		# trụ + 3 vòng trim gọn TRONG biên nhà (zc=±2.72, mép ngoài ≤ w/2)
+		Build.box(a, Vector3(0.14, h1, 0.54), Vector3(-0.065, h_base + h1 / 2.0, zc), m["plaster"])
+		Build.box(a, Vector3(0.18, 0.07, 0.55), Vector3(-0.075, h_base + h1 - 0.1, zc), m["trim"])
+		Build.box(a, Vector3(0.16, 0.06, 0.53), Vector3(-0.07, h_base + h1 - 0.2, zc), m["trim"])
+		Build.box(a, Vector3(0.17, 0.55, 0.54), Vector3(-0.07, h_base + 0.275, zc), m["stone"])
 
 
 # mái âm dương đòn dông song song mặt phố + toàn bộ hệ vữa trắng
@@ -439,7 +441,7 @@ static func roof_amduong(a: Node3D, w: float, d: float, eave_y: float, m: Dictio
 	var pitch := 0.45
 	var run := d / 2.0 + 0.55                  # hình chiếu ngang một vạt mái
 	var slab_l := run / cos(pitch)
-	var roof_w := w + 0.9                      # chìa hồi 0.45m mỗi bên
+	var roof_w := w - 0.02                     # nhà liền kề: mái KHÔNG chìa hồi sang nhà bên
 	var ridge_y := eave_y + run * tan(pitch)
 	for k in [-1.0, 1.0]:
 		var slope := Node3D.new()
@@ -462,17 +464,18 @@ static func roof_amduong(a: Node3D, w: float, d: float, eave_y: float, m: Dictio
 		for ci in range(int(roof_w / 0.22)):
 			Build.cyl(slope, 0.052, 0.052, 0.03, Vector3(k * (slab_l / 2.0 - 0.01), 0.07, -roof_w / 2.0 + 0.11 + ci * 0.22), Build.mat(Color(0.72, 0.68, 0.6), 0.8), 8).rotation.x = PI / 2.0
 	# bờ nóc trắng: ô trang trí giữa + hai đầu đuôi én cong vút
-	Build.box(a, Vector3(0.32, 0.24, roof_w + 0.1), Vector3(d / 2.0, ridge_y + 0.08, 0), m["trim"])
+	Build.box(a, Vector3(0.32, 0.24, roof_w), Vector3(d / 2.0, ridge_y + 0.08, 0), m["trim"])
 	Build.box(a, Vector3(0.38, 0.44, 1.35), Vector3(d / 2.0, ridge_y + 0.16, 0), m["trim"])
 	Build.box(a, Vector3(0.42, 0.28, 1.0), Vector3(d / 2.0, ridge_y + 0.16, 0), Build.mat(Color(0.8, 0.79, 0.74), 0.9))
 	for ke in [-1.0, 1.0]:
-		var ze: float = ke * (roof_w + 0.1) / 2.0
+		# cụm đuôi én lùi vào trong — mọi khối (kể cả sừng nghiêng) ≤ biên nhà
+		var ze: float = ke * (roof_w / 2.0 - 0.62)
 		var s1 := Build.box(a, Vector3(0.3, 0.24, 0.8), Vector3(d / 2.0, ridge_y + 0.12, ze - ke * 0.32), m["trim"])
 		s1.rotation.x = -ke * 0.28
 		var s2 := Build.box(a, Vector3(0.28, 0.22, 0.6), Vector3(d / 2.0, ridge_y + 0.34, ze + ke * 0.02), m["trim"])
 		s2.rotation.x = -ke * 0.65
 		var s3 := Build.box(a, Vector3(0.26, 0.2, 0.45), Vector3(d / 2.0, ridge_y + 0.58, ze + ke * 0.22), m["trim"])
 		s3.rotation.x = -ke * 1.0
-		var horn := Build.cyl(a, 0.035, 0.13, 0.55, Vector3(d / 2.0, ridge_y + 0.84, ze + ke * 0.38), m["trim"], 8)
+		var horn := Build.cyl(a, 0.035, 0.13, 0.4, Vector3(d / 2.0, ridge_y + 0.8, ze + ke * 0.25), m["trim"], 8)
 		horn.rotation.x = -ke * 1.2
 	return ridge_y

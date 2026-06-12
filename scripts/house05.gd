@@ -38,16 +38,15 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	for jz in [-1.0, 1.0]:
 		Build.box(a, Vector3(0.14, H1 - 0.8, 0.16), Vector3(-0.04, H_BASE + (H1 - 0.8) / 2.0, jz * jamb_z), m["frame"])
 	Build.box(a, Vector3(0.16, 0.18, jamb_z * 2.0 + 0.3), Vector3(-0.045, Y1 - 0.85, 0), m["frame"])
-	# tấm cửa dồn sang trái — nhà đang mở hé, khe phải nhìn vào phòng trong
-	Build.box(a, Vector3(0.06, 0.95, 1.4), Vector3(0.1, H_BASE + 0.48, -0.32), m["door"])
-	for bz in range(7):
-		Build.cyl(a, 0.022, 0.022, 0.95, Vector3(0.1, H_BASE + 1.48, -0.92 + bz * 0.21), m["frame"], 6)
+	# cửa đóng kín nguyên tấm — rèm/nội thất là chuyện bên trong, không bày ra phố
+	Build.box(a, Vector3(0.06, 0.95, 2.05), Vector3(0.1, H_BASE + 0.48, 0), m["door"])
+	for bz in range(9):
+		Build.cyl(a, 0.022, 0.022, 0.95, Vector3(0.1, H_BASE + 1.48, -0.88 + bz * 0.22), m["frame"], 6)
 	Build.box(a, Vector3(0.08, 0.1, 2.1), Vector3(0.1, H_BASE + 2.0, 0), m["frame"])
 	for ez in [-0.32, 0.32]:
 		Build.door_eye(a, Vector3(0.0, H_BASE + 2.22, ez), 1.0)
-	# phòng buôn nông sau cửa + rèm vải che hờ khe mở
-	Parts.shop_interior(a, jamb_z, H_BASE, Y1 - 0.82, m, 1.5, 0.16)
-	Parts.door_curtain(a, 0.78, H_BASE + 1.96, 1.75, 0.5)
+	# vách gỗ tối ngay sau song cửa — nhìn qua song thấy chiều sâu, không thấy xuyên nhà
+	Build.box(a, Vector3(0.05, H1 - 0.85, jamb_z * 2.0), Vector3(0.45, H_BASE + (H1 - 0.85) / 2.0, 0), Build.mat(Color(0.08, 0.06, 0.05), 0.95))
 	# biển hiệu gỗ viền vàng trên cửa
 	Build.box(a, Vector3(0.07, 0.46, 1.68), Vector3(-0.05, Y1 - 0.45, 0), Build.mat(Color(0.55, 0.42, 0.15), 0.5))
 	Build.box(a, Vector3(0.09, 0.38, 1.56), Vector3(-0.06, Y1 - 0.45, 0), Build.mat(Color(0.09, 0.05, 0.04), 0.6))
@@ -72,12 +71,12 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	porch.rotation.z = 0.45
 	a.add_child(porch)
 	var pslab := BoxMesh.new()
-	pslab.size = Vector3(1.55, 0.06, W + 0.3)
+	pslab.size = Vector3(1.55, 0.06, W - 0.04)
 	var pmi := MeshInstance3D.new()
 	pmi.mesh = pslab
 	pmi.material_override = m["roof_tex"]
 	porch.add_child(pmi)
-	Build.tile_rows(porch, 1.55, W + 0.3, m["tile_c"])
+	Build.tile_rows(porch, 1.55, W - 0.04, m["tile_c"])
 	for pz in [-2.4, 2.4]:
 		# cột cao chạm hẳn mặt dưới vạt hiên (hiên dốc 0.45, mép dưới tại x=-1.25 ≈ Y1-0.76)
 		Build.cyl(a, 0.07, 0.085, Y1 - 0.72, Vector3(-1.25, (Y1 - 0.72) / 2.0, pz), m["wood"], 8)

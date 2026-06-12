@@ -68,18 +68,20 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	awn.position = Vector3(-0.42, Y1 + 0.3, 0)
 	awn.rotation.z = 0.42
 	a.add_child(awn)
+	# bề ngang hiên = W - 0.04: nhà liền kề, hiên không vắt sang nhà bên
+	var awn_w := W - 0.04
 	var awn_slab := BoxMesh.new()
-	awn_slab.size = Vector3(1.35, 0.06, W + 0.4)
+	awn_slab.size = Vector3(1.35, 0.06, awn_w)
 	var awn_mi := MeshInstance3D.new()
 	awn_mi.mesh = awn_slab
 	awn_mi.material_override = m["roof_tex"]
 	awn.add_child(awn_mi)
-	Build.tile_rows(awn, 1.35, W + 0.4, m["tile_c"])
+	Build.tile_rows(awn, 1.35, awn_w, m["tile_c"])
 	# hàng đầu ống ngói sáng màu dọc mép hiên
-	for ci in range(int((W + 0.4) / 0.22)):
-		Build.cyl(awn, 0.052, 0.052, 0.03, Vector3(-0.66, 0.07, -(W + 0.4) / 2.0 + 0.11 + ci * 0.22), Build.mat(Color(0.72, 0.68, 0.6), 0.8), 8).rotation.x = PI / 2.0
+	for ci in range(int(awn_w / 0.22)):
+		Build.cyl(awn, 0.052, 0.052, 0.03, Vector3(-0.66, 0.07, -awn_w / 2.0 + 0.11 + ci * 0.22), Build.mat(Color(0.72, 0.68, 0.6), 0.8), 8).rotation.x = PI / 2.0
 	# diềm gỗ + hai con sơn đỡ hiên (khối đen trên góc cửa như ảnh)
-	Build.box(a, Vector3(0.05, 0.18, W + 0.4), Vector3(-0.95, Y1 + 0.04, 0), m["frame"])
+	Build.box(a, Vector3(0.05, 0.18, awn_w), Vector3(-0.95, Y1 + 0.04, 0), m["frame"])
 	for cz in [-jamb_z, jamb_z]:
 		Build.box(a, Vector3(0.55, 0.14, 0.16), Vector3(-0.3, Y1 - 0.07, cz), m["frame"])
 		Build.box(a, Vector3(0.14, 0.34, 0.16), Vector3(-0.08, Y1 - 0.24, cz), m["frame"])
@@ -87,14 +89,14 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	# ---------- tầng gác ốp ván gỗ + 3 ô cửa sổ chớp ----------
 	var y2_mid := Y1 + 0.62 + H2 / 2.0
 	Build.box(a, Vector3(D, H2 + 0.62, W), Vector3(D / 2.0, Y1 + (H2 + 0.62) / 2.0, 0), m["plaster"])
-	Build.box(a, Vector3(0.1, H2, W + 0.04), Vector3(-0.03, y2_mid, 0), m["wood"])
-	# đố dọc chia 3 gian + xà ngang chân/đầu cửa sổ
-	for vz in [-3.0, -1.32, 1.32, 3.0]:
+	Build.box(a, Vector3(0.1, H2, W - 0.02), Vector3(-0.03, y2_mid, 0), m["wood"])
+	# đố dọc chia 3 gian + xà ngang chân/đầu cửa sổ — đố góc lùi vào trong biên
+	for vz in [-2.93, -1.32, 1.32, 2.93]:
 		Build.box(a, Vector3(0.13, H2, 0.13), Vector3(-0.06, y2_mid, vz), m["frame"])
 	var sill_y := Y1 + 0.62 + 0.42
 	var head_y := sill_y + 1.3
-	Build.box(a, Vector3(0.12, 0.12, W + 0.04), Vector3(-0.055, sill_y - 0.06, 0), m["frame"])
-	Build.box(a, Vector3(0.12, 0.1, W + 0.04), Vector3(-0.055, head_y + 0.05, 0), m["frame"])
+	Build.box(a, Vector3(0.12, 0.12, W - 0.02), Vector3(-0.055, sill_y - 0.06, 0), m["frame"])
+	Build.box(a, Vector3(0.12, 0.1, W - 0.02), Vector3(-0.055, head_y + 0.05, 0), m["frame"])
 	# cửa sổ: [tâm z, bề rộng] — giữa rộng 1.7m, hai bên 1.0m; cánh chớp NỔI trước khung
 	for wdef in [[0.0, 1.7], [-2.16, 1.0], [2.16, 1.0]]:
 		var wz: float = wdef[0]
@@ -109,7 +111,7 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 				var slat := Build.box(a, Vector3(0.028, 0.05, lw - 0.16), Vector3(-0.13, sill_y + 0.18 + sl * 0.16, lz), m["frame"])
 				slat.rotation.z = 0.55
 	# ván diềm sát mái
-	Build.box(a, Vector3(0.06, 0.24, W + 0.04), Vector3(-0.045, Y2 - 0.1, 0), m["frame"])
+	Build.box(a, Vector3(0.06, 0.24, W - 0.02), Vector3(-0.045, Y2 - 0.1, 0), m["frame"])
 
 	# dãy đèn lồng dưới mép mái hiên giữa tầng — world đăng ký để light_up thắp
 	var lans: Array = out.get("lanterns", [])
