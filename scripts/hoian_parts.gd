@@ -318,8 +318,8 @@ static func balcony_breeze(a: Node3D, w: float, y_floor: float, m: Dictionary) -
 	Build.box(a, Vector3(0.12, 0.07, w), Vector3(-depth + 0.04, y_floor + rail_h + 0.1, 0), m["trim"])
 	for pz in [-1.0, 1.0]:
 		Build.box(a, Vector3(0.14, rail_h + 0.2, 0.14), Vector3(-depth + 0.04, y_floor + (rail_h + 0.2) / 2.0, pz * (w / 2.0 - 0.07)), m["trim"])
-		# lan can hồi hai bên kín thấp
-		Build.box(a, Vector3(depth - 0.1, 0.45, 0.07), Vector3(-depth / 2.0, y_floor + 0.28, pz * (w / 2.0 - 0.05)), m["trim"])
+		# lan can hồi kín suốt từ trụ trước dính vào mặt tiền — không hở khe
+		Build.box(a, Vector3(depth, 0.45, 0.07), Vector3(-depth / 2.0, y_floor + 0.28, pz * (w / 2.0 - 0.05)), m["trim"])
 	pot_plant(a, Vector3(-depth + 0.32, y_floor + 0.05, -w / 2.0 + 0.38), 3, 0.75)
 	pot_plant(a, Vector3(-depth + 0.32, y_floor + 0.05, w / 2.0 - 0.38), 1, 0.7)
 

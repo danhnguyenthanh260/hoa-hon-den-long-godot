@@ -71,7 +71,8 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.6, o
 	Build.box(a, Vector3(0.12, 0.07, W + 0.06), Vector3(0.08, ty + 0.82, 0), m["trim"])
 	for pz in [-1.0, 1.0]:
 		Build.box(a, Vector3(0.14, 1.0, 0.14), Vector3(0.08, ty + 0.5, pz * (W / 2.0 - 0.04)), m["trim"])
-		Build.box(a, Vector3(2.3, 0.45, 0.08), Vector3(1.3, ty + 0.28, pz * (W / 2.0 - 0.01)), m["trim"])
+		# tường hồi chạy kín từ trụ góc trước tới khối gác sau — không hở khe
+		Build.box(a, Vector3(2.48, 0.45, 0.08), Vector3(1.27, ty + 0.28, pz * (W / 2.0 - 0.01)), m["trim"])
 	for pk in range(4):
 		Parts.pot_plant(a, Vector3(0.6 + (pk % 2) * 0.9, ty, -2.0 + pk * 1.3), (pk * 2 + 1) % 4, 0.85, age)
 	# dây leo tràn qua mép lan can — um tùm như ref-06

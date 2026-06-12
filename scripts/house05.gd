@@ -74,7 +74,8 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	porch.add_child(pmi)
 	Build.tile_rows(porch, 1.55, W + 0.3, m["tile_c"])
 	for pz in [-2.4, 2.4]:
-		Build.cyl(a, 0.07, 0.085, Y1 - 0.95, Vector3(-1.25, (Y1 - 0.95) / 2.0, pz), m["wood"], 8)
+		# cột cao chạm hẳn mặt dưới vạt hiên (hiên dốc 0.45, mép dưới tại x=-1.25 ≈ Y1-0.76)
+		Build.cyl(a, 0.07, 0.085, Y1 - 0.72, Vector3(-1.25, (Y1 - 0.72) / 2.0, pz), m["wood"], 8)
 
 	# dãy đèn lồng dưới hiên — phố Hội là phố của đèn
 	var lans: Array = out.get("lanterns", [])
