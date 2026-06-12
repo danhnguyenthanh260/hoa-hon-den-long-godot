@@ -734,6 +734,24 @@ func _house_view() -> void:
 	camera.look_at(Vector3(-43.0, 1.5, 11.4))
 	await get_tree().create_timer(0.6).timeout
 	await _shot(dir + "/p7-chan-cau.png")
+	# Phase 8: giao lộ Tây Trần Phú→Lê Lợi — nhìn từ phố xuống miệng giao lộ mở
+	player.position = Vector3(-20.5, 0, 4.5)
+	camera.position = Vector3(-20.3, 2.7, 10.5)
+	camera.look_at(Vector3(-19.5, 0.9, -3.0))
+	await get_tree().create_timer(1.4).timeout
+	await _shot(dir + "/p8-giao-lo.png")
+	# nhà tàn tích lot -21 hàng NTH Bắc — Minh đứng giữa lối xuyên
+	player.position = Vector3(-21.0, 0, -26.0)
+	camera.position = Vector3(-18.6, 2.1, -23.2)
+	camera.look_at(Vector3(-21.8, 1.0, -28.0))
+	await get_tree().create_timer(1.2).timeout
+	await _shot(dir + "/p8-tan-tich.png")
+	# bờ sông Hoài — camera giữa bến đá trống (z -48..-52, né thân nhà Bạch Đằng)
+	player.position = Vector3(-19.0, 0, -50.5)
+	camera.position = Vector3(-26.0, 2.8, -49.5)
+	camera.look_at(Vector3(-14.0, 0.6, -51.5))
+	await get_tree().create_timer(1.4).timeout
+	await _shot(dir + "/p8-bo-song.png")
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
 

@@ -35,7 +35,33 @@ const ZONES := {
 		"fog": Color(0.085, 0.055, 0.06), "fog_d": 0.009, "vol": 0.022},
 	"ngo_cau": {"bg": Color(0.008, 0.016, 0.038), "amb": Color(0.13, 0.17, 0.3), "amb_e": 0.5,
 		"fog": Color(0.045, 0.055, 0.1), "fog_d": 0.026, "vol": 0.07},
+	# Phase 8 — bờ sông Hoài về đêm: trăng xanh trên mặt nước đen
+	"bo_song": {"bg": Color(0.006, 0.012, 0.028), "amb": Color(0.18, 0.24, 0.4), "amb_e": 0.7,
+		"fog": Color(0.03, 0.05, 0.09), "fog_d": 0.012, "vol": 0.045},
 }
+
+# Phase 8 — mạng phố đi được khi C1 đã light_up (ngoài Trần Phú/ngõ vốn có):
+# giao lộ TP→Lê Lợi/HVT (lot ±21 dãy Nam bỏ trống), hai phố dọc, lot TÀN TÍCH
+# xuyên hàng NTH, band sau Bạch Đằng, hẻm xuống bến sông Hoài phía Tây.
+# Union các rect = vùng đi được; ra ngoài thì kẹp về điểm gần nhất trong union.
+const ROAM_RECTS := [
+	{"x0": -23.6, "x1": -18.4, "z0": -0.2, "z1": 8.6},     # giao lộ Tây TP→Lê Lợi
+	{"x0": -21.8, "x1": -16.2, "z0": -23.4, "z1": 0.4},    # Lê Lợi
+	{"x0": -22.6, "x1": -19.4, "z0": -29.2, "z1": -23.0},  # lot tàn tích Lê Lợi→NTH
+	{"x0": -35.8, "x1": -8.8, "z0": -34.3, "z1": -29.0},   # Nguyễn Thái Học tây (chạm tường C2)
+	{"x0": -22.6, "x1": -19.4, "z0": -40.3, "z1": -34.0},  # lot tàn tích NTH→band sau
+	{"x0": -35.5, "x1": -9.3, "z0": -42.3, "z1": -40.0},   # band sau lưng Bạch Đằng
+	{"x0": -22.6, "x1": -19.4, "z0": -47.6, "z1": -41.9},  # hẻm Bạch Đằng xuống bến
+	{"x0": -35.5, "x1": -9.3, "z0": -52.1, "z1": -46.9},   # bờ sông Hoài tây (nền đá)
+	{"x0": 18.4, "x1": 23.6, "z0": -0.2, "z1": 8.6},       # giao lộ Đông TP→HVT
+	{"x0": 16.2, "x1": 21.8, "z0": -23.4, "z1": 0.4},      # Hoàng Văn Thụ
+	{"x0": 19.4, "x1": 22.6, "z0": -29.2, "z1": -23.0},    # lot tàn tích HVT→NTH
+	{"x0": 8.8, "x1": 35.8, "z0": -34.3, "z1": -29.0},     # Nguyễn Thái Học đông
+	{"x0": -37.5, "x1": -24.2, "z0": 7.95, "z1": 8.45},    # 4 đoạn thềm Nam (hở miệng giao lộ)
+	{"x0": -17.8, "x1": -5.9, "z0": 7.95, "z1": 8.45},
+	{"x0": 5.9, "x1": 17.8, "z0": 7.95, "z1": 8.45},
+	{"x0": 24.2, "x1": 37.5, "z0": 7.95, "z1": 8.45},
+]
 
 var _env: Environment
 var _zone_target: Dictionary = ZONES["c1"]
@@ -120,9 +146,11 @@ func set_moon_visible(v: bool) -> void:
 func update_zone_geo(pos: Vector3) -> void:
 	if not geo_zone_on:
 		return
-	if pos.x < -38.0:
+	if pos.z > 8.0 and pos.x < -38.0:
 		set_zone("ngo_cau")
-	elif pos.z > 8.0:
+	elif pos.z < -39.5:
+		set_zone("bo_song")
+	elif pos.z > 8.0 or absf(pos.x) > ALLEY_HALF + 0.5:
 		set_zone("pho_dem")
 	else:
 		set_zone("c1_lit")
@@ -166,16 +194,80 @@ func _build_houses() -> void:
 	_build_phase3_river()
 	_build_phase5_landmarks()
 	_build_phase6_an_hoi()
+	_build_phase8_roam()
+
+
+# Phase 8 — mở phố: nhà TÀN TÍCH tại các lot đục lối (bóng tối đã "nhai" chúng),
+# hẻm Bạch Đằng xuống bến, sương chặn biên mở mới, sàn đá bờ sông đăng ký floor.
+func _build_phase8_roam() -> void:
+	_ruin_house(Vector3(-21, 0, -28.5), -PI / 2.0, 9)
+	_ruin_house(Vector3(21, 0, -28.5), -PI / 2.0, 4)
+	_ruin_house(Vector3(-21, 0, -35.0), PI / 2.0, 7)
+	# hẻm hai vách hồi nhà kề xuống bến sông + dây đèn lồng vắt ngang
+	for hx in [-23.4, -18.6]:
+		Build.box(self, Vector3(0.35, 2.7, 5.4), Vector3(hx, 1.35, -44.5), _plaster)
+		Build.box(self, Vector3(0.37, 0.5, 5.4), Vector3(hx, 0.25, -44.5), _moss)
+	Build.box(self, Vector3(4.8, 0.02, 0.02), Vector3(-21, 2.78, -44.5), Build.mat(Color(0.05, 0.045, 0.04)))
+	_hanging.append(Build.lantern(self, 0.12, 0.22, Vector3(-21, 2.62, -44.5)))
+	Parts.grass_tuft(self, Vector3(-23.0, 0, -42.3), 0.9)
+	# nền đá Bạch Đằng (khối Phase 3 nổi 0.075) — sàn công cộng, không tính "sát thềm nhà"
+	_reg_floor(Vector3.ZERO, 0.0, -35.5, -9.0, -54.0, -42.0, 0.075, true)
+	# sương phong ấn các biên mở mới (Tây/Đông NTH + Tây bờ sông)
+	_mist(Vector3(-37.2, 3.0, -31.6), Vector3(0.4, 6.0, 7.5))
+	_mist(Vector3(37.2, 3.0, -31.6), Vector3(0.4, 6.0, 7.5))
+	_mist(Vector3(-36.8, 3.0, -46.5), Vector3(0.4, 6.0, 13.5))
+
+
+# nhà đổ sụp — bóng tối nuốt ký ức của phố, từng căn một: hai mảng mặt tiền còn
+# đứng (khoảng giữa = cửa đã sập, thành lối đi xuyên lot), tường hồi gãy bậc thang,
+# xà cháy gác chéo, gạch vụn, ngói sập, cỏ dại. Cùng hệ tọa độ với _house().
+func _ruin_house(pos: Vector3, yrot: float, idx: int) -> void:
+	var a := Node3D.new()
+	a.position = pos
+	a.rotation.y = yrot
+	add_child(a)
+	var burnt := Build.mat(Color(0.06, 0.05, 0.045), 0.95)
+	var rubble_m := Build.mat(Color(0.46, 0.39, 0.33), 0.97)
+	# hai mảng mặt tiền — cao thấp lệch nhau theo idx
+	for sgn in [-1.0, 1.0]:
+		var h := 2.0 + 0.9 * fposmod(idx * 0.7 + sgn, 1.0)
+		Build.box(a, Vector3(0.34, h, 1.5), Vector3(0.1, h / 2.0, sgn * 2.2), _plaster)
+		Build.box(a, Vector3(0.36, 0.5, 1.52), Vector3(0.1, 0.25, sgn * 2.2), _moss)
+	# tường hồi hai bên giáp nhà kề — gãy thấp dần về sau
+	for sgn in [-1.0, 1.0]:
+		for i in range(3):
+			var h2 := 2.4 - i * 0.75 - 0.3 * fposmod(idx * 1.3 + i + sgn, 1.0)
+			Build.box(a, Vector3(1.66, h2, 0.3), Vector3(0.9 + i * 1.62, h2 / 2.0, sgn * 2.85), _plaster)
+	# xà gỗ cháy gác chéo (cây vắt ngang lối đi nâng cao khỏi đầu)
+	var beam_z := [-2.0, 1.6, 0.3]
+	for i in range(3):
+		var beam := Build.box(a, Vector3(3.0 + 0.8 * (i % 2), 0.13, 0.13), Vector3(1.4 + i * 1.1, 0.85 + 0.55 * i, beam_z[i]), burnt)
+		beam.rotation.z = 0.35 + 0.3 * i
+		beam.rotation.y = 0.25 * i - 0.3
+	# gạch vụn dồn dọc chân tường hồi
+	for i in range(10):
+		var s := 0.14 + 0.2 * fposmod(idx * 0.91 + i * 0.67, 1.0)
+		var zz := (2.3 - 0.5 * fposmod(i * 1.13, 1.0)) * (1.0 if i % 2 == 0 else -1.0)
+		var rb := Build.box(a, Vector3(s * 1.3, s * 0.6, s), Vector3(0.5 + fposmod(i * 1.71 + idx, 4.2), s * 0.28, zz), rubble_m)
+		rb.rotation.y = i * 0.8
+	# mảng ngói sập nghiêng + cỏ dại mọc xuyên nền
+	var tile := Build.box(a, Vector3(1.6, 0.09, 1.1), Vector3(2.4, 0.05, 1.7), Build.mat(Color(0.1, 0.09, 0.1), 0.8))
+	tile.rotation.y = 0.5
+	tile.rotation.x = 0.06
+	Parts.grass_tuft(a, Vector3(1.2, 0, -0.6), 1.15)
+	Parts.grass_tuft(a, Vector3(3.6, 0, 0.8), 1.0)
+	Parts.grass_tuft(a, Vector3(0.4, 0, 2.0), 0.9)
 
 
 # ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
-func _reg_floor(pos: Vector3, yrot: float, x0: float, x1: float, z0: float, z1: float, y: float) -> void:
+func _reg_floor(pos: Vector3, yrot: float, x0: float, x1: float, z0: float, z1: float, y: float, nc := false) -> void:
 	var t := Transform3D(Basis(Vector3.UP, yrot), pos)
 	var p0 := t * Vector3(x0, 0, z0)
 	var p1 := t * Vector3(x1, 0, z1)
+	# nc: sàn công cộng (bờ sông...) — đi được nhưng KHÔNG tính "sát thềm nhà ai đó"
 	_floor_rects.append({
 		"x0": minf(p0.x, p1.x), "x1": maxf(p0.x, p1.x),
-		"z0": minf(p0.z, p1.z), "z1": maxf(p0.z, p1.z), "y": y,
+		"z0": minf(p0.z, p1.z), "z1": maxf(p0.z, p1.z), "y": y, "nc": nc,
 	})
 
 
@@ -191,6 +283,8 @@ func ground_height(pos: Vector3) -> float:
 # đứng sát thềm nhà ai đó? — để Minh cất đèn, tránh phiền gia chủ ban đêm
 func near_house(pos: Vector3) -> bool:
 	for r in _floor_rects:
+		if r.get("nc", false):
+			continue
 		if pos.x >= r["x0"] - 1.3 and pos.x <= r["x1"] + 1.3 and pos.z >= r["z0"] - 1.3 and pos.z <= r["z1"] + 1.3:
 			return true
 	return false
@@ -203,7 +297,8 @@ func _build_main_street() -> void:
 		var x := -33.0 + k * 6.0
 		if x < 15.0:   # x≥15 dành cho hội quán Quảng Đông (x=18) + Phúc Kiến (x=30)
 			_house(Vector3(x, 0, 14.2), -PI / 2.0, k)        # dãy Bắc, mặt quay Nam
-		if absf(x) > 7.0:                                    # chừa miệng ngõ ở dãy Nam
+		# dãy Nam: chừa miệng ngõ + lot ±21 = giao lộ xuống Lê Lợi/Hoàng Văn Thụ (Phase 8)
+		if absf(x) > 7.0 and absf(x) != 21.0:
 			_house(Vector3(x, 0, 7.9), PI / 2.0, k + 2)
 	# ---- đồ phố (ref-07/08/09/10): xe dựa hiên, chậu cảnh NÉP CHÂN THỀM hai bên
 	# cửa (C ± 2.2 với C = -33 + 6k là tâm nhà), chuối nép góc trụ nhà —
@@ -217,7 +312,7 @@ func _build_main_street() -> void:
 	for pp in [[-29.2, 2], [-18.8, 3], [-11.2, 1], [-6.8, 0], [5.2, 3], [11.2, 1]]:
 		Parts.pot_plant(self, Vector3(pp[0], 0.14, 13.95), int(pp[1]), 1.0)
 	Parts.pot_plant(self, Vector3(29.2, 0, 13.55), 0, 1.0)
-	for pp2 in [[-11.2, 3], [11.2, 0], [23.2, 2], [-29.2, 1]]:
+	for pp2 in [[-11.2, 3], [11.2, 0], [25.2, 2], [-29.2, 1]]:
 		Parts.pot_plant(self, Vector3(pp2[0], 0.14, 8.2), int(pp2[1]), 0.9)
 	# bụi chuối nép góc trụ giữa hai nhà, tàu lá phía tường tự ngắn (ref-10)
 	Parts.banana_clump(self, Vector3(-30.1, 0, 13.3), 1.3, Vector3(0, 0, 1))
@@ -263,16 +358,21 @@ func _build_main_street() -> void:
 			card.rotation = Vector3(fposmod(cb * 0.97, 1.0) - 0.5, cb * 0.79, fposmod(cb * 0.61, 0.8) - 0.4)
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
-		var mist := Build.box(self, Vector3(0.4, 7.0, 14.0), Vector3(mx, 3.5, 11.0), null)
-		var mm := StandardMaterial3D.new()
-		mm.albedo_color = Color(0.55, 0.62, 0.78, 0.055)
-		mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mist.material_override = mm
-		mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_mist(Vector3(mx, 3.5, 11.0), Vector3(0.4, 7.0, 14.0))
 	_build_sidewalks()
 	_build_ngo_hep()
 	_build_chua_cau()
+
+
+# màn sương phong ấn — chặn các biên thế giới chưa/không mở
+func _mist(pos: Vector3, size: Vector3) -> void:
+	var mist := Build.box(self, size, pos, null)
+	var mm := StandardMaterial3D.new()
+	mm.albedo_color = Color(0.55, 0.62, 0.78, 0.055)
+	mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mist.material_override = mm
+	mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 # Phase 7 — thềm đá nâng kiểu ref-10: nhà đứng trên nền đá liền, lòng đường thấp hơn
@@ -282,10 +382,12 @@ func _build_sidewalks() -> void:
 	# dãy Bắc Trần Phú: thềm liền từ sương Tây tới ranh hội quán (x>14.5 sân riêng)
 	Build.box(self, Vector3(52.0, 0.14, 0.55), Vector3(-11.5, 0.07, 13.975), kerb)
 	_reg_floor(Vector3.ZERO, 0.0, -37.5, 14.5, 13.7, 14.25, 0.14)
-	# dãy Nam: hai dải hai bên miệng ngõ
-	for sgn in [-1.0, 1.0]:
-		Build.box(self, Vector3(31.6, 0.14, 0.5), Vector3(sgn * 21.7, 0.07, 8.2), kerb)
-		_reg_floor(Vector3.ZERO, 0.0, sgn * 5.9, sgn * 37.5, 7.95, 8.45, 0.14)
+	# dãy Nam: 4 đoạn — hở miệng ngõ + hai miệng giao lộ ±(18..24) (Phase 8)
+	for seg in [[-37.5, -24.2], [-17.8, -5.9], [5.9, 17.8], [24.2, 37.5]]:
+		var x0: float = seg[0]
+		var x1: float = seg[1]
+		Build.box(self, Vector3(x1 - x0, 0.14, 0.5), Vector3((x0 + x1) / 2.0, 0.07, 8.2), kerb)
+		_reg_floor(Vector3.ZERO, 0.0, x0, x1, 7.95, 8.45, 0.14)
 
 
 # Phase 7 — ngõ hẹp khu cầu: hành lang vữa cao ép sát hai bên, cổng trụ + lanh tô +
@@ -319,8 +421,12 @@ func _build_phase2_streets() -> void:
 	for k in range(12):
 		var x := -33.0 + k * 6.0
 		if absf(x) > 11.0:
-			_house(Vector3(x, 0, -28.5), -PI / 2.0, k + 2)
-			_house(Vector3(x, 0, -35.0), PI / 2.0, k + 4)
+			# Phase 8: lot ±21 hàng Bắc + lot -21 hàng Nam bỏ trống — nhà TÀN TÍCH
+			# đục lối Lê Lợi/HVT xuyên xuống (dựng trong _build_phase8_roam)
+			if absf(x) != 21.0:
+				_house(Vector3(x, 0, -28.5), -PI / 2.0, k + 2)
+			if x != -21.0:
+				_house(Vector3(x, 0, -35.0), PI / 2.0, k + 4)
 	# dây đèn NTH — cùng hướng Trần Phú nhưng màu ấm hơn
 	var nth_pal := [Color(1.0, 0.5, 0.12), Color(1.0, 0.22, 0.07), Color(0.9, 0.38, 0.8)]
 	var li := 0
@@ -338,7 +444,8 @@ func _build_phase2_streets() -> void:
 			_string_lanterns.append([Build.lantern(self, 0.12, 0.22, Vector3(sx, y, z)), nth_pal[li % nth_pal.size()]])
 			li += 1
 	# chậu cảnh NTH
-	for pp in [[-26.8, -28.55, 3], [-20.8, -28.55, 1], [20.8, -28.55, 0], [26.8, -28.55, 2],
+	# chậu né lot tàn tích ±21 (Phase 8): -20.8→-14.8, 20.8→14.8
+	for pp in [[-26.8, -28.55, 3], [-14.8, -28.55, 1], [14.8, -28.55, 0], [26.8, -28.55, 2],
 			[-17.2, -34.95, 3], [17.2, -34.95, 1]]:
 		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 0.92)
 	# cây xanh tại ranh nhà (x=±18, giữa đường NTH)
@@ -416,10 +523,11 @@ func _build_phase3_river() -> void:
 	# facade z=-47, thân kéo bắc tới z=-42 (kẽ với NTH south body z=-40, gap 2m)
 	for k in range(12):
 		var x := -33.0 + k * 6.0
-		if absf(x) > 9.0:
+		# Phase 8: lot -21 bỏ trống — hẻm hai vách xuống bến sông (dựng trong _build_phase8_roam)
+		if absf(x) > 9.0 and x != -21.0:
 			_house(Vector3(x, 0, -47.0), -PI / 2.0, k + 1)
-	# chậu cảnh + xe thuyền Bạch Đằng
-	for pp in [[-26.8, -47.05, 2], [-20.8, -47.05, 0], [20.8, -47.05, 3], [26.8, -47.05, 1]]:
+	# chậu cảnh + xe thuyền Bạch Đằng (-20.8 dời -14.8 né miệng hẻm)
+	for pp in [[-26.8, -47.05, 2], [-14.8, -47.05, 0], [20.8, -47.05, 3], [26.8, -47.05, 1]]:
 		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 0.88)
 	Parts.bicycle(self, Vector3(-24.5, 0, -47.5), 0.0, 0.15)
 	Parts.motorbike(self, Vector3(24.5, 0, -47.6), -0.18)
@@ -918,7 +1026,25 @@ func update_world(delta: float) -> void:
 		_apply_zone(_zone_target, w)
 
 
+# Phase 8 — kẹp về điểm gần nhất trong union ROAM_RECTS (mạng phố mở sau light_up)
+func _roam_clamp(pos: Vector3) -> Vector3:
+	var best := pos
+	var best_d := 1e18
+	for r in ROAM_RECTS:
+		var cx: float = clampf(pos.x, r["x0"], r["x1"])
+		var cz: float = clampf(pos.z, r["z0"], r["z1"])
+		var d: float = (cx - pos.x) * (cx - pos.x) + (cz - pos.z) * (cz - pos.z)
+		if d < best_d:
+			best_d = d
+			best = Vector3(cx, pos.y, cz)
+	best.y = ground_height(best)
+	return best
+
+
 func clamp_alley(pos: Vector3) -> Vector3:
+	# Phase 8: phố đã thức (light_up) → mạng phố phía Nam mở, kẹp theo union rect
+	if geo_zone_on and pos.z <= 8.0 and absf(pos.x) > ALLEY_HALF + 0.5:
+		return _roam_clamp(pos)
 	# trên phố Trần Phú: đi ngang thoải mái giữa hai màn sương
 	# (|x|>5.5 luôn xử lý theo phố — kẻo lọt biên z=8 trên thềm Nam bị giật về ngõ)
 	if pos.z > 8.0 or absf(pos.x) > ALLEY_HALF + 0.5:
@@ -933,8 +1059,10 @@ func clamp_alley(pos: Vector3) -> Vector3:
 		var gh_n := ground_height(Vector3(pos.x, 0, 14.1))
 		var zmax := 14.25 if gh_n > 0.3 else (14.1 if gh_n > 0.05 else 13.6)
 		pos.z = clampf(pos.z, 8.0, zmax)
-		# ngoài miệng ngõ thì không xuống được dãy nhà Nam (trừ khi đứng trên bậc/thềm)
-		if absf(pos.x) > ALLEY_HALF and pos.z < 8.4 and not on_floor:
+		# ngoài miệng ngõ thì không xuống được dãy nhà Nam — trừ khi đứng trên
+		# bậc/thềm, hoặc đang ở miệng giao lộ ±(18.4..23.6) lúc phố đã mở (Phase 8)
+		var in_mouth := geo_zone_on and absf(pos.x) >= 18.4 and absf(pos.x) <= 23.6
+		if absf(pos.x) > ALLEY_HALF and pos.z < 8.4 and not on_floor and not in_mouth:
 			pos.z = 8.4
 		pos.y = ground_height(pos)
 		return pos

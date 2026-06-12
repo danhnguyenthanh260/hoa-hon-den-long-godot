@@ -99,6 +99,10 @@ func _build_street_life() -> void:
 	m.add_interact(Vector3(-36.5, 0, 11.0), 2.5, "Nhìn về phía cây cầu", Callable(self, "_seal_bridge"), false)
 	# chân cầu cuối ngõ hẹp (Phase 7) — đặt được một bước lên ván là sương đẩy ngược
 	m.add_interact(Vector3(-40.2, 0, 11.0), 2.0, "Chân Chùa Cầu", Callable(self, "_bridge_foot"), false)
+	# Phase 8 — điểm dừng khi lang thang mạng phố mở (chỉ tới được sau light_up)
+	m.add_interact(Vector3(-21.0, 0, -26.5), 2.4, "Căn nhà đã sụp", Callable(self, "_ruin_thought"), false)
+	m.add_interact(Vector3(-8.6, 0, -31.6), 2.6, "Bức tường lạ giữa phố", Callable(self, "_wall_thought"), false)
+	m.add_interact(Vector3(-20.0, 0, -50.5), 3.0, "Bờ sông Hoài", Callable(self, "_river_thought"), false)
 	# chợ sau sương Đông
 	m.add_interact(Vector3(36.5, 0, 11.0), 2.5, "Lắng nghe phía chợ", Callable(self, "_seal_market"), false)
 	# gánh hoa đăng bỏ không
@@ -229,6 +233,27 @@ func _bridge_foot() -> void:
 	])
 
 
+func _ruin_thought() -> void:
+	m.say([
+		["Minh (nghĩ)", "Căn nhà này sụp lâu rồi. Vữa gãy, xà cháy đen... nhưng không có mùi khói."],
+		["Minh (nghĩ)", "Như thể nó không cháy — mà bị NHAI. Bóng tối ăn ký ức của phố, từng căn một."],
+	])
+
+
+func _wall_thought() -> void:
+	m.say([
+		["Minh (nghĩ)", "Một bức tường trơn chắn ngang Nguyễn Thái Học. Bản đồ trong đầu tôi nói chỗ này phố thông."],
+		["Minh (nghĩ)", "Vữa còn ấm. Có thứ vừa XÂY nó. Và đang giữ một khoảng sân ở bên trong."],
+	])
+
+
+func _river_thought() -> void:
+	m.say([
+		["Minh (nghĩ)", "Sông Hoài. Mặt nước đen như mực mài, im đến mức nghe được tim mình."],
+		["Minh (nghĩ)", "Một đóa hoa đăng trôi NGƯỢC dòng, về phía thượng nguồn. Tôi vờ như chưa thấy."],
+	])
+
+
 func _seal_market() -> void:
 	m.say([
 		["Minh (nghĩ)", "Phía chợ. Tôi nghe tiếng rao, tiếng dao thớt, tiếng cãi giá..."],
@@ -274,7 +299,8 @@ func _light_lamp(i: int) -> void:
 
 func update(delta: float) -> void:
 	_update_cat(delta)
-	if web_burned and m.player.position.z < -23.0:
+	# chỉ kích hoạt khi đi sâu TRONG NGÕ — phố mở (Phase 8) cũng có z<-23 ở Lê Lợi/NTH
+	if web_burned and m.player.position.z < -23.0 and absf(m.player.position.x) < 5.5:
 		m.goto_chapter(2)
 
 

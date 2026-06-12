@@ -120,3 +120,24 @@ Cầu An Hội + dải nhà thấp bờ nam + chợ đêm đèn lồng — sân 
 | Zone địa lý | pho_dem / ngo_cau | `update_zone_geo()` chạy mỗi frame khi chapter 1 + sau light_up: ngõ=c1_lit, phố=pho_dem (ấm), khu cầu=ngo_cau (sương đặc lạnh) |
 | Map 5 chương | — | C1 ngõ+phố (geo zones), C2 giếng z=-28..-43 (zone c2), C3 nhà ký ức x=60 (c3), C4 bến sông Phase-3 (c4), C5 cầu treo y=40 (c5) — C2-C5 giữ zone riêng, geo chỉ chạy ở C1 |
 | Fix biên | clamp_alley | \|x\|>5.5 luôn xử lý theo phố — hết giật ngang khi lọt biên z=8 trên thềm Nam |
+
+## Phase 8 — Mở phố đi được + tàn tích — ✅ xong 2026-06-12
+
+Phản hồi user: map mở rộng phải ĐI ĐƯỢC; vùng không đi được phải đọc ra là đổ
+nát/phong ấn chứ không phải khoảng trống. Mạng phố mở khóa sau `light_up()`
+(phố thức dậy) — trước đó vẫn bị chặn tại z=8.4 như cũ.
+
+| Phần tử | Vị trí | Chi tiết |
+|---|---|---|
+| Giao lộ TP→Lê Lợi/HVT | lot ±21 dãy Nam Trần Phú | Bỏ 2 nhà, thềm Nam tách 4 đoạn hở miệng, guard z=8.4 miễn trừ miệng giao lộ |
+| 3 nhà tàn tích | NTH Bắc ±21, NTH Nam -21 | `_ruin_house()`: 2 mảng mặt tiền đứng (cửa sập = lối xuyên), tường hồi gãy bậc, xà cháy, gạch vụn, ngói sập, cỏ dại |
+| Hẻm Bạch Đằng | lot -21, z -42..-47 | 2 vách hồi + rêu + đèn lồng giăng (_hanging) — xuống bến sông |
+| Mạng ROAM_RECTS | 16 rect | TP↔LL↔NTH-tây↔band↔hẻm↔bờ sông tây; TP↔HVT↔NTH-đông; `_roam_clamp()` kẹp về điểm gần nhất trong union |
+| Bờ sông đi được | x -35.5..-9.3, z -42..-52.1 | Nền đá Phase 3 đăng ký floor y=0.075 (nc — không tính sát thềm nhà) |
+| Sương biên mới | NTH ±37, sông -36.8 | `_mist()` helper (refactor từ mist Trần Phú) |
+| Zone bo_song | z<-39.5 | Trăng xanh mặt nước đen; update_zone_geo thêm nhánh roam |
+| 3 interact C1 | tàn tích/tường C2/bờ sông | Độc thoại: bóng tối "nhai" nhà, tường C2 vữa còn ấm, hoa đăng trôi ngược |
+| Fix trigger C2 | c1.update | Thêm điều kiện \|x\|<5.5 — đi dạo Lê Lợi/NTH z<-23 không còn nhảy chương |
+
+Còn chờ ảnh ref đợt 2 (docs/REF-PROMPTS.md → Screenshots/ref-12..18): rebuild
+Chùa Cầu + 2 hội quán + chợ theo kiến trúc thật, asset tàn tích theo ref-17.
