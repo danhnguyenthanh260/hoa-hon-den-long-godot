@@ -613,6 +613,17 @@ func _house_view() -> void:
 	print("houseview ground: street=", world.ground_height(Vector3(-5, 0, 12.0)),
 		" steps=", world.ground_height(Vector3(-3, 0, 13.5)),
 		" plinth=", world.ground_height(Vector3(-5, 0, 14.15)))
+	# Phase 2: phố Nguyễn Thái Học + Lê Lợi/HVT — nhìn về phía Nam
+	# Lê Lợi từ trên: camera ở z=14 nhìn xuống phía nam dọc ngõ dọc
+	camera.position = Vector3(-19.0, 7.5, 14.0)
+	camera.look_at(Vector3(-19.0, 2.0, -10.0))
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/p2-lelli.png")
+	# NTH chính diện từ phía Bắc: camera đứng phía bắc NTH nhìn vào mặt tiền north row
+	camera.position = Vector3(-18.0, 4.5, -22.0)
+	camera.look_at(Vector3(-18.0, 3.0, -31.5))
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/p2-nth.png")
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
 

@@ -142,6 +142,7 @@ func _build_houses() -> void:
 	Parts.bicycle(self, Vector3(4.6, 0, -8.0), PI / 2.0, -0.12)
 	Parts.banana_clump(self, Vector3(-3.5, 0, -18.8), 1.2, Vector3(-0.55, 0, -0.83))
 	_build_main_street()
+	_build_phase2_streets()
 
 
 # ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
@@ -281,6 +282,100 @@ func _build_main_street() -> void:
 	mglow.omni_range = 10.0
 	mglow.position = Vector3(-20, 3.5, 25)
 	add_child(mglow)
+
+
+# Phase 2 — Nguyễn Thái Học + Lê Lợi + Hoàng Văn Thụ
+# Đặt hoàn toàn ở |x|>11 để tránh hành lang ngõ (|x|≤5) và tường C2 (x=±8).
+func _build_phase2_streets() -> void:
+	# ── Nguyễn Thái Học: E-W trục song song Trần Phú, cách ~40m về Nam ──
+	# north row z=-28.5 (mặt quay Nam), south row z=-35.0 (mặt quay Bắc)
+	for k in range(12):
+		var x := -33.0 + k * 6.0
+		if absf(x) > 11.0:
+			_house(Vector3(x, 0, -28.5), -PI / 2.0, k + 2)
+			_house(Vector3(x, 0, -35.0), PI / 2.0, k + 4)
+	# dây đèn NTH — cùng hướng Trần Phú nhưng màu ấm hơn
+	var nth_pal := [Color(1.0, 0.5, 0.12), Color(1.0, 0.22, 0.07), Color(0.9, 0.38, 0.8)]
+	var li := 0
+	for sx in [-26.0, -14.0, 14.0, 26.0]:
+		var prev2 := Vector3.ZERO
+		for j in range(5):
+			var z := -29.2 + j * 1.2
+			var y := 3.3 - 0.45 * (1.0 - pow((z + 31.6) / 2.4, 2.0))
+			var top := Vector3(sx, y + 0.12, z)
+			if j > 0:
+				var mid := (prev2 + top) * 0.5
+				var seg := Build.box(self, Vector3(0.015, 0.015, prev2.distance_to(top)), mid, Build.mat(Color(0.05, 0.04, 0.035)))
+				seg.rotation.x = atan2(top.y - prev2.y, top.z - prev2.z)
+			prev2 = top
+			_string_lanterns.append([Build.lantern(self, 0.12, 0.22, Vector3(sx, y, z)), nth_pal[li % nth_pal.size()]])
+			li += 1
+	# chậu cảnh NTH
+	for pp in [[-26.8, -28.55, 3], [-20.8, -28.55, 1], [20.8, -28.55, 0], [26.8, -28.55, 2],
+			[-17.2, -34.95, 3], [17.2, -34.95, 1]]:
+		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 0.92)
+	# cây xanh tại ranh nhà (x=±18, giữa đường NTH)
+	for tp in [Vector3(-18.0, 0, -31.8), Vector3(18.0, 0, -31.8)]:
+		Build.ball(self, 0.45, 0.18, tp,
+				Build.pbr("res://assets/textures/MudLeaves01", 0.9, Color(0.85, 0.8, 0.75), 1.3))
+		var bark := Build.pbr("res://assets/textures/Bark02", 1.2, Color(0.8, 0.72, 0.6), 1.5)
+		Build.cyl(self, 0.11, 0.17, 2.5, tp + Vector3(0, 1.25, 0), bark, 8)
+		for bk in range(3):
+			var ba := bk * 2.1 + 0.3
+			var br := Build.cyl(self, 0.045, 0.08, 1.1,
+					tp + Vector3(cos(ba) * 0.4, 2.75, sin(ba) * 0.4), bark, 6)
+			br.rotation.z = cos(ba) * 0.5
+			br.rotation.x = -sin(ba) * 0.5
+		var hv := 0.88 + 0.24 * fposmod(tp.x * 0.737 + tp.z * 0.311, 1.0)
+		var lm := Build.leaf_mat("ForestLeaves03", Color(0.5, 0.7, 0.4) * hv, 0.05, 1.0, 0.55)
+		var cm2 := Build.leaf_mat("ForestLeaves03", Color(0.55, 0.78, 0.42) * hv, 0.05, 1.0, 0.8, 0.5)
+		for fb in range(6):
+			var off := Vector3(sin(fb * 1.9) * 0.65, 2.95 + 0.4 * sin(fb * 2.7), cos(fb * 1.9) * 0.62)
+			Build.ball(self, 0.4 + 0.07 * (fb % 3), 0.72, tp + off, lm)
+		for cb in range(7):
+			var coff := Vector3(sin(cb * 2.4) * 0.72, 3.0 + 0.42 * sin(cb * 1.7), cos(cb * 2.4) * 0.68)
+			var card := Build.leaf_card(self, Vector2(1.3, 1.0), tp + coff, cm2)
+			card.rotation = Vector3(fposmod(cb * 0.97, 1.0) - 0.5, cb * 0.79, fposmod(cb * 0.61, 0.8) - 0.4)
+
+	# ── Lê Lợi: phố dọc phía Tây (trung tâm x=-19), nối Trần Phú ↔ NTH ──
+	# Nhà tây (x=-22, mặt quay đông/PI) và đông (x=-16, mặt quay tây/0)
+	# z=-3,-9,-15,-21: contiguous facade từ z=0 đến z=-24, tránh thân nhà Trần Phú (z≥2.9)
+	for j in range(4):
+		var z := -3.0 - j * 6.0
+		_house(Vector3(-22.0, 0, z), PI, j * 3)
+		_house(Vector3(-16.0, 0, z), 0.0, j * 3 + 1)
+	# dây đèn Lê Lợi — chạy dọc alley (cố định z, x thay đổi qua đường)
+	for zs in [-3.0, -15.0]:
+		var prev3 := Vector3.ZERO
+		for j in range(5):
+			var x := -22.0 + j * 1.5
+			var y := 3.2 - 0.42 * (1.0 - pow((x + 19.0) / 2.25, 2.0))
+			var top := Vector3(x, y + 0.1, zs)
+			if j > 0:
+				var mid := (prev3 + top) * 0.5
+				var seg := Build.box(self, Vector3(prev3.distance_to(top), 0.015, 0.015), mid, Build.mat(Color(0.05, 0.04, 0.035)))
+				seg.rotation.z = atan2(top.y - prev3.y, top.x - prev3.x)
+			prev3 = top
+			_string_lanterns.append([Build.lantern(self, 0.11, 0.2, Vector3(x, y, zs)), nth_pal[j % nth_pal.size()]])
+
+	# ── Hoàng Văn Thụ: phố dọc phía Đông (trung tâm x=+19), nối Trần Phú ↔ NTH ──
+	for j in range(4):
+		var z := -3.0 - j * 6.0
+		_house(Vector3(16.0, 0, z), PI, j * 3 + 2)
+		_house(Vector3(22.0, 0, z), 0.0, j * 3 + 1)
+	# dây đèn HVT
+	for zs in [-9.0, -21.0]:
+		var prev4 := Vector3.ZERO
+		for j in range(5):
+			var x := 16.0 + j * 1.5
+			var y := 3.2 - 0.42 * (1.0 - pow((x - 19.0) / 2.25, 2.0))
+			var top := Vector3(x, y + 0.1, zs)
+			if j > 0:
+				var mid := (prev4 + top) * 0.5
+				var seg := Build.box(self, Vector3(prev4.distance_to(top), 0.015, 0.015), mid, Build.mat(Color(0.05, 0.04, 0.035)))
+				seg.rotation.z = atan2(top.y - prev4.y, top.x - prev4.x)
+			prev4 = top
+			_string_lanterns.append([Build.lantern(self, 0.11, 0.2, Vector3(x, y, zs)), nth_pal[(j + 1) % nth_pal.size()]])
 
 
 # nhà phố Hội An: xoay vòng 5 MẪU NHÀ dựng theo ảnh ref (house01..house05) —

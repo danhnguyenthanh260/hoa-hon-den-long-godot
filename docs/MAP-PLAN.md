@@ -35,11 +35,21 @@ h05 khung 1.0 → 0.9 tâm ±1.85; h02 ô bông gió 1.15 → 1.05 tâm ±1.76;
 - Hue variation theo instance (±10% tint qua instance uniform).
 - Bụi cỏ lá dài chân tường/chân trụ (LeafyGrass card).
 
-## Phase 2 — Khung phố theo sơ đồ
+## Phase 2 — Khung phố theo sơ đồ — ✅ xong 2026-06-12
 
-- Thêm trục Nguyễn Thái Học (song song Trần Phú, phía nam) + Bạch Đằng ven sông.
-- 2–3 phố dọc nối trục (Lê Lợi, Hoàng Văn Thụ) — dùng lại 5 mẫu nhà, ngõ hẹp hơn.
-- Zone hóa theo chú giải ref-11: thương mại / ven sông / chợ-quảng trường.
+Điều kiện đặt: tất cả geometry tại |x|>11 để tránh hành lang ngõ (|x|≤5) và tường C2 (x=±8).
+
+| Trục | z/x | Chi tiết |
+|---|---|---|
+| Nguyễn Thái Học north row | z=-28.5 | mặt quay Nam, skip \|x\|≤11 |
+| Nguyễn Thái Học south row | z=-35.0 | mặt quay Bắc, skip \|x\|≤11 |
+| Lê Lợi west (mặt Đông) | x=-22 | z=-3,-9,-15,-21 |
+| Lê Lợi east (mặt Tây) | x=-16 | z=-3,-9,-15,-21 |
+| Hoàng Văn Thụ west (mặt Đông) | x=16 | z=-3,-9,-15,-21 |
+| Hoàng Văn Thụ east (mặt Tây) | x=22 | z=-3,-9,-15,-21 |
+
+Thêm: dây đèn NTH (4 vị trí sx) + dây đèn Lê Lợi/HVT (chạy ngang đường dọc), cây xanh tại x=±18 giữa đường NTH, chậu cảnh.
+Bạch Đằng sẽ thêm trong Phase 3 (cùng sông Hoài).
 
 ## Phase 3 — Sông Hoài (8)
 
