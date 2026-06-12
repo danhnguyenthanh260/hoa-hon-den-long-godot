@@ -624,6 +624,17 @@ func _house_view() -> void:
 	camera.look_at(Vector3(-18.0, 3.0, -31.5))
 	await get_tree().create_timer(0.5).timeout
 	await _shot(dir + "/p2-nth.png")
+	# Phase 3: Bạch Đằng bắc ngạn + sông Hoài rộng
+	# nhìn từ phía Bắc Bạch Đằng xuống bờ sông
+	camera.position = Vector3(-22.0, 5.8, -41.5)
+	camera.look_at(Vector3(-22.0, 1.5, -60.0))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(dir + "/p3-bach-dang.png")
+	# thuyền + dây đèn qua sông từ phía Đông
+	camera.position = Vector3(36.0, 6.5, -63.0)
+	camera.look_at(Vector3(0.0, 0.8, -64.5))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(dir + "/p3-river.png")
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
 

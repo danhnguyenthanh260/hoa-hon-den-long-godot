@@ -51,10 +51,21 @@ h05 khung 1.0 → 0.9 tâm ±1.85; h02 ô bông gió 1.15 → 1.05 tâm ±1.76;
 Thêm: dây đèn NTH (4 vị trí sx) + dây đèn Lê Lợi/HVT (chạy ngang đường dọc), cây xanh tại x=±18 giữa đường NTH, chậu cảnh.
 Bạch Đằng sẽ thêm trong Phase 3 (cùng sông Hoài).
 
-## Phase 3 — Sông Hoài (8)
+## Phase 3 — Sông Hoài (8) — ✅ xong 2026-06-12
 
-Mặt nước + bờ kè đá + bậc xuống nước + bến thuyền + thuyền gỗ mui cong +
-đèn lồng phản chiếu mặt nước (ven sông hoạt động đêm theo ghi chú ref-11).
+Tất cả ở |x|>9 (tránh C4 corridor |x|≤7.4, z∈[-57.4,-44.5]).
+
+| Phần tử | Vị trí | Chi tiết |
+|---|---|---|
+| Bạch Đằng houses | z=-47, \|x\|>9 | 8 nhà/mặt quay Nam, body kéo bắc z=-42 |
+| Nền đá lát bờ sông | |x|=9→35, z=-42→-54 | PavingStones138 |
+| Bờ kè đá + lan can | z=-52.5, |x|=9→35 | tường 0.55m + 11 trụ + dải ngang |
+| Bậc xuống nước | x=±18, ±26 | 4 bậc × 0.2m cao, 0.55m sâu |
+| Cầu tàu gỗ | x=±20, z=-53→-65 | ván sàn 12m + 6 cọc + đèn bến |
+| Mặt sông rộng | |x|=9→35, z=-58→-78 | metallic 0.93, roughness 0.04 |
+| 2 thuyền mui cong | x=±25, z=-64 | 5 tấm cung + đèn + glow phản chiếu |
+| 3 dây đèn qua sông | z=-60,-64.5,-69 | 9 đèn/dây, vắt full width |
+| 8 hoa đăng tĩnh | flanks |x|>9 | atmospheric, C4 xử lý chuyển động giữa dòng |
 
 ## Phase 4 — Chùa Cầu thật (1)
 

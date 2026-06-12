@@ -143,6 +143,7 @@ func _build_houses() -> void:
 	Parts.banana_clump(self, Vector3(-3.5, 0, -18.8), 1.2, Vector3(-0.55, 0, -0.83))
 	_build_main_street()
 	_build_phase2_streets()
+	_build_phase3_river()
 
 
 # ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
@@ -376,6 +377,142 @@ func _build_phase2_streets() -> void:
 				seg.rotation.z = atan2(top.y - prev4.y, top.x - prev4.x)
 			prev4 = top
 			_string_lanterns.append([Build.lantern(self, 0.11, 0.2, Vector3(x, y, zs)), nth_pal[(j + 1) % nth_pal.size()]])
+
+
+# Phase 3 — Sông Hoài: Bạch Đằng bắc ngạn + bờ kè + cầu tàu + mặt sông rộng + thuyền mui cong
+# Tất cả ở |x|>9 (tránh hành lang C4: |x|≤7.4, z∈[-57.4,-44.5]).
+func _build_phase3_river() -> void:
+	var stone := Build.pbr("res://assets/textures/PavingStones138", 0.65, Color(0.56, 0.50, 0.48), 0.25)
+	var woodmat := Build.pbr("res://assets/textures/WoodFloor043", 0.88, Color(0.42, 0.31, 0.21), 1.2)
+	var dark := Build.mat(Color(0.1, 0.08, 0.07), 0.9)
+
+	# ── Bạch Đằng: một hàng nhà bắc ngạn, mặt quay sông (Nam), |x|>9 ──
+	# facade z=-47, thân kéo bắc tới z=-42 (kẽ với NTH south body z=-40, gap 2m)
+	for k in range(12):
+		var x := -33.0 + k * 6.0
+		if absf(x) > 9.0:
+			_house(Vector3(x, 0, -47.0), -PI / 2.0, k + 1)
+	# chậu cảnh + xe thuyền Bạch Đằng
+	for pp in [[-26.8, -47.05, 2], [-20.8, -47.05, 0], [20.8, -47.05, 3], [26.8, -47.05, 1]]:
+		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 0.88)
+	Parts.bicycle(self, Vector3(-24.5, 0, -47.5), 0.0, 0.15)
+	Parts.motorbike(self, Vector3(24.5, 0, -47.6), -0.18)
+
+	# ── Nền đá lát Bạch Đằng + bờ sông (|x| 9→35, z -42→-54) ──
+	for side in [-1.0, 1.0]:
+		var cx: float = side * 22.0   # center của dải 26m rộng (±9 → ±35)
+		Build.box(self, Vector3(26.0, 0.15, 12.0), Vector3(cx, 0.0, -48.0), stone)
+
+	# ── Bờ kè đá: tường thấp + lan can ──
+	for side in [-1.0, 1.0]:
+		var cx: float = side * 22.0
+		# thân bờ kè
+		Build.box(self, Vector3(26.0, 0.55, 0.6), Vector3(cx, 0.27, -52.5), Build.mat(Color(0.51, 0.48, 0.44), 0.96))
+		# trụ lan can mỗi 2.5m
+		for qi in range(11):
+			var qx: float = cx - 12.5 + qi * 2.5
+			Build.box(self, Vector3(0.2, 0.4, 0.22), Vector3(qx, 0.75, -52.5), Build.mat(Color(0.46, 0.43, 0.4), 0.98))
+		# dải lan can ngang
+		Build.box(self, Vector3(26.0, 0.1, 0.15), Vector3(cx, 0.92, -52.5), Build.mat(Color(0.42, 0.39, 0.36), 0.96))
+
+	# ── Bậc xuống nước tại ±18, ±26 (4 bậc × 4 vị trí) ──
+	for bx in [-26.0, -18.0, 18.0, 26.0]:
+		for step in range(4):
+			Build.box(self, Vector3(2.1, 0.2, 0.55), Vector3(bx, 0.54 - step * 0.2, -53.0 - step * 0.58), stone)
+
+	# ── Cầu tàu gỗ (bến thuyền) tại x=±20, hướng ra sông ──
+	for side in [-1.0, 1.0]:
+		var px: float = side * 20.0
+		# ván sàn cầu tàu
+		Build.box(self, Vector3(2.2, 0.18, 12.0), Vector3(px, 0.12, -58.5), woodmat)
+		# cọc gỗ (3 đôi mỗi bên, cắm sâu dưới nước)
+		for pi in range(6):
+			Build.box(self, Vector3(0.22, 2.6, 0.22),
+					Vector3(px - 0.9 + (pi % 2) * 1.8, -0.9, -53.5 - int(pi / 2) * 4.0), dark)
+		# đèn bến tàu
+		var dock_l := OmniLight3D.new()
+		dock_l.light_color = Color(1.0, 0.6, 0.22)
+		dock_l.light_energy = 0.9
+		dock_l.omni_range = 7.5
+		dock_l.position = Vector3(px, 2.1, -58.0)
+		add_child(dock_l)
+
+	# ── Mặt sông rộng hai cánh (|x| 9→35, z -58→-78) ──
+	var wmat3 := StandardMaterial3D.new()
+	wmat3.albedo_color = Color(0.012, 0.024, 0.042)
+	wmat3.metallic = 0.93
+	wmat3.roughness = 0.04
+	wmat3.emission_enabled = true
+	wmat3.emission = Color(0.015, 0.032, 0.065)
+	wmat3.emission_energy_multiplier = 0.28
+	for side in [-1.0, 1.0]:
+		var rw := Build.box(self, Vector3(26.0, 0.08, 20.0), Vector3(side * 22.0, -0.06, -68.0), null)
+		rw.material_override = wmat3
+		rw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# ── Thuyền mui cong (2 thuyền hai bên, neo cạnh cầu tàu) ──
+	var boat_pal := [Color(1.0, 0.55, 0.2), Color(1.0, 0.62, 0.25)]
+	for si in range(2):
+		var side := 1.0 - si * 2.0   # +1 hoặc -1
+		var bnode := Node3D.new()
+		bnode.position = Vector3(side * 25.0, 0.04, -64.0)
+		add_child(bnode)
+		# thân thuyền gỗ
+		Build.box(bnode, Vector3(2.2, 0.42, 6.2), Vector3(0, 0.21, 0), woodmat)
+		# mũi vát
+		var prow := Build.box(bnode, Vector3(2.2, 0.34, 0.9), Vector3(0, 0.17, 3.1), woodmat)
+		prow.rotation.x = 0.44
+		# mui cong: 5 tấm liên tiếp ghép thành cung mái thuyền
+		for ri in range(5):
+			var ra := (ri - 2.0) * 0.28
+			var ry := 1.12 - cos(ra * 1.4) * 0.21
+			var panel := Build.box(bnode, Vector3(2.3, 0.08, 1.35), Vector3(0, ry, ra * 1.9), dark)
+			panel.rotation.x = ra * 0.52
+		# đèn thuyền
+		var bl := OmniLight3D.new()
+		bl.light_color = boat_pal[si % boat_pal.size()]
+		bl.light_energy = 0.75
+		bl.omni_range = 5.5
+		bl.position = Vector3(0, 1.95, 0)
+		bnode.add_child(bl)
+		# phản chiếu đèn trên mặt sông
+		var glow := Build.cyl(self, 0.33, 0.33, 0.02, Vector3(side * 25.0, -0.03, -64.0),
+				Build.emis(boat_pal[si % boat_pal.size()], boat_pal[si % boat_pal.size()] * 0.7, 1.5))
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# ── Dây đèn lồng vắt qua sông (3 dây, mỗi dây 9 đèn) ──
+	var riv_pal := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(0.95, 0.25, 0.4)]
+	var rli := 0
+	for rz in [-60.0, -64.5, -69.0]:
+		var prev_r := Vector3.ZERO
+		for j in range(9):
+			var rx := -32.0 + j * 8.0
+			var ry := 3.7 - 0.58 * (1.0 - pow(rx / 32.0, 2.0))
+			var top := Vector3(rx, ry + 0.12, rz)
+			if j > 0:
+				var mid := (prev_r + top) * 0.5
+				var seg := Build.box(self, Vector3(prev_r.distance_to(top), 0.015, 0.015), mid, Build.mat(Color(0.05, 0.04, 0.035)))
+				seg.rotation.z = atan2(top.y - prev_r.y, top.x - prev_r.x)
+			prev_r = top
+			_string_lanterns.append([Build.lantern(self, 0.15, 0.28, Vector3(rx, ry, rz)), riv_pal[rli % riv_pal.size()]])
+			rli += 1
+
+	# ── Hoa đăng bổ sung hai cánh sông (|x|>9 chỉ, tĩnh — chuyển động do C4 xử lý giữa dòng) ──
+	var hd_positions := [
+		Vector3(-28.0, 0.05, -63.5), Vector3(-21.0, 0.05, -66.8), Vector3(-16.0, 0.05, -70.2),
+		Vector3(-25.0, 0.05, -73.5), Vector3(15.0, 0.05, -61.9), Vector3(22.0, 0.05, -65.4),
+		Vector3(28.0, 0.05, -69.1), Vector3(19.0, 0.05, -72.8),
+	]
+	for hdp in hd_positions:
+		var hd := Node3D.new()
+		hd.position = hdp
+		add_child(hd)
+		Build.cyl(hd, 0.09, 0.11, 0.09, Vector3(0, 0.05, 0),
+				Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.62, 0.22), 3.0))
+		for p in range(6):
+			var ang := TAU * p / 6.0
+			Build.ball(hd, 0.085, 0.07, Vector3(cos(ang) * 0.13, 0.02, sin(ang) * 0.13),
+					Build.emis(Color(0.9, 0.45, 0.55), Color(0.9, 0.35, 0.4), 0.5, 0.7))
 
 
 # nhà phố Hội An: xoay vòng 5 MẪU NHÀ dựng theo ảnh ref (house01..house05) —
