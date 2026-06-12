@@ -399,7 +399,7 @@ static func door_curtain(a: Node3D, z_c: float, top_y: float, length: float, w: 
 static func window_ground(a: Node3D, z_c: float, h_base: float, m: Dictionary) -> void:
 	var sill_y := h_base + 1.0
 	var wh := 1.3
-	var ww := 0.78
+	var ww := 0.62                 # Phase 0: cửa sổ thon lại — viền ngoài 0.86, mặt tiền thở
 	# viền vữa trắng ôm quanh ô
 	Build.box(a, Vector3(0.05, wh + 0.22, ww + 0.24), Vector3(-0.02, sill_y + wh / 2.0, z_c), m["trim"])
 	# khung gỗ sậm + hai cánh chớp

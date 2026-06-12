@@ -27,8 +27,8 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.15, 
 	# ---------- thân: khối đặc phía sau + mặt tiền dày 0.35 chừa lỗ cửa và 2 ô bông gió ----------
 	Build.box(a, Vector3(D - 0.35, H1, W), Vector3((D + 0.35) / 2.0, H_BASE + H1 / 2.0, 0), m["plaster"])
 	var jamb_z := 0.82
-	var o_w := 1.15                                       # ô bông gió vuông 1.15m
-	var o_c := 1.78                                       # tâm ±1.78: viền ngoài 2.425 < trụ 2.45 — không đè trụ
+	var o_w := 1.05                                       # ô bông gió vuông — thon lại cho mặt tiền thở (Phase 0)
+	var o_c := 1.76                                       # viền ngoài 2.32 (khe trụ 0.13), viền trong 1.2 (khe cửa 0.3)
 	var o_z0 := o_c - o_w / 2.0
 	var o_z1 := o_c + o_w / 2.0
 	var sill := H_BASE + 1.05
