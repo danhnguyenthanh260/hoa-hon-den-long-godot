@@ -850,66 +850,132 @@ func _build_an_hoi_south_bank() -> void:
 # Phase 4 — Chùa Cầu thật: cầu gỗ vòm có mái ngói, miếu Bắc Đế giữa cầu, tượng thú trấn hai đầu.
 # Khớp c5.gd về chất lượng hình học; vật liệu PBR; vai trò phong ấn C1 giữ nguyên (sau mist x=-39).
 func _build_chua_cau() -> void:
+	# Phase 9 rebuild: reality-to-game dossier (REALITY-TO-GAME-RULES.md)
+	# Cầu thật: 18m × 3m, trụ đá granite, miếu gắn MẶT BẮC giữa nhịp, mái rust-orange.
 	var bridge := Node3D.new()
 	bridge.position = Vector3(-46, 0, 11)
 	add_child(bridge)
-	var deckwood := Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.5, 0.34, 0.2), 1.2)
-	var redcol := Build.mat(Color(0.42, 0.1, 0.07), 0.6)
-	var rooftile := Build.mat(Color(0.09, 0.08, 0.09), 0.7)
-	var stonegrey := Build.mat(Color(0.22, 0.22, 0.24), 0.9)
-	# mặt cầu cong vòm: 7 nhịp ván gỗ theo đường parabol
-	for s in range(7):
-		var sx := -4.5 + s * 1.5
-		var sy := 0.6 + 0.55 * (1.0 - pow(sx / 4.5, 2.0))
-		var seg := Build.box(bridge, Vector3(1.6, 0.18, 3.2), Vector3(sx, sy, 0), deckwood)
-		seg.rotation.z = -sx * 0.05
-		for sz in [-1.5, 1.5]:
-			Build.box(bridge, Vector3(1.55, 0.06, 0.08), Vector3(sx, sy + 0.75, sz), deckwood).rotation.z = -sx * 0.05
-			Build.cyl(bridge, 0.035, 0.035, 0.72, Vector3(sx, sy + 0.4, sz), redcol, 6)
-	# cột đỏ đỡ mái: 4 cặp tại sx=±4.2, ±1.4
-	for sx in [-4.2, -1.4, 1.4, 4.2]:
-		for sz in [-1.35, 1.35]:
-			Build.box(bridge, Vector3(0.22, 2.6, 0.22), Vector3(sx, 2.4, sz), redcol)
-	# mái âm dương cong: slab ngang + 2 mái dốc ngói
-	Build.box(bridge, Vector3(11.5, 0.22, 4.4), Vector3(0, 3.7, 0), rooftile)
+	var deckwood  := Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.42, 0.30, 0.18), 1.2)
+	var redcol    := Build.mat(Color(0.50, 0.08, 0.06), 0.55)
+	var rooftile  := Build.mat(Color(0.54, 0.28, 0.13), 0.65)   # rust-orange (dossier: ★)
+	var stonegrey := Build.mat(Color(0.50, 0.48, 0.46), 0.88)   # granite pier
+	var plaster   := Build.mat(Color(0.88, 0.80, 0.70), 0.72)   # cream pavilion
+	var darkwood  := Build.mat(Color(0.20, 0.13, 0.08), 0.88)
+
+	# ── TRỤ ĐÁ GRANITE (new — silhouette đặc trưng quan trọng nhất) ──
+	# 2 trụ ở hai đầu, nửa chìm dưới mực nước lạch nhỏ (y < 0)
 	for k in [-1.0, 1.0]:
+		var kf: float = k
+		Build.box(bridge, Vector3(2.6, 3.4, 4.6), Vector3(kf * 7.0, -1.4, 0.0), stonegrey)
+
+	# Mặt nước lạch nhỏ dưới cầu (decorative, below grade)
+	var wmat := StandardMaterial3D.new()
+	wmat.albedo_color = Color(0.10, 0.16, 0.24)
+	wmat.metallic = 0.90
+	wmat.roughness = 0.05
+	Build.box(bridge, Vector3(18.0, 0.06, 5.4), Vector3(0.0, -2.7, 0.0), wmat)
+
+	# ── MẶT CẦU (11 nhịp, ~16.5m — gần đúng 18m thật) ──
+	for s in range(11):
+		var sx: float = -7.5 + s * 1.5
+		var sy: float = 0.42 + 0.60 * (1.0 - pow(sx / 7.5, 2.0))
+		var seg := Build.box(bridge, Vector3(1.62, 0.18, 2.8), Vector3(sx, sy, 0.0), deckwood)
+		seg.rotation.z = -sx * 0.028
+		# lan can + chấn song đỏ hai bên
+		for sz in [-1.35, 1.35]:
+			var szf: float = sz
+			Build.box(bridge, Vector3(1.58, 0.06, 0.08), Vector3(sx, sy + 0.82, szf), deckwood).rotation.z = -sx * 0.028
+			Build.cyl(bridge, 0.030, 0.030, 0.78, Vector3(sx, sy + 0.44, szf), redcol, 6)
+
+	# ── CỘT ĐỎ ĐỠ MÁI (5 cặp trải đều) ──
+	for i in range(5):
+		var sxf: float = -6.0 + i * 3.0
+		var cy: float = 0.42 + 0.60 * (1.0 - pow(sxf / 7.5, 2.0))
+		for sz in [-1.25, 1.25]:
+			var szf: float = sz
+			Build.box(bridge, Vector3(0.22, 2.85, 0.22), Vector3(sxf, cy + 1.3, szf), redcol)
+
+	# ── MÁI NGÓI (rust-orange — đã sửa từ gần đen) ──
+	Build.box(bridge, Vector3(15.8, 0.22, 4.8), Vector3(0.0, 3.92, 0.0), rooftile)
+	for k in [-1.0, 1.0]:
+		var kf: float = k
 		var slope := Node3D.new()
-		slope.position = Vector3(0, 4.15, k * 1.3)
-		slope.rotation.x = k * 0.38
+		slope.position = Vector3(0.0, 4.28, kf * 1.45)
+		slope.rotation.x = kf * 0.36
 		bridge.add_child(slope)
 		var slab := BoxMesh.new()
-		slab.size = Vector3(11.8, 0.1, 2.4)
+		slab.size = Vector3(15.8, 0.1, 2.55)
 		var smi := MeshInstance3D.new()
 		smi.mesh = slab
-		smi.material_override = Build.mat(Color(0.11, 0.1, 0.115), 0.6)
+		smi.material_override = rooftile
 		slope.add_child(smi)
-		Build.tile_rows(slope, 2.4, 11.8)
-	# đòn nóc ngang + đầu đao vểnh hai đầu
-	Build.cyl(bridge, 0.1, 0.1, 11.9, Vector3(0, 4.75, 0), Build.mat(Color(0.08, 0.06, 0.05)), 8).rotation.z = PI / 2.0
-	for ke in [-1.0, 1.0]:
-		var horn := Build.cyl(bridge, 0.012, 0.11, 0.7, Vector3(ke * 5.9, 4.9, 0), Build.mat(Color(0.08, 0.06, 0.05)), 8)
-		horn.rotation.z = ke * 1.0
-	# miếu nhỏ giữa cầu — thờ Bắc Đế Trấn Vũ (trấn phong ba sông Hoài)
-	Build.box(bridge, Vector3(1.6, 1.4, 1.0), Vector3(0, 1.9, -2.1), Build.mat(Color(0.36, 0.25, 0.14), 0.9))
-	Build.box(bridge, Vector3(1.9, 0.12, 1.3), Vector3(0, 2.7, -2.1), rooftile)
-	Build.box(bridge, Vector3(0.7, 0.5, 0.05), Vector3(0, 1.8, -1.58), Build.mat(Color(0.05, 0.03, 0.03), 0.6))
+		Build.tile_rows(slope, 2.55, 15.8)
+	# đòn nóc + đầu đao vểnh
+	Build.cyl(bridge, 0.10, 0.10, 15.9, Vector3(0.0, 5.02, 0.0), darkwood, 8).rotation.z = PI / 2.0
+	for k in [-1.0, 1.0]:
+		var kf: float = k
+		var horn := Build.cyl(bridge, 0.012, 0.11, 0.75, Vector3(kf * 7.85, 5.18, 0.0), darkwood, 8)
+		horn.rotation.z = kf * 1.05
+
+	# ── MIẾU — GẮN MẶT BẮC (+z), protrudes ra ngoài hành lang (đã sửa vị trí) ──
+	# Thật: shrine gắn dọc mặt Bắc tại điểm giữa nhịp, không ăn vào lối đi chính.
+	Build.box(bridge, Vector3(2.2, 1.85, 1.3), Vector3(0.0, 1.18, 2.35), darkwood)
+	Build.box(bridge, Vector3(2.6, 0.14, 1.75), Vector3(0.0, 2.14, 2.35), rooftile)
+	for k in [-1.0, 1.0]:
+		var kf: float = k
+		var sroof := Node3D.new()
+		sroof.position = Vector3(0.0, 2.32, 2.35 + kf * 0.62)
+		sroof.rotation.x = kf * 0.44
+		bridge.add_child(sroof)
+		var ss := BoxMesh.new()
+		ss.size = Vector3(2.6, 0.08, 1.15)
+		var smi2 := MeshInstance3D.new()
+		smi2.mesh = ss
+		smi2.material_override = rooftile
+		sroof.add_child(smi2)
+	Build.box(bridge, Vector3(0.65, 0.95, 0.06), Vector3(0.0, 1.30, 1.73), darkwood)   # cửa miếu
 	var altar_glow := OmniLight3D.new()
-	altar_glow.light_color = Color(1.0, 0.5, 0.2)
-	altar_glow.light_energy = 0.8
-	altar_glow.omni_range = 4.5
-	altar_glow.position = Vector3(0, 2.0, -1.8)
+	altar_glow.light_color = Color(1.0, 0.55, 0.18)
+	altar_glow.light_energy = 1.0
+	altar_glow.omni_range = 3.5
+	altar_glow.position = Vector3(0.0, 1.5, 2.55)
 	bridge.add_child(altar_glow)
-	# tượng linh khuyển / linh hầu trấn hai đầu cầu
-	for ke in [-1.0, 1.0]:
-		var ped := Vector3(ke * 5.6, 0, 1.0)
-		Build.box(bridge, Vector3(0.6, 0.7, 0.6), ped + Vector3(0, 0.35, 0), stonegrey)
-		Build.ball(bridge, 0.22, 0.42, ped + Vector3(0, 0.92, 0), Build.mat(Color(0.3, 0.3, 0.32), 0.85))
-		Build.ball(bridge, 0.13, 0.26, ped + Vector3(ke * 0.08, 1.25, 0.08), Build.mat(Color(0.3, 0.3, 0.32), 0.85))
-		for ear in [-0.07, 0.07]:
-			Build.cyl(bridge, 0.01, 0.04, 0.12, ped + Vector3(ke * 0.08 + ear, 1.4, 0.08), Build.mat(Color(0.28, 0.28, 0.3), 0.85), 6)
-	# đèn lồng đỏ dưới mái — kích hoạt cùng light_up()
-	for i in range(5):
-		var lan := Build.lantern(bridge, 0.14, 0.26, Vector3(-4.0 + i * 2.0, 2.6, 0))
+
+	# ── NHÀ BIA HAI ĐẦU CẦU (cream/hồng vữa — pavilion thật) ──
+	for k in [-1.0, 1.0]:
+		var kf: float = k
+		var px: float = kf * 8.6
+		Build.box(bridge, Vector3(1.9, 3.0, 4.0), Vector3(px, 1.5, 0.0), plaster)
+		Build.box(bridge, Vector3(0.06, 2.0, 1.9), Vector3(px - kf * 0.97, 1.0, 0.0), darkwood)  # cửa vào
+		Build.box(bridge, Vector3(2.3, 0.22, 4.4), Vector3(px, 3.2, 0.0), rooftile)
+		for k2 in [-1.0, 1.0]:
+			var k2f: float = k2
+			var prslope := Node3D.new()
+			prslope.position = Vector3(px, 3.40, k2f * 1.45)
+			prslope.rotation.x = k2f * 0.37
+			bridge.add_child(prslope)
+			var ps := BoxMesh.new()
+			ps.size = Vector3(2.3, 0.09, 2.5)
+			var psmi := MeshInstance3D.new()
+			psmi.mesh = ps
+			psmi.material_override = rooftile
+			prslope.add_child(psmi)
+
+	# ── TƯỢNG TRẤN (một con mỗi đầu cầu, trong nhà bia) ──
+	var statmat := Build.mat(Color(0.44, 0.42, 0.40), 0.85)
+	for k in [-1.0, 1.0]:
+		var kf: float = k
+		var ped := Vector3(kf * 8.5, 0.0, 0.0)
+		Build.box(bridge, Vector3(0.65, 0.72, 0.65), ped + Vector3(0.0, 0.36, 0.0), stonegrey)
+		Build.ball(bridge, 0.23, 0.44, ped + Vector3(0.0, 0.96, 0.0), statmat)
+		Build.ball(bridge, 0.135, 0.27, ped + Vector3(kf * 0.08, 1.32, 0.10), statmat)
+		for ear in [-0.08, 0.08]:
+			var earf: float = ear
+			Build.cyl(bridge, 0.012, 0.045, 0.13, ped + Vector3(kf * 0.08 + earf, 1.48, 0.08), statmat, 6)
+
+	# ── ĐÈN LỒNG 7 cái trải đều dưới mái ──
+	for i in range(7):
+		var lan := Build.lantern(bridge, 0.14, 0.26, Vector3(-4.5 + i * 1.5, 3.38, 0.0))
 		_hanging.append(lan)
 
 
