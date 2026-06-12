@@ -22,6 +22,8 @@ var current_color := ""
 var move_dir := Vector3.ZERO
 var facing_yaw := PI
 var force_walk := false       # cho bot chụp ảnh tư thế bước
+var _near_house := false      # đứng sát thềm nhà ai đó
+var _courtesy := 0.0          # 0 → 1: hạ sào + che đèn (phép lịch sự ban đêm)
 var first_person := false     # ẩn thân, đi theo hướng nhìn; sào đèn vẫn hiện
 var fp_yaw := PI
 var _body_parts: Array = []
@@ -232,6 +234,10 @@ func _ready() -> void:
 			_body_parts.append(c)
 
 
+func set_near_house(v: bool) -> void:
+	_near_house = v
+
+
 func set_first_person(v: bool) -> void:
 	first_person = v
 	for c in _body_parts:
@@ -363,4 +369,11 @@ func _process(delta: float) -> void:
 	# đèn lồng đong đưa theo quán tính
 	_hang.rotation.x = sin(_anim_t * (1.0 if walking else 0.55)) * (0.13 * _gait + 0.045)
 	_hang.rotation.z = sin(_anim_t * 0.7) * 0.04
-	_light.light_energy = 2.2 + sin(_anim_t * 2.3) * 0.15
+
+	# lại gần nhà ai ban đêm thì hạ sào, che bớt đèn — phép lịch sự của người gánh đèn
+	_courtesy = lerpf(_courtesy, 1.0 if _near_house else 0.0, 1.0 - pow(0.01, delta))
+	_pole_holder.rotation.x = -0.36 + 0.6 * _courtesy
+	_pole_holder.rotation.y = 0.5 + 0.55 * _courtesy
+	_light.light_energy = (2.2 + sin(_anim_t * 2.3) * 0.15) * (1.0 - 0.82 * _courtesy)
+	_light.omni_range = 9.0 - 5.5 * _courtesy
+	_paper_mat.emission_energy_multiplier = 2.8 - 2.25 * _courtesy

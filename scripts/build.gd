@@ -171,7 +171,7 @@ static func ribbon(parent: Node3D, width: float, length: float, curve: float, ta
 
 # mái ngói âm dương: hàng ống ngói chạy dọc dốc mái (MultiMesh cho rẻ)
 # slope_node đặt tại tâm slab, đã xoay sẵn — ngói rải trên mặt local XZ.
-static func tile_rows(slope_node: Node3D, width: float, depth: float) -> void:
+static func tile_rows(slope_node: Node3D, width: float, depth: float, tint := Color(0.14, 0.125, 0.135)) -> void:
 	var count := int(depth / 0.11)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -188,11 +188,36 @@ static func tile_rows(slope_node: Node3D, width: float, depth: float) -> void:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	var tmat := StandardMaterial3D.new()
-	tmat.albedo_color = Color(0.14, 0.125, 0.135)
+	tmat.albedo_color = tint
 	tmat.roughness = 0.5
 	tmat.metallic = 0.08
 	mmi.material_override = tmat
 	slope_node.add_child(mmi)
+
+
+# tấm gạch bông gió trắng (ref-04): lưới ô vuông, mỗi ô khung + hoa 4 cánh,
+# có khe hở nhìn xuyên được. Mặt panel vuông góc trục x (theo quy ước mặt tiền).
+static func breeze_panel(parent: Node3D, pos: Vector3, cols: int, rows: int, cell: float = 0.38) -> void:
+	var white := mat(Color(0.88, 0.87, 0.83), 0.9)
+	var p := Node3D.new()
+	p.position = pos
+	parent.add_child(p)
+	var w := cols * cell
+	var h := rows * cell
+	for c in range(cols + 1):
+		box(p, Vector3(0.06, h, 0.05), Vector3(0, 0, -w / 2.0 + c * cell), white)
+	for r in range(rows + 1):
+		box(p, Vector3(0.06, 0.05, w), Vector3(0, -h / 2.0 + r * cell, 0), white)
+	for c in range(cols):
+		for r in range(rows):
+			var cc := Vector3(0, -h / 2.0 + (r + 0.5) * cell, -w / 2.0 + (c + 0.5) * cell)
+			# hoa 4 cánh: 4 cánh dẹt xếp chéo quanh nhị giữa
+			for q in range(4):
+				var ang := PI / 4.0 + q * PI / 2.0
+				var petal := ball(p, cell * 0.17, cell * 0.34, cc + Vector3(0, sin(ang) * cell * 0.21, cos(ang) * cell * 0.21), white)
+				petal.scale = Vector3(0.3, 1.0, 0.5)
+				petal.rotation.x = -ang
+			ball(p, cell * 0.07, cell * 0.14, cc, white)
 
 
 # mắt cửa — đôi mắt gỗ tròn trên cửa, hồn nhà Hội An

@@ -90,6 +90,8 @@ func _ready() -> void:
 		_aiview()
 	elif args.has("--rigview"):
 		_rigview()
+	elif args.has("--houseview"):
+		_house_view()
 
 
 func is_play() -> bool:
@@ -301,6 +303,7 @@ func _process(delta: float) -> void:
 	match state:
 		State.PLAY:
 			player.update_move(delta, Callable(current_chapter(), "clamp_player"))
+			player.set_near_house(world.near_house(player.position))
 			var it = _nearest_interact()
 			ui.show_prompt(it["prompt"] if it != null else "")
 		State.PUZZLE:
@@ -468,6 +471,122 @@ func _autoplay() -> void:
 	await get_tree().create_timer(1.0).timeout
 	await _shot(dir + "/c5-dialogue.png")
 	print("AUTOPLAY DONE")
+	get_tree().quit()
+
+
+# ---------- xem căn nhà ref-01 trên sân khấu trung tính (so với ảnh tham khảo) ----------
+func _house_view() -> void:
+	get_window().size = Vector2i(1280, 960)
+	var dir := ProjectSettings.globalize_path("res://shots/house")
+	DirAccess.make_dir_recursive_absolute(dir)
+	state = State.PLAY
+	ui.hide_intro()
+	ui.visible = false
+	free_cam = true
+	# môi trường riêng giống ảnh ref: nền xám nhạt, nắng dịu đều, không sương
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.78, 0.79, 0.81)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.85, 0.87, 0.92)
+	env.ambient_light_energy = 1.0
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.ssao_enabled = true
+	camera.environment = env
+	var sun := DirectionalLight3D.new()
+	sun.light_color = Color(1.0, 0.97, 0.9)
+	sun.light_energy = 1.15
+	sun.shadow_enabled = true
+	sun.rotation_degrees = Vector3(-38, -68, 0)
+	add_child(sun)
+	# sàn xám + căn nhà đặt xa khu phố
+	var base := Vector3(0, 0, 120)
+	var floor_mat := preload("res://scripts/build.gd").mat(Color(0.6, 0.6, 0.61), 0.95)
+	var fl := MeshInstance3D.new()
+	var fp := PlaneMesh.new()
+	fp.size = Vector2(50, 50)
+	fl.mesh = fp
+	fl.material_override = floor_mat
+	fl.position = base
+	add_child(fl)
+	preload("res://scripts/house01.gd").build(self, base, 0.0)
+	var base2 := base + Vector3(0, 0, -10)
+	preload("res://scripts/house02.gd").build(self, base2, 0.0)
+	camera.fov = 38
+	await get_tree().create_timer(1.2).timeout
+	# chính diện như ref-01
+	camera.position = base + Vector3(-15.5, 3.9, 0)
+	camera.look_at(base + Vector3(1.5, 3.9, 0))
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/front.png")
+	# góc 3/4
+	camera.position = base + Vector3(-11.5, 5.2, 7.5)
+	camera.look_at(base + Vector3(1.8, 3.6, 0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/quarter.png")
+	# cận mái (bờ nóc + đầu cong)
+	camera.position = base + Vector3(-7.5, 8.6, 3.0)
+	camera.look_at(base + Vector3(2.4, 7.2, 0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/roof.png")
+	# cận cửa + tam cấp
+	camera.position = base + Vector3(-5.5, 2.1, 1.6)
+	camera.look_at(base + Vector3(0.4, 1.9, 0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/door.png")
+	# nhà bông gió (ref-02): chính diện + cận panel
+	camera.position = base2 + Vector3(-14.0, 3.0, 0)
+	camera.look_at(base2 + Vector3(1.5, 2.8, 0))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/front02.png")
+	camera.position = base2 + Vector3(-3.0, 2.5, 2.7)
+	camera.look_at(base2 + Vector3(0.3, 2.25, 1.95))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/breeze.png")
+	# dàn đạo cụ phố trên sân khấu: xe đạp, xe Cub, chậu cây, bụi chuối (ref-07/08/09)
+	var parts3 := preload("res://scripts/hoian_parts.gd")
+	var pbase := base2 + Vector3(0, 0, -10)
+	parts3.bicycle(self, pbase + Vector3(0, 0, 1.6), 0.0, -0.1)
+	parts3.motorbike(self, pbase + Vector3(0, 0, -1.2), 0.0)
+	for pk in range(4):
+		parts3.pot_plant(self, pbase + Vector3(-1.5, 0, -3.2 + pk * 1.4), pk, 1.0)
+	parts3.banana_clump(self, pbase + Vector3(1.6, 0, -4.8), 1.2)
+	camera.position = pbase + Vector3(-8.2, 2.4, -1.6)
+	camera.look_at(pbase + Vector3(1.2, 0.7, -1.6))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/props.png")
+	# phố ban ngày: ban công bông gió (x=-18), sân thượng cây (x=30 — không vướng cây), toàn cảnh
+	camera.position = Vector3(-15.2, 3.2, 9.6)
+	camera.look_at(Vector3(-18.0, 3.4, 14.4))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/balcony.png")
+	camera.position = Vector3(26.6, 5.6, 8.6)
+	camera.look_at(Vector3(30.0, 4.3, 14.4))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/terrace.png")
+	camera.position = Vector3(2.0, 2.4, 9.0)
+	camera.look_at(Vector3(-20.0, 2.6, 13.8))
+	await get_tree().create_timer(0.4).timeout
+	await _shot(dir + "/street.png")
+	# ---- đêm ngoài phố: Minh bước lên tam cấp căn ref-01 và CẤT ĐÈN ----
+	sun.visible = false
+	camera.environment = null
+	player.position = Vector3(-5.0, 0, 12.7)
+	await get_tree().create_timer(1.8).timeout
+	camera.position = Vector3(-8.4, 2.7, 10.3)
+	camera.look_at(Vector3(-5.0, 1.6, 13.6))
+	await get_tree().create_timer(0.3).timeout
+	await _shot(dir + "/night-steps.png")
+	player.position = Vector3(-5.0, 0.78, 14.05)
+	await get_tree().create_timer(1.4).timeout
+	camera.position = Vector3(-1.6, 3.0, 11.0)
+	camera.look_at(Vector3(-5.0, 1.9, 14.2))
+	await get_tree().create_timer(0.3).timeout
+	await _shot(dir + "/night-door.png")
+	print("houseview ground: street=", world.ground_height(Vector3(-5, 0, 12.0)),
+		" steps=", world.ground_height(Vector3(-5, 0, 13.5)),
+		" plinth=", world.ground_height(Vector3(-5, 0, 14.15)))
+	print("HOUSEVIEW DONE")
 	get_tree().quit()
 
 

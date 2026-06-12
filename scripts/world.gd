@@ -4,6 +4,7 @@ extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 const Textures := preload("res://scripts/textures.gd")
+const Parts := preload("res://scripts/hoian_parts.gd")
 
 const ALLEY_HALF := 5.0
 const FACADE_X := 5.35
@@ -27,6 +28,7 @@ const ZONES := {
 
 var _env: Environment
 var _zone_target: Dictionary = ZONES["c1"]
+var _floor_rects: Array = []   # mặt sàn đi được: đế nhà, bậc tam cấp (rect thế giới)
 var _gate: MeshInstance3D
 var _gate_opening := false
 var _hanging: Array = []
@@ -129,7 +131,40 @@ func _build_houses() -> void:
 		var h := 2.9 + (i % 3) * 0.5
 		_house(Vector3(FACADE_X, 0, z), 0.0, h, i)
 		_house(Vector3(-FACADE_X, 0, z), PI, h, i)
+	# đồ ngõ: chậu cây nép chân thềm, xe đạp dựa tường, bụi chuối góc cuối ngõ
+	Parts.pot_plant(self, Vector3(4.55, 0, 4.0), 3, 0.9)
+	Parts.pot_plant(self, Vector3(-4.55, 0, -4.2), 0, 0.85)
+	Parts.bicycle(self, Vector3(4.6, 0, -8.0), PI / 2.0, -0.12)
+	Parts.banana_clump(self, Vector3(-3.6, 0, -17.4), 1.2)
 	_build_main_street()
+
+
+# ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
+func _reg_floor(pos: Vector3, yrot: float, x0: float, x1: float, z0: float, z1: float, y: float) -> void:
+	var t := Transform3D(Basis(Vector3.UP, yrot), pos)
+	var p0 := t * Vector3(x0, 0, z0)
+	var p1 := t * Vector3(x1, 0, z1)
+	_floor_rects.append({
+		"x0": minf(p0.x, p1.x), "x1": maxf(p0.x, p1.x),
+		"z0": minf(p0.z, p1.z), "z1": maxf(p0.z, p1.z), "y": y,
+	})
+
+
+# cao độ mặt sàn dưới chân (0 = mặt đường) — người chơi bước LÊN bậc/thềm thật
+func ground_height(pos: Vector3) -> float:
+	var h := 0.0
+	for r in _floor_rects:
+		if pos.x >= r["x0"] and pos.x <= r["x1"] and pos.z >= r["z0"] and pos.z <= r["z1"]:
+			h = maxf(h, r["y"])
+	return h
+
+
+# đứng sát thềm nhà ai đó? — để Minh cất đèn, tránh phiền gia chủ ban đêm
+func near_house(pos: Vector3) -> bool:
+	for r in _floor_rects:
+		if pos.x >= r["x0"] - 1.3 and pos.x <= r["x1"] + 1.3 and pos.z >= r["z0"] - 1.3 and pos.z <= r["z1"] + 1.3:
+			return true
+	return false
 
 
 # phố Trần Phú chạy Đông-Tây ngang đầu ngõ + Chùa Cầu đầu Tây, chợ đầu Đông
@@ -138,9 +173,31 @@ func _build_main_street() -> void:
 	for k in range(18):
 		var x := -34.0 + k * 4.0
 		var h_n := 2.9 + ((k + 1) % 3) * 0.5
-		_house(Vector3(x, 0, 14.2), -PI / 2.0, h_n, k)               # dãy Bắc, mặt quay Nam
+		if k < 7 or k > 9:                                           # chừa 12m cho 2 căn dựng theo ảnh ref
+			_house(Vector3(x, 0, 14.2), -PI / 2.0, h_n, k)           # dãy Bắc, mặt quay Nam
 		if absf(x) > 7.0:                                            # chừa miệng ngõ ở dãy Nam
 			_house(Vector3(x, 0, 7.9), PI / 2.0, 2.9 + (k % 3) * 0.5, k + 1)
+	# hai căn dựng CHUẨN THEO ẢNH ref-01/ref-02 chen giữa dãy Bắc (x -8..4)
+	var h01 := preload("res://scripts/house01.gd")
+	var h02 := preload("res://scripts/house02.gd")
+	h01.build(self, Vector3(-5.0, 0, 14.2), -PI / 2.0)
+	h02.build(self, Vector3(1.0, 0, 14.2), -PI / 2.0)
+	for hx in [-5.0, 1.0]:
+		for r in Parts.floor_rects(6.0, 5.0, 0.78):
+			_reg_floor(Vector3(hx, 0, 14.2), -PI / 2.0, r["x0"], r["x1"], r["z0"], r["z1"], r["y"])
+	# ---- đồ phố (ref-07/08/09): xe đạp dựa hiên, xe Cub đậu, chậu cây trước thềm ----
+	Parts.bicycle(self, Vector3(-15.6, 0, 13.55), 0.0, -0.12)
+	Parts.bicycle(self, Vector3(30.2, 0, 13.5), 0.0, -0.1)
+	Parts.motorbike(self, Vector3(19.2, 0, 13.1), 0.18)
+	Parts.motorbike(self, Vector3(-27.4, 0, 13.25), -0.25)
+	for pp in [[-7.6, 13.6, 2], [-2.4, 13.6, 3], [3.6, 13.55, 1], [-12.4, 13.6, 0],
+			[14.2, 13.6, 3], [26.3, 13.6, 1], [-23.5, 13.55, 0], [-31.6, 13.6, 3]]:
+		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 1.0)
+	for pp2 in [[-13.5, 8.5, 3], [10.4, 8.5, 0], [22.6, 8.55, 2], [-30.0, 8.5, 1]]:
+		Parts.pot_plant(self, Vector3(pp2[0], 0, pp2[1]), int(pp2[2]), 0.9)
+	# bụi chuối chen cạnh gốc cây — "có nơi có cây chuối"
+	Parts.banana_clump(self, Vector3(-8.5, 0, 13.1), 1.3)
+	Parts.banana_clump(self, Vector3(17.4, 0, 13.0), 1.5)
 	# dây đèn giăng ngang phố
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(0.95, 0.25, 0.4)]
 	var idx := 0
@@ -217,12 +274,27 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	a.position = pos
 	a.rotation.y = yrot
 	add_child(a)
+	# biến thể nhà hai tầng: ban công bông gió (ref-05) / sân thượng cây cối (ref-06)
+	var two := h > 3.3
+	var terrace := two and (idx * 7) % 5 == 2
+	var breeze_balc := two and not terrace and idx % 2 == 0
+	var trim := Build.mat(Color(0.88, 0.88, 0.84), 0.85)
+	var balc_m := {"trim": trim, "wood": _wood, "frame": _darkwood}
+	var vine_m := {"leaf": Build.mat(Color(0.24, 0.44, 0.14), 0.9), "moss": Build.mat(Color(0.17, 0.26, 0.11), 0.95)}
 	# mỗi căn một sắc vữa hơi khác — phố thật không nhà nào trùng màu nhà nào
 	var pm: StandardMaterial3D = _plaster.duplicate()
 	pm.albedo_color = Color(0.95, 0.66, 0.24) * (0.84 + 0.11 * ((idx * 7) % 3)) + Color(0.0, 0.02, 0.0) * ((idx * 13) % 2)
 	# thân nhà ống: sâu 5m, bề ngang 4m LIỀN KỀ nhà bên (phố là dải mặt tiền liên tục)
 	Build.box(a, Vector3(5.0, h, 4.0), Vector3(2.5, h / 2.0, 0), pm)
-	Build.box(a, Vector3(5.04, 0.42, 4.02), Vector3(2.5, 0.21, 0), _moss)
+	# đế đá xám cao hơn mặt đường (ref-01/10) + tam cấp có má bậc
+	var stone := Build.mat(Color(0.34, 0.34, 0.35), 0.95)
+	Build.box(a, Vector3(5.08, 0.45, 4.06), Vector3(2.5, 0.225, 0), stone)
+	for st in range(3):
+		Build.box(a, Vector3(0.3, 0.13, 1.9 - st * 0.25), Vector3(-0.15 - st * 0.26, 0.065 + (2 - st) * 0.13, 0), stone)
+	# đăng ký mặt sàn: đế + từng bậc — người chơi bước lên được
+	_reg_floor(pos, yrot, -0.04, 5.04, -2.03, 2.03, 0.45)
+	for st in range(3):
+		_reg_floor(pos, yrot, -0.3 - st * 0.26, -st * 0.26, -(1.9 - st * 0.25) / 2.0, (1.9 - st * 0.25) / 2.0, (3 - st) * 0.13)
 	# hiên che vỉa hè + cột hiên (nhà một tầng — nhà hai tầng có ban công che thay)
 	if h <= 3.3:
 		var porch := Node3D.new()
@@ -262,16 +334,30 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 	# biển hiệu gỗ viền vàng trên cửa — nhà buôn nào cũng có
 	Build.box(a, Vector3(0.07, 0.46, 1.68), Vector3(-0.05, 2.45, 0), Build.mat(Color(0.55, 0.42, 0.15), 0.5))
 	Build.box(a, Vector3(0.09, 0.38, 1.56), Vector3(-0.06, 2.45, 0), Build.mat(Color(0.09, 0.05, 0.04), 0.6))
-	# nhà hai tầng: TẦNG TRÊN ỐP VÁN GỖ NÂU — tương phản vữa vàng tầng dưới
-	if h > 3.3:
+	# nhà hai tầng (ref-01): tầng trên ốp ván gỗ + MÁI HIÊN NGÓI chen giữa hai tầng
+	# (nhà có ban công bông gió thì ban công thay mái hiên — ref-05)
+	if two:
 		Build.box(a, Vector3(0.08, h * 0.42, 4.02), Vector3(-0.02, h * 0.76, 0), _wood)
+	if two and not breeze_balc:
+		var band := Node3D.new()
+		band.position = Vector3(-0.38, h * 0.55, 0)
+		band.rotation.z = 0.5
+		a.add_child(band)
+		var bslab := BoxMesh.new()
+		bslab.size = Vector3(0.95, 0.05, 4.0)
+		var bmi := MeshInstance3D.new()
+		bmi.mesh = bslab
+		bmi.material_override = Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, Color(0.5, 0.47, 0.5), 1.0)
+		band.add_child(bmi)
+		Build.tile_rows(band, 0.95, 4.0)
 	# cửa sổ chấn song gác
 	var win := Build.box(a, Vector3(0.1, 0.65, 0.95), Vector3(0.03, h - 0.75, 1.0), Build.mat(Color(0.07, 0.055, 0.045), 0.8))
 	_windows.append(win)
 	for bz in range(4):
 		Build.cyl(a, 0.018, 0.018, 0.6, Vector3(-0.08, h - 0.75, 0.62 + bz * 0.25), _darkwood, 6)
 	# dãy đèn lồng treo dọc hiên — phố Hội là phố của đèn
-	var row_y := (h - 1.42) if h > 3.3 else 2.28
+	# (nhà ban công bông gió: đèn treo sát mép mái phía trên ban công như ref-05)
+	var row_y := (h - 0.25) if breeze_balc else ((h - 1.42) if two else 2.28)
 	for lz in [-1.5, -0.5, 0.5, 1.5]:
 		_hanging.append(Build.lantern(a, 0.13, 0.24, Vector3(-0.55, row_y, lz)))
 	# hoa giấy rủ — mỗi ba nhà một giàn
@@ -283,20 +369,30 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 			var fz := cos(fi * 2.39 + idx) * 0.3
 			var fc := Color(0.78, 0.12, 0.4) if fi % 4 != 0 else Color(0.1, 0.22, 0.08)
 			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.mat(fc, 0.85))
-	# ban công nhà hai tầng
-	if h > 3.3:
+	# ban công nhà hai tầng: bản lan can bông gió trắng (ref-05) hoặc bản gỗ mộc
+	if two:
 		var by := h - 1.35
-		Build.box(a, Vector3(0.6, 0.08, 2.2), Vector3(-0.3, by, -0.2), _wood)
-		Build.box(a, Vector3(0.55, 0.06, 2.1), Vector3(-0.32, by + 0.62, -0.2), _darkwood)
-		for bz in range(6):
-			Build.cyl(a, 0.022, 0.022, 0.6, Vector3(-0.55, by + 0.32, -1.2 + bz * 0.4), _darkwood, 6)
-		_hanging.append(Build.lantern(a, 0.13, 0.24, Vector3(-0.6, by - 0.32, -1.3)))
+		if breeze_balc:
+			Parts.balcony_breeze(a, 3.6, by, balc_m)
+		else:
+			Build.box(a, Vector3(0.6, 0.08, 2.2), Vector3(-0.3, by, -0.2), _wood)
+			Build.box(a, Vector3(0.55, 0.06, 2.1), Vector3(-0.32, by + 0.62, -0.2), _darkwood)
+			for bz in range(6):
+				Build.cyl(a, 0.022, 0.022, 0.6, Vector3(-0.55, by + 0.32, -1.2 + bz * 0.4), _darkwood, 6)
+			_hanging.append(Build.lantern(a, 0.13, 0.24, Vector3(-0.6, by - 0.32, -1.3)))
 	# mái âm dương DỐC CAO + đòn dông + đầu đao (đòn dông giữa thân nhà sâu 5m)
-	for k in [-1.0, 1.0]:
+	# (nhà sân thượng chỉ lợp vạt SAU — vạt trước nhường chỗ cho sân — ref-06)
+	var front_slope: Node3D = null
+	var rear_slope: Node3D = null
+	for k in ([1.0] if terrace else [-1.0, 1.0]):
 		var slope := Node3D.new()
 		slope.position = Vector3(2.5 + k * 1.22, h + 0.68, 0)
 		slope.rotation.z = -k * 0.55
 		a.add_child(slope)
+		if k < 0.0:
+			front_slope = slope
+		else:
+			rear_slope = slope
 		var slab := BoxMesh.new()
 		slab.size = Vector3(2.95, 0.07, 4.0)
 		var slab_mi := MeshInstance3D.new()
@@ -304,10 +400,46 @@ func _house(pos: Vector3, yrot: float, h: float, idx: int) -> void:
 		slab_mi.material_override = Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, Color(0.5, 0.47, 0.5), 1.2)
 		slope.add_child(slab_mi)
 		Build.tile_rows(slope, 2.95, 4.0)
-	Build.cyl(a, 0.09, 0.09, 4.05, Vector3(2.5, h + 1.42, 0), _darkwood).rotation.x = PI / 2.0
+		# bờ chảy trắng dọc hai mép dốc mái (ref-03)
+		for vz in [-2.0, 2.0]:
+			var verge := BoxMesh.new()
+			verge.size = Vector3(2.98, 0.1, 0.14)
+			var vmi := MeshInstance3D.new()
+			vmi.mesh = verge
+			vmi.material_override = Build.mat(Color(0.87, 0.87, 0.83), 0.85)
+			vmi.position = Vector3(0, 0.1, vz)
+			slope.add_child(vmi)
+	# bờ nóc TRẮNG: gờ giữa nhô cao + hai đầu cong vút (ref-03)
+	Build.box(a, Vector3(0.22, 0.16, 4.15), Vector3(2.5, h + 1.46, 0), trim)
+	Build.box(a, Vector3(0.28, 0.3, 0.95), Vector3(2.5, h + 1.56, 0), trim)
 	for ke in [-1.0, 1.0]:
-		var horn := Build.cyl(a, 0.01, 0.09, 0.5, Vector3(2.5, h + 1.52, ke * 2.0), _darkwood, 8)
-		horn.rotation.x = -ke * 0.9
+		var horn := Build.cyl(a, 0.012, 0.1, 0.55, Vector3(2.5, h + 1.6, ke * 2.05), trim, 8)
+		horn.rotation.x = -ke * 0.95
+	# sân thượng cây cối thay vạt mái trước: sàn gạch + lan can bông gió + chậu (ref-06)
+	if terrace:
+		var ty := h + 0.2
+		Build.box(a, Vector3(2.5, 0.14, 4.06), Vector3(1.25, ty - 0.07, 0), Build.mat(Color(0.52, 0.34, 0.26), 0.9))
+		Build.breeze_panel(a, Vector3(0.08, ty + 0.4, 0), 9, 2, 0.36)
+		Build.box(a, Vector3(0.12, 0.07, 4.06), Vector3(0.08, ty + 0.82, 0), trim)
+		for pz2 in [-1.0, 1.0]:
+			Build.box(a, Vector3(0.14, 1.0, 0.14), Vector3(0.08, ty + 0.5, pz2 * 1.96), trim)
+			Build.box(a, Vector3(2.3, 0.45, 0.08), Vector3(1.3, ty + 0.28, pz2 * 1.99), trim)
+		for pk in range(3):
+			Parts.pot_plant(a, Vector3(0.65 + pk * 0.8, ty, -1.25 + pk * 1.25), (pk * 2 + idx) % 4, 0.85)
+		# tường hậu vàng cao sau sân + cửa sổ chớp nhỏ (khối gác sau như ref-06)
+		Build.box(a, Vector3(0.24, 1.32, 4.06), Vector3(2.52, h + 0.66, 0), pm)
+		Build.box(a, Vector3(0.1, 0.62, 0.78), Vector3(2.38, h + 0.66, 0), _darkwood)
+		# dây leo tràn qua mép lan can trước — sân thượng um tùm như ref-06
+		for vi in range(6):
+			var vz := -1.7 + fposmod(vi * 1.37, 3.4)
+			Build.ball(a, 0.14 + 0.1 * fposmod(vi * 0.83, 1.0), 0.22,
+				Vector3(0.04, ty + 0.72 - 0.4 * fposmod(vi * 0.6, 1.0), vz),
+				vine_m["leaf"] if vi % 3 != 0 else vine_m["moss"])
+		if rear_slope != null:
+			Parts.roof_vines(rear_slope, 2.95, 4.0, vine_m, 1.0)
+	elif (idx * 3) % 4 == 1 and front_slope != null:
+		# nhà cũ: cây mọc bám um tùm vạt mái trước (ref-06)
+		Parts.roof_vines(front_slope, 2.95, 4.0, vine_m, 0.7)
 	_hanging.append(Build.lantern(a, 0.16, 0.3, Vector3(-0.15, h - 0.45, -1.2)))
 
 
@@ -393,10 +525,14 @@ func clamp_alley(pos: Vector3) -> Vector3:
 	# trên phố Trần Phú: đi ngang thoải mái giữa hai màn sương
 	if pos.z > 8.0:
 		pos.x = clampf(pos.x, -37.5, 37.5)
-		pos.z = clampf(pos.z, 8.0, 13.6)
-		# ngoài miệng ngõ thì không xuống được dãy nhà Nam
-		if absf(pos.x) > ALLEY_HALF and pos.z < 8.4:
+		var on_floor := ground_height(pos) > 0.05
+		# nhà nào có thềm thì bước hẳn lên thềm trước cửa, không thì dừng trước hiên
+		var zmax := 14.25 if ground_height(Vector3(pos.x, 0, 14.1)) > 0.3 else 13.6
+		pos.z = clampf(pos.z, 8.0, zmax)
+		# ngoài miệng ngõ thì không xuống được dãy nhà Nam (trừ khi đang đứng trên bậc)
+		if absf(pos.x) > ALLEY_HALF and pos.z < 8.4 and not on_floor:
 			pos.z = 8.4
+		pos.y = ground_height(pos)
 		return pos
 	# trong ngõ: kẹp như cũ, vào ngõ rồi thì kẹp ngang theo ngõ
 	pos.x = clampf(pos.x, -ALLEY_HALF, ALLEY_HALF)
@@ -406,4 +542,5 @@ func clamp_alley(pos: Vector3) -> Vector3:
 			pos.x = clampf(pos.x, -1.1, 1.1)
 	else:
 		pos.z = clampf(pos.z, -19.2, 13.6)
+	pos.y = ground_height(pos)
 	return pos
