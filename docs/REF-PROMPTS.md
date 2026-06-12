@@ -1,4 +1,4 @@
-# Prompt sinh ảnh ref kiến trúc — đợt 2 (ref-12 → ref-18)
+# Prompt sinh ảnh ref kiến trúc — đợt 2 (ref-12 → ref-18 + bản vẽ *bp)
 
 Đưa từng prompt cho Codex/image-gen, lưu kết quả ĐÚNG TÊN FILE vào:
 
@@ -7,8 +7,68 @@ D:\Coding_learning\hoa-hon-den-long-godot\Screenshots\
 ```
 
 PNG hoặc JPG đều được (đổi đuôi tên khớp), khổ ngang, ≥1280px cạnh dài.
-Phong cách thống nhất với ref-01..10: photoreal, không người, không chữ nổi bật.
-Ảnh kiến trúc chụp ban ngày dịu (đọc hình khối chuẩn); riêng ref-17 chụp đêm.
+
+Mỗi công trình cần 2 LOẠI ảnh, vai trò khác nhau:
+
+1. **Ảnh photo (ref-NN)** — không khí, vật liệu, màu, độ phong hóa.
+2. **Bản vẽ kiến trúc (ref-NNbp)** — BLUEPRINT để dựng hình: các hình chiếu
+   trực giao (mặt đứng / mặt bên / mặt bằng mái / mặt cắt) trên một tờ, KHÔNG
+   phối cảnh. Đây là thứ Claude đo tỷ lệ để ra tọa độ box/cyl. QUAN TRỌNG:
+   không yêu cầu ghi số đo (model sinh ảnh bịa số) — thay bằng **bóng người
+   cao 1.7m đứng cạnh mặt đứng làm thước tỷ lệ**, Claude tự quy đổi pixel→mét.
+
+Ảnh photo chụp ban ngày dịu (đọc khối chuẩn); riêng ref-17 chụp đêm.
+Phong cách photo thống nhất với ref-01..10: photoreal, không người, không chữ.
+
+## Khối bản vẽ blueprint (ưu tiên sinh TRƯỚC — đây là cái thiếu)
+
+### ref-12bp.png — Chùa Cầu: bộ hình chiếu trực giao
+
+> Architectural reference sheet of the Japanese Covered Bridge (Chua Cau) in
+> Hoi An Vietnam, game-asset model sheet style on a plain white background,
+> four orthographic views arranged on one sheet: full side elevation (the most
+> important — showing the gentle deck arch over stone piers, roof silhouette
+> with sagging ridge, shrine pavilion bump on one side), front entrance
+> elevation, roof plan from above, and one cross-section through the corridor
+> showing timber columns and roof framing. Clean dark linework with flat
+> muted color fills (grey stone piers, dark timber, brown-grey tile roof,
+> pink plaster end pavilions), accurate real-world proportions, a 1.7m human
+> silhouette standing beside the side elevation for scale. Strictly
+> orthographic, no perspective, no text, no dimension numbers.
+
+### ref-14bp.png — Hội quán Phúc Kiến: tam quan trực giao
+
+> Architectural reference sheet of the triple-arched gate of Phuc Kien
+> Assembly Hall in Hoi An Vietnam, game-asset model sheet style on plain
+> white background, three orthographic views on one sheet: front elevation
+> (dominant — three arched openings, three stacked glazed-tile roof tiers
+> with upturned ridge ends, ceramic dragon ridge ornaments), side elevation
+> showing roof tier depths, and roof plan. Clean linework, flat muted fills
+> (rose-red walls, green-and-ochre glazed tiles), accurate proportions, a
+> 1.7m human silhouette beside the front elevation for scale. Strictly
+> orthographic, no perspective, no text, no numbers.
+
+### ref-15bp.png — Hội quán Quảng Đông: cổng trực giao
+
+> Architectural reference sheet of the Cantonese Assembly Hall entrance gate
+> in Hoi An Vietnam, game-asset model sheet style on plain white background,
+> three orthographic views: front elevation (ochre-yellow walls, green glazed
+> tile roof with curved ridge and ceramic figurines, granite columns), side
+> elevation, roof plan. Clean linework, flat muted fills, accurate
+> proportions, 1.7m human silhouette for scale. Strictly orthographic, no
+> perspective, no text, no numbers.
+
+### ref-16bp.png — Chợ Hội An: nhà lồng trực giao
+
+> Architectural reference sheet of the long central market hall of Hoi An
+> Vietnam, game-asset model sheet style on plain white background, three
+> orthographic views: long street-side elevation (mustard-yellow walls,
+> repeating arched arcade bays, central clock gable, red-brown tile roof),
+> short end elevation, roof plan. Clean linework, flat fills, accurate
+> proportions, 1.7m human silhouette for scale. Strictly orthographic, no
+> perspective, no text, no numbers.
+
+## Khối ảnh photo (không khí + vật liệu)
 
 ## ref-12.png — Chùa Cầu toàn cảnh (thay mô hình hiện tại "không giống")
 
@@ -83,6 +143,8 @@ Phong cách thống nhất với ref-01..10: photoreal, không người, không 
 
 ---
 
-Có ảnh rồi thì kêu Claude: "có ref-12..18 rồi, rebuild Chùa Cầu / hội quán /
-chợ theo ref" — sẽ dựng lại từng công trình + render đối chiếu như quy trình
-các phase trước.
+Quy trình dùng: Claude đọc **bp trước** (đo tỷ lệ từ bóng người 1.7m → khung
+khối chính xác), rồi áp **photo** lên để tô vật liệu/màu/độ phong hóa, dựng
+xong render houseview cùng góc với ảnh để đối chiếu — như quy trình các phase
+trước. Có ảnh rồi thì kêu Claude: "có ref-12..18 + bp rồi, rebuild Chùa Cầu /
+hội quán / chợ theo ref".
