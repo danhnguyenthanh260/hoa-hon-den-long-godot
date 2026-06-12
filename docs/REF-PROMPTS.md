@@ -148,3 +148,117 @@ khối chính xác), rồi áp **photo** lên để tô vật liệu/màu/độ 
 xong render houseview cùng góc với ảnh để đối chiếu — như quy trình các phase
 trước. Có ảnh rồi thì kêu Claude: "có ref-12..18 + bp rồi, rebuild Chùa Cầu /
 hội quán / chợ theo ref".
+
+---
+
+# Prompt sinh ảnh ref tái dựng thực tế — đợt 3 (ref-31 → ref-36)
+
+Đây là lớp **"measured reconstruction / reality-to-game"** — mục đích khác hẳn
+ref-12..18 (không khí) và ref-19..30 (game build-spec). Lớp này phải ghi lại
+**những gì công trình thật thực sự trông ra sao**, tách rõ:
+
+- Phần đo được / tài liệu hóa được (HIGH/MEDIUM confidence)
+- Phần ước lượng từ ảnh hoặc tỷ lệ tương tự (ESTIMATED)
+- Phần suy luận từ typology kiến trúc (APPROXIMATED)
+
+Mỗi sheet là **orthographic reconstruction drawing**, không phải photorealistic,
+không phải concept art. Phong cách: nét vẽ kỹ thuật sạch, fills màu phẳng muted,
+bóng người 1.7m cạnh mặt đứng chính làm thước tỷ lệ. Ghi chú confidence level
+bằng ký hiệu ★ (HIGH) / ◇ (ESTIMATED) trên từng module.
+
+## ref-31.png — Chùa Cầu: tái dựng mặt bằng + mặt đứng
+
+> Architectural reality-reconstruction sheet of the Japanese Covered Bridge
+> (Chua Cau / Lai Vien Kieu) in Hoi An Vietnam, measured survey drawing style on
+> plain white background. Four orthographic views on one sheet: (1) full side
+> elevation showing the TRUE proportions — bridge is 18 meters long and only 3
+> meters wide, resting on stone piers, low sagging covered roof spanning the full
+> 18m, pink-plaster pavilion at each entry end; (2) top plan showing the narrow
+> 3m walkway corridor, the small shrine chamber protruding from the NORTH SIDE
+> at mid-span (not at the end), stone piers beneath at both entries and under
+> the canal crossing; (3) front entrance elevation showing the arched brick entry
+> gate with curved tile roof above; (4) cross-section through mid-span showing
+> the 3-meter interior width, timber column pairs, low covered roof framing. All
+> views use clean dark linework with flat grey stone piers, dark brown timber,
+> rust-orange roof tiles, pink/cream plaster. Annotate stone piers with ★,
+> 18m length with ★, shrine north-side protrusion with ★, roof sag profile
+> with ◇. A 1.7m human silhouette stands inside the side elevation for scale.
+> Strictly orthographic, no perspective, no readable text, no dimension numbers.
+
+## ref-32.png — Chùa Cầu: module chi tiết
+
+> Architectural detail reconstruction sheet, Japanese Covered Bridge in Hoi An,
+> drawing style on plain white background. Five detail panels on one sheet:
+> (1) railing module — wave-pattern carved wooden balusters, horizontal top rail,
+> show 1m section in elevation; (2) roof tile module — yin-yang convex/concave
+> clay tile overlap pattern in cross-section, rust-orange color; (3) shrine
+> chamber — small pavilion box protruding from north side, separate curved tile
+> roof, wooden lattice door; (4) guardian statue module — stone monkey pedestal +
+> body + head at south entry, stone dog at north entry, 0.9m scale; (5) stone
+> pier detail — grey stone pier emerging from water with brick arch above.
+> Flat muted fills, annotate each module with material identity labels
+> (grey stone ★, rust-orange clay tile ★, dark ironwood ★, pink plaster ★,
+> stone statue ◇). No perspective, no text, no numbers.
+
+## ref-33.png — Hội quán Phúc Kiến: tái dựng mặt đứng cổng
+
+> Architectural reality-reconstruction sheet of the triple-arched entrance gate
+> of Phuc Kien (Fujian) Assembly Hall in Hoi An Vietnam, measured survey drawing
+> style on plain white background. Three orthographic views: (1) front elevation
+> — the gate is 2 storeys tall with THREE arched archways side by side, center
+> bay distinctly wider and taller than flanking bays, three separate stacked
+> tile roof tiers rising above, each tier narrower than the one below, upturned
+> curved eave ends, ceramic dragon and phoenix ornaments on ridges; (2) side
+> elevation showing roof tier depths (stacked but receding toward rear);
+> (3) plan showing the three-bay plan with deep archway recesses and a forecourt
+> stone floor with decorative pots. Rose-pink to deep red plaster walls ★,
+> glazed rust-orange tile roofs ★, dark timber lacquered doors ★. Annotate
+> triple-arch bay structure ★, stacked 3-tier roof ★, red-pink wall mass ★.
+> A 1.7m human silhouette beside center arch for scale. Orthographic, no
+> perspective, no text, no numbers.
+
+## ref-34.png — Hội quán Quảng Đông: trục sân + mái
+
+> Architectural reality-reconstruction sheet of the Cantonese Assembly Hall
+> (Quang Dong / Quang Trieu) in Hoi An Vietnam, measured survey drawing style on
+> plain white background. Three orthographic views: (1) longitudinal section
+> through the central axis — gate → open courtyard → main hall, showing the
+> spatial sequence of enclosed compound; (2) front elevation of the entrance gate
+> — three-way arched gate, ochre-orange/yellow plaster walls (distinctly NOT red
+> like Phuc Kien), green glazed ceramic tile roof with curved ridge and ceramic
+> figurines, stone-carved arch reliefs with dragon/phoenix/unicorn ornaments;
+> (3) roof plan of main hall showing the "Two Dragons Competing for a Pearl"
+> ridge sculpture at apex. Flat muted fills: ochre/orange walls ★, green glazed
+> tile ★, grey marble stone courtyard ◇, dark lim wood structural pillars ★.
+> Annotate the color separation from Phuc Kien (ochre vs red, green vs rust tile).
+> A 1.7m human silhouette beside front gate for scale. Orthographic, no
+> perspective, no text, no numbers.
+
+## ref-35.png — Chợ Hội An: module arcade + mặt tiền dài
+
+> Architectural reality-reconstruction sheet of the Central Market Hall (Cho
+> Hoi An) in Hoi An Vietnam, measured survey drawing style on plain white
+> background. Three orthographic views: (1) long street-side elevation — a
+> single-storey hall with 9 to 11 repeated arched arcade bays along the full
+> facade, small clock gable or roof dormer at the center of the long roof,
+> mustard-yellow plaster walls ★ with each arcade bay forming an arched opening,
+> red-brown clay tile roof above; (2) single arcade bay module in detail —
+> showing the arch proportions, column width, opening width, bay depth, with
+> canvas awning hanging outside the arch; (3) plan of one market section showing
+> the walkable arcade corridor inside with stall counters behind. The building
+> must read as a market hall, NOT as a temple or assembly hall — no tam quan,
+> no dragon ridges, no courtyard axis. Flat fills: mustard yellow walls ★, red-
+> brown tile ★, canvas blue-grey awning ◇, yellow iron/concrete pillars ◇.
+> A 1.7m human silhouette inside one arcade bay for scale. Orthographic, no
+> perspective, no text, no numbers.
+
+## ref-36.md — Quy tắc dịch reality → game (tạo file text, không phải ảnh)
+
+Tạo file `docs/REALITY-TO-GAME-RULES.md` theo nội dung sau — xem tài liệu đó.
+
+---
+
+Quy trình đợt 3: sinh ref-31..35 trước (đo tỷ lệ từ bóng người → khung khối
+chính xác hơn ref-26..30), so sánh với ref-12..18 (màu/vật liệu), sau đó rebuild
+từng landmark theo thứ tự: Chùa Cầu → Phúc Kiến → Quảng Đông → Chợ.
+Kêu Claude: "có ref-31..35 rồi, rebuild Chùa Cầu theo reality-to-game dossier".
