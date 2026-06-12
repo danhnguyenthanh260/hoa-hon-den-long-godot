@@ -15,7 +15,7 @@ const H1 := 3.2
 const Y1 := H_BASE + H1
 
 
-static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.15) -> Node3D:
+static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.15, out: Dictionary = {}) -> Node3D:
 	var a := Node3D.new()
 	a.position = pos
 	a.rotation.y = yrot
@@ -68,5 +68,10 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.15) 
 
 	# ván diềm sát mái + mái âm dương viền trắng
 	Build.box(a, Vector3(0.06, 0.24, W + 0.04), Vector3(-0.045, Y1 - 0.1, 0), m["frame"])
+	# đôi đèn lồng hai bên cửa
+	var lans: Array = out.get("lanterns", [])
+	for lz in [-1.15, 1.15]:
+		lans.append(Build.lantern(a, 0.14, 0.27, Vector3(-0.4, H_BASE + 2.45, lz)))
+	out["lanterns"] = lans
 	Parts.roof_amduong(a, W, D, Y1 + 0.1, m)
 	return a

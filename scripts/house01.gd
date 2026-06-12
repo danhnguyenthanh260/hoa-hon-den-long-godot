@@ -21,7 +21,7 @@ const Y1 := H_BASE + H1            # 3.68 — đỉnh tầng trệt
 const Y2 := Y1 + 0.62 + H2         # đỉnh tầng gác (0.62 = dải mái hiên)
 
 
-static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5) -> Node3D:
+static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, out: Dictionary = {}) -> Node3D:
 	var a := Node3D.new()
 	a.position = pos
 	a.rotation.y = yrot
@@ -105,6 +105,12 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5) -
 				slat.rotation.z = 0.55
 	# ván diềm sát mái
 	Build.box(a, Vector3(0.06, 0.24, W + 0.04), Vector3(-0.045, Y2 - 0.1, 0), m["frame"])
+
+	# dãy đèn lồng dưới mép mái hiên giữa tầng — world đăng ký để light_up thắp
+	var lans: Array = out.get("lanterns", [])
+	for lz in [-2.1, -0.7, 0.7, 2.1]:
+		lans.append(Build.lantern(a, 0.13, 0.26, Vector3(-0.85, Y1 + 0.06, lz)))
+	out["lanterns"] = lans
 
 	Parts.roof_amduong(a, W, D, Y2 + 0.1, m)
 	return a

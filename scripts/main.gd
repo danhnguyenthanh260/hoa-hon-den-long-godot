@@ -555,13 +555,13 @@ func _house_view() -> void:
 	camera.look_at(pbase + Vector3(1.2, 0.7, -1.6))
 	await get_tree().create_timer(0.4).timeout
 	await _shot(dir + "/props.png")
-	# phố ban ngày: ban công bông gió (x=-18), sân thượng cây (x=30 — không vướng cây), toàn cảnh
-	camera.position = Vector3(-15.2, 3.2, 9.6)
-	camera.look_at(Vector3(-18.0, 3.4, 14.4))
+	# phố ban ngày: nhà ban công house03 (x=-21), nhà sân thượng house04 (x=-15), toàn cảnh
+	camera.position = Vector3(-18.2, 3.2, 9.4)
+	camera.look_at(Vector3(-21.0, 3.4, 14.4))
 	await get_tree().create_timer(0.4).timeout
 	await _shot(dir + "/balcony.png")
-	camera.position = Vector3(26.6, 5.6, 8.6)
-	camera.look_at(Vector3(30.0, 4.3, 14.4))
+	camera.position = Vector3(-11.7, 5.6, 8.6)
+	camera.look_at(Vector3(-15.0, 4.3, 14.4))
 	await get_tree().create_timer(0.4).timeout
 	await _shot(dir + "/terrace.png")
 	camera.position = Vector3(2.0, 2.4, 9.0)
@@ -584,7 +584,7 @@ func _house_view() -> void:
 	await get_tree().create_timer(0.3).timeout
 	await _shot(dir + "/night-door.png")
 	print("houseview ground: street=", world.ground_height(Vector3(-5, 0, 12.0)),
-		" steps=", world.ground_height(Vector3(-5, 0, 13.5)),
+		" steps=", world.ground_height(Vector3(-3, 0, 13.5)),
 		" plinth=", world.ground_height(Vector3(-5, 0, 14.15)))
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
