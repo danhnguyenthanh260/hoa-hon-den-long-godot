@@ -145,6 +145,7 @@ func _build_houses() -> void:
 	_build_phase2_streets()
 	_build_phase3_river()
 	_build_phase5_landmarks()
+	_build_phase6_an_hoi()
 
 
 # ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
@@ -588,6 +589,95 @@ func _build_hoi_quan(wpos: Vector3, wall: StandardMaterial3D, tile: StandardMate
 	hglow.light_color = Color(1.0, 0.42, 0.15)
 	hglow.light_energy = 1.2; hglow.omni_range = 10.0
 	hglow.position = Vector3(0, 3.0, 4.5); hq.add_child(hglow)
+
+
+# Phase 6 — An Hội bờ nam: Cầu An Hội + dải nhà thấp + chợ đêm đèn lồng.
+func _build_phase6_an_hoi() -> void:
+	_build_an_hoi_bridge()
+	_build_an_hoi_south_bank()
+
+
+# Cầu gỗ vòm nhẹ nối bờ bắc (Bạch Đằng z=-52.5) ↔ bờ nam An Hội (z=-82), tại x=22, span 30m.
+func _build_an_hoi_bridge() -> void:
+	var br := Node3D.new()
+	br.position = Vector3(22, 0, -67.25)
+	add_child(br)
+	var dk := Build.pbr("res://assets/textures/WoodFloor043", 0.75, Color(0.45, 0.30, 0.18), 1.1)
+	var rl := Build.mat(Color(0.28, 0.16, 0.09), 0.8)
+	# 6 nhịp deck cong hump, cao nhất ở tâm
+	for i in range(6):
+		var sz := -12.5 + i * 5.0
+		var sy := 0.9 + 0.35 * (1.0 - pow(sz / 12.5, 2.0))
+		var seg := Build.box(br, Vector3(2.8, 0.16, 5.1), Vector3(0, sy, sz), dk)
+		seg.rotation.x = -sz * 0.018
+	# lan can: 7 cặp cột + 2 thanh dọc
+	for ri in range(7):
+		var sz := -15.0 + ri * 5.0
+		for rx in [-1.3, 1.3]:
+			Build.box(br, Vector3(0.12, 1.0, 0.12), Vector3(rx, 1.5, sz), rl)
+	for rx in [-1.3, 1.3]:
+		Build.box(br, Vector3(0.07, 0.07, 31.0), Vector3(rx, 2.02, 0), rl)
+	# 7 đèn lồng đỏ treo giữa cầu
+	for li in range(7):
+		var sz := -12.0 + li * 4.0
+		_hanging.append(Build.lantern(br, 0.13, 0.23, Vector3(0, 2.6, sz)))
+	# 3 đôi cọc chống bên dưới
+	for pz in [-8.0, 0.0, 8.0]:
+		for px in [-1.0, 1.0]:
+			Build.cyl(br, 0.16, 0.16, 3.8, Vector3(px, -0.9, pz), rl, 6)
+
+
+# Bờ nam An Hội: bờ kè đá + 6 nhà thấp + chợ đêm 6 gian + 3 dây đèn + glow mặt sông.
+func _build_an_hoi_south_bank() -> void:
+	var stone := Build.pbr("res://assets/textures/PavingStones138", 0.65, Color(0.54, 0.48, 0.44), 0.25)
+	var dk := Build.mat(Color(0.09, 0.08, 0.07), 0.85)
+	# bờ kè + đường đi bờ nam
+	Build.box(self, Vector3(48.0, 0.12, 7.0), Vector3(0, 0.06, -85.0), stone)
+	Build.box(self, Vector3(48.0, 0.45, 0.55), Vector3(0, 0.22, -82.0), stone)
+	# 6 nhà phố thấp bờ nam — mặt quay Bắc nhìn ra sông
+	for k in range(6):
+		_house(Vector3(-15.0 + k * 6.0, 0, -90.0), PI / 2.0, k + 7)
+	# 6 gian chợ đêm màu sắc xen kẽ nhau
+	var stall_colors := [
+		Color(0.72, 0.20, 0.10), Color(0.62, 0.52, 0.12),
+		Color(0.12, 0.36, 0.58), Color(0.18, 0.46, 0.20),
+		Color(0.55, 0.14, 0.40), Color(0.65, 0.32, 0.10),
+	]
+	for si in range(6):
+		var sx := -12.5 + si * 5.0
+		var sc: Color = stall_colors[si % stall_colors.size()]
+		var sm := Build.mat(sc, 0.75)
+		var sn := Node3D.new()
+		sn.position = Vector3(sx, 0, -87.5); add_child(sn)
+		Build.box(sn, Vector3(4.0, 2.2, 2.2), Vector3(0, 1.1, 0), sm)
+		Build.box(sn, Vector3(4.6, 0.1, 2.8), Vector3(0, 2.35, 0.2), sm)
+		var sg := OmniLight3D.new()
+		sg.light_color = sc.lightened(0.3); sg.light_energy = 1.0; sg.omni_range = 5.5
+		sg.position = Vector3(0, 1.8, -0.8); sn.add_child(sg)
+	# 3 dây đèn lồng E-W chợ đêm (9 đèn/dây)
+	var mpal := [Color(1.0, 0.62, 0.12), Color(0.95, 0.22, 0.4), Color(1.0, 0.16, 0.08)]
+	var mli := 0
+	for mz in [-87.0, -90.0, -93.5]:
+		var prev_m := Vector3.ZERO
+		for j in range(9):
+			var mx := -16.0 + j * 4.0
+			var my := 3.8 - 0.55 * (1.0 - pow(mx / 16.0, 2.0))
+			var top := Vector3(mx, my + 0.12, mz)
+			if j > 0:
+				var mid := (prev_m + top) * 0.5
+				var seg := Build.box(self, Vector3(prev_m.distance_to(top), 0.015, 0.015), mid, dk)
+				seg.rotation.z = atan2(top.y - prev_m.y, top.x - prev_m.x)
+			prev_m = top
+			_string_lanterns.append([Build.lantern(self, 0.14, 0.25, Vector3(mx, my, mz)), mpal[mli % mpal.size()]])
+			mli += 1
+	# glow đèn phản chiếu cạnh bờ nam trên mặt sông
+	var refl_pal := [Color(1.0, 0.55, 0.2), Color(0.95, 0.25, 0.4), Color(1.0, 0.62, 0.12)]
+	for ri in range(6):
+		var rx := -12.5 + ri * 5.0
+		var rc: Color = refl_pal[ri % refl_pal.size()]
+		var gd := Build.cyl(self, 0.35, 0.35, 0.015, Vector3(rx, -0.02, -82.4),
+			Build.emis(rc, rc * 0.6, 2.2))
+		gd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 # Phase 4 — Chùa Cầu thật: cầu gỗ vòm có mái ngói, miếu Bắc Đế giữa cầu, tượng thú trấn hai đầu.

@@ -94,10 +94,19 @@ Quảng Đông (cổng tam quan màu nổi) — điểm neo quest lịch sử/t�
 | Hội quán Phúc Kiến | (30, 0, 14.2) | Tam quan tường đỏ son + ngói xanh, to hơn Quảng Đông |
 | Dãy Bắc x≥15 | — | Bỏ trống nhường chỗ hội quán (4 căn x=15,21,27,33) |
 
-## Phase 6 — An Hội bờ nam (10)
+## Phase 6 — An Hội bờ nam (10) — ✅ xong 2026-06-12
 
 Cầu An Hội + dải nhà thấp bờ nam + chợ đêm đèn lồng — sân khấu lễ hội,
 ánh sáng phản chiếu mặt nước (climax thị giác về đêm).
+
+| Phần tử | Vị trí | Chi tiết |
+|---|---|---|
+| Cầu An Hội | x=22, z=-52.5↔-82 | 6 nhịp gỗ vòm hump, lan can, 7 đèn lồng, 3 đôi cọc |
+| Bờ kè bờ nam | z=-82, 48m ngang | PavingStones138 + thành kè 0.45m |
+| 6 nhà thấp | z=-90, x=-15..+15 | Mặt quay Bắc (nhìn ra sông) |
+| Chợ đêm | z=-87.5, 6 gian | 6 màu sắc xen kẽ, awning, glow nội |
+| 3 dây đèn | z=-87,-90,-93.5 | 9 đèn/dây E-W, vào _string_lanterns |
+| Glow phản chiếu | z=-82.4 | 6 emis disc cạnh bờ nam hắt lên mặt sông |
 
 ## Phase 7 — Địa hình + hoàn thiện
 
