@@ -30,36 +30,27 @@ static func pbr(folder: String, scale: float, tint := Color(1, 1, 1), normal_str
 	return m
 
 
-# vật liệu lá cây: đốm noise + normal sần + đung đưa theo gió (foliage_sway.gdshader).
-# Cache theo (màu, sway, speed) — cả phố dùng chung vài material, đổi phase theo world-pos.
+# vật liệu lá cây: texture PBR thật (Polyhaven CC0, assets/textures/<set>) chiếu
+# triplanar + đung đưa theo gió (foliage_sway.gdshader). Cache theo tham số —
+# cả phố dùng chung vài material, lệch pha gió theo world-pos.
 static var _foliage_shader: Shader = null
-static var _foliage_noise: ImageTexture = null
-static var _foliage_nrm: ImageTexture = null
 static var _leaf_cache := {}
 
-static func leaf_mat(c: Color, sway := 0.05, speed := 1.4) -> ShaderMaterial:
-	var key := "%s|%.3f|%.2f" % [c.to_html(), sway, speed]
+static func leaf_mat(tex_set: String, tint: Color, sway := 0.05, speed := 1.4, tex_scale := 0.45) -> ShaderMaterial:
+	var key := "%s|%s|%.3f|%.2f|%.2f" % [tex_set, tint.to_html(), sway, speed, tex_scale]
 	if _leaf_cache.has(key):
 		return _leaf_cache[key]
 	if _foliage_shader == null:
 		_foliage_shader = load("res://assets/shaders/foliage_sway.gdshader")
-		# sinh noise ĐỒNG BỘ (NoiseTexture2D sinh nền → frame đầu trắng bệt)
-		var n := FastNoiseLite.new()
-		n.noise_type = FastNoiseLite.TYPE_CELLULAR
-		n.frequency = 0.05
-		_foliage_noise = ImageTexture.create_from_image(n.get_seamless_image(256, 256))
-		var n2 := FastNoiseLite.new()
-		n2.frequency = 0.09
-		var img2 := n2.get_seamless_image(256, 256)
-		img2.bump_to_normal_map(1.0)
-		_foliage_nrm = ImageTexture.create_from_image(img2)
+	var dir := "res://assets/textures/" + tex_set
 	var sm := ShaderMaterial.new()
 	sm.shader = _foliage_shader
-	sm.set_shader_parameter("albedo", c)
+	sm.set_shader_parameter("tint", tint)
 	sm.set_shader_parameter("sway", sway)
 	sm.set_shader_parameter("speed", speed)
-	sm.set_shader_parameter("noise_tex", _foliage_noise)
-	sm.set_shader_parameter("noise_nrm", _foliage_nrm)
+	sm.set_shader_parameter("tex_scale", tex_scale)
+	sm.set_shader_parameter("tex_diff", load(dir + "/" + tex_set + "_Color.jpg"))
+	sm.set_shader_parameter("tex_nrm", load(dir + "/" + tex_set + "_NormalGL.jpg"))
 	_leaf_cache[key] = sm
 	return sm
 
@@ -189,13 +180,22 @@ static func ribbon(parent: Node3D, width: float, length: float, curve: float, ta
 		var b: Vector3 = rows[i][1]
 		var c: Vector3 = rows[i + 1][0]
 		var d: Vector3 = rows[i + 1][1]
+		var v0 := float(i) / segs
+		var v1 := float(i + 1) / segs
+		st.set_uv(Vector2(0, v0))
 		st.add_vertex(a)
+		st.set_uv(Vector2(0, v1))
 		st.add_vertex(c)
+		st.set_uv(Vector2(1, v1))
 		st.add_vertex(d)
+		st.set_uv(Vector2(0, v0))
 		st.add_vertex(a)
+		st.set_uv(Vector2(1, v1))
 		st.add_vertex(d)
+		st.set_uv(Vector2(1, v0))
 		st.add_vertex(b)
 	st.generate_normals()
+	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = material

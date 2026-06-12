@@ -28,8 +28,8 @@ static func mats(age: float = 0.45) -> Dictionary:
 		"step": Build.pbr("res://assets/textures/ConcreteWall004", 0.4, step_c, 1.2),
 		"roof_tex": Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, tile_tint, 1.2),
 		"tile_c": tile_row_c,
-		"moss": Build.leaf_mat(Color(0.13, 0.18, 0.09), 0.0, 0.0),
-		"leaf": Build.leaf_mat(Color(0.16, 0.3, 0.1), 0.04, 1.3),
+		"moss": Build.leaf_mat("ForestLeaves03", Color(0.3, 0.42, 0.22), 0.0, 0.0, 1.5),
+		"leaf": Build.leaf_mat("ForestLeaves03", Color(0.55, 0.75, 0.42), 0.04, 1.3, 0.8),
 		"pot": Build.mat(Color(0.45, 0.28, 0.2).lerp(Color(0.36, 0.3, 0.2), age), 0.9),
 		"age": age,
 	}
@@ -105,10 +105,10 @@ static func pot_plant(parent: Node3D, pos: Vector3, kind: int, s: float = 1.0, a
 	p.position = pos
 	parent.add_child(p)
 	var clay := Build.mat(Color(0.52, 0.3, 0.2).lerp(Color(0.38, 0.32, 0.22), age * 0.7), 0.92)
-	var soil := Build.mat(Color(0.16, 0.11, 0.07), 1.0)
-	var trunk := Build.mat(Color(0.3, 0.2, 0.12), 0.95)
-	var leaf := Build.leaf_mat(Color(0.2, 0.38, 0.12), 0.022, 1.5)
-	var leaf_d := Build.leaf_mat(Color(0.12, 0.24, 0.08), 0.022, 1.5)
+	var soil := Build.pbr("res://assets/textures/MudLeaves01", 1.6, Color(0.8, 0.75, 0.7), 1.2)
+	var trunk := Build.pbr("res://assets/textures/Bark02", 1.8, Color(0.85, 0.75, 0.62), 1.3)
+	var leaf := Build.leaf_mat("ForestLeaves03", Color(0.62, 0.85, 0.45), 0.022, 1.5, 1.1)
+	var leaf_d := Build.leaf_mat("ForestLeaves03", Color(0.4, 0.58, 0.32), 0.022, 1.5, 1.1)
 	var r := 0.26 * s
 	var h := 0.34 * s
 	# chậu bụng phình miệng loe + lớp đất
@@ -131,44 +131,68 @@ static func pot_plant(parent: Node3D, pos: Vector3, kind: int, s: float = 1.0, a
 				var fy := sin(fi * 1.3) * 0.55
 				var fr := sqrt(maxf(0.04, 1.0 - fy * fy))
 				Build.ball(p, 0.042 * s, 0.084 * s, Vector3(cos(ang) * fr * 0.3 * s, h + (0.52 + fy * 0.27) * s, sin(ang) * fr * 0.3 * s), Build.mat(Color(0.95, 0.55, 0.1), 0.6))
-		2:	# chuối cảnh: thân giả + tàu lá to cong ra ngoài
-			Build.cyl(p, 0.05 * s, 0.075 * s, 0.55 * s, Vector3(0, h + 0.26 * s, 0), Build.mat(Color(0.45, 0.55, 0.3), 0.85), 8)
+		2:	# chuối cảnh: thân giả nhẵn + TÀU LÁ ribbon cong có texture
+			Build.cyl(p, 0.05 * s, 0.075 * s, 0.55 * s, Vector3(0, h + 0.26 * s, 0), Build.pbr("res://assets/textures/LeafyGrass", 1.6, Color(0.62, 0.72, 0.42), 0.7), 8)
+			var bl := Build.leaf_mat("LeafyGrass", Color(0.55, 0.8, 0.38), 0.04, 1.3, 1.0)
 			for li in range(6):
 				var ang := li * 1.05 + 0.4
-				var lb := Build.ball(p, 0.4 * s, 0.8 * s, Vector3(cos(ang) * 0.3 * s, h + (0.62 + 0.1 * (li % 3)) * s, sin(ang) * 0.3 * s), Build.leaf_mat(Color(0.25, 0.5, 0.14), 0.05, 1.2))
-				lb.scale = Vector3(0.85, 0.12, 0.3)
-				lb.rotation.y = -ang
-				lb.rotation.z = 0.45
-		3:	# dương xỉ / bụi lá rủ quanh miệng chậu
-			for li in range(8):
-				var ang := li * 0.79
-				var fb := Build.ball(p, 0.17 * s, 0.34 * s, Vector3(cos(ang) * 0.14 * s, h + 0.1 * s, sin(ang) * 0.14 * s), leaf if li % 2 == 0 else leaf_d)
-				fb.scale = Vector3(1.0, 0.45, 0.4)
-				fb.rotation.y = -ang
-				fb.rotation.z = 0.5
+				var piv := Node3D.new()
+				piv.position = Vector3(0, h + 0.52 * s, 0)
+				piv.rotation.y = -ang
+				piv.rotation.x = -1.75 - 0.15 * (li % 3)
+				p.add_child(piv)
+				Build.ribbon(piv, 0.27 * s, (0.72 + 0.14 * (li % 2)) * s, -0.4, 0.7, bl, 6)
+		3:	# dương xỉ: dải lá cong rủ quanh miệng chậu
+			var fm := Build.leaf_mat("LeafyGrass", Color(0.6, 0.85, 0.45), 0.035, 1.7, 1.3)
+			for li in range(9):
+				var ang := li * 0.7
+				var piv := Node3D.new()
+				piv.position = Vector3(cos(ang) * 0.1 * s, h + 0.06 * s, sin(ang) * 0.1 * s)
+				piv.rotation.y = -ang
+				piv.rotation.x = -1.5 - 0.1 * (li % 3)
+				p.add_child(piv)
+				Build.ribbon(piv, 0.09 * s, (0.32 + 0.08 * (li % 3)) * s, -0.5, 0.5, fm, 5)
 	return p
 
 
 # bụi chuối mọc thẳng từ đất — "có nơi có cây chuối" (ref-09)
-static func banana_clump(parent: Node3D, pos: Vector3, s: float = 1.5) -> Node3D:
+# wall_dir: hướng về phía tường gần nhất (world) — tàu lá quay vào tường tự
+# ngắn lại + dựng đứng hơn, không đâm xuyên mặt tiền.
+static func banana_clump(parent: Node3D, pos: Vector3, s: float = 1.5, wall_dir: Vector3 = Vector3.ZERO) -> Node3D:
 	var p := Node3D.new()
 	p.position = pos
 	parent.add_child(p)
-	# ụ đất trồng + viên đá viền — chuối mọc từ đất, không mọc thẳng trên nền lát đá
-	Build.ball(p, 0.62 * s, 0.24 * s, Vector3(0, 0.0, 0), Build.mat(Color(0.22, 0.15, 0.1), 1.0))
+	# ụ đất mùn lá + viên đá viền — chuối mọc từ đất, không mọc thẳng trên nền lát đá
+	Build.ball(p, 0.62 * s, 0.24 * s, Vector3(0, 0.0, 0), Build.pbr("res://assets/textures/MudLeaves01", 0.9, Color(0.85, 0.8, 0.75), 1.3))
 	for rk in range(6):
 		var ra := rk * 1.047 + 0.4
-		Build.ball(p, (0.06 + 0.025 * (rk % 2)) * s, 0.09 * s, Vector3(cos(ra) * 0.56 * s, 0.025, sin(ra) * 0.56 * s), Build.mat(Color(0.38, 0.36, 0.33), 0.95))
+		Build.ball(p, (0.06 + 0.025 * (rk % 2)) * s, 0.09 * s, Vector3(cos(ra) * 0.56 * s, 0.025, sin(ra) * 0.56 * s), Build.pbr("res://assets/textures/ConcreteWall004", 0.5, Color(0.7, 0.68, 0.64), 1.2))
+	# thân giả xanh nhẵn vân dọc + TÀU LÁ ribbon cong rủ + lá non dựng giữa ngọn
+	var stem_m := Build.pbr("res://assets/textures/LeafyGrass", 1.4, Color(0.62, 0.72, 0.42), 0.8)
+	var leaf_m := Build.leaf_mat("LeafyGrass", Color(0.5, 0.78, 0.35), 0.06, 1.1, 0.7)
 	for st in range(3):
 		var off := Vector3(sin(st * 2.5) * 0.3 * s, 0, cos(st * 2.5) * 0.3 * s)
 		var hh := (1.1 + 0.4 * (st % 2)) * s
-		Build.cyl(p, 0.05 * s, 0.09 * s, hh, off + Vector3(0, hh / 2.0, 0), Build.mat(Color(0.45, 0.55, 0.3), 0.85), 8)
-		for li in range(5):
-			var ang := li * 1.26 + st
-			var lb := Build.ball(p, 0.5 * s, 1.0 * s, off + Vector3(cos(ang) * 0.35 * s, hh + 0.15 * s, sin(ang) * 0.35 * s), Build.leaf_mat(Color(0.22, 0.46, 0.12), 0.07, 1.1))
-			lb.scale = Vector3(0.9, 0.12, 0.3)
-			lb.rotation.y = -ang
-			lb.rotation.z = 0.5
+		Build.cyl(p, 0.05 * s, 0.09 * s, hh, off + Vector3(0, hh / 2.0, 0), stem_m, 8)
+		for li in range(6):
+			var ang := li * 1.047 + st * 0.7
+			var ll := (1.3 + 0.25 * (li % 2)) * s
+			var tilt := -1.85 - 0.15 * ((li + st) % 3)
+			if wall_dir != Vector3.ZERO and (-sin(ang) * wall_dir.x + cos(ang) * wall_dir.z) > 0.45:
+				ll *= 0.5
+				tilt = -2.35
+			var piv := Node3D.new()
+			piv.position = off + Vector3(0, hh, 0)
+			piv.rotation.y = -ang
+			piv.rotation.x = tilt
+			p.add_child(piv)
+			Build.ribbon(piv, 0.46 * s, ll, -0.3, 0.75, leaf_m, 7)
+		var top := Node3D.new()
+		top.position = off + Vector3(0, hh + 0.12 * s, 0)
+		top.rotation.x = -2.95
+		top.rotation.y = st * 1.1
+		p.add_child(top)
+		Build.ribbon(top, 0.2 * s, 0.7 * s, -0.15, 0.6, leaf_m, 5)
 	return p
 
 

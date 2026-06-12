@@ -135,11 +135,12 @@ func _build_houses() -> void:
 		var z := 6.0 - i * 6.0
 		_house(Vector3(FACADE_X, 0, z), 0.0, i)
 		_house(Vector3(-FACADE_X, 0, z), PI, i + 3)
-	# đồ ngõ: chậu cây nép chân thềm, xe đạp dựa tường, bụi chuối góc cuối ngõ
-	Parts.pot_plant(self, Vector3(4.55, 0, 4.0), 3, 0.9)
-	Parts.pot_plant(self, Vector3(-4.55, 0, -4.2), 0, 0.85)
+	# đồ ngõ: chậu cây nép chân thềm cạnh cửa (tâm nhà ± 2.2), xe đạp dựa tường,
+	# bụi chuối dồn hẳn vào GÓC cuối ngõ sát tường chắn — chừa trống lối đi
+	Parts.pot_plant(self, Vector3(4.6, 0, 3.8), 3, 0.9)
+	Parts.pot_plant(self, Vector3(-4.6, 0, -3.8), 0, 0.85)
 	Parts.bicycle(self, Vector3(4.6, 0, -8.0), PI / 2.0, -0.12)
-	Parts.banana_clump(self, Vector3(-3.6, 0, -17.4), 1.2)
+	Parts.banana_clump(self, Vector3(-3.5, 0, -18.8), 1.2, Vector3(-0.55, 0, -0.83))
 	_build_main_street()
 
 
@@ -179,20 +180,22 @@ func _build_main_street() -> void:
 		_house(Vector3(x, 0, 14.2), -PI / 2.0, k)            # dãy Bắc, mặt quay Nam
 		if absf(x) > 7.0:                                    # chừa miệng ngõ ở dãy Nam
 			_house(Vector3(x, 0, 7.9), PI / 2.0, k + 2)
-	# ---- đồ phố (ref-07/08/09): xe đạp dựa hiên, xe Cub đậu, chậu cây trước thềm
-	# (tọa độ né các vùng tam cấp tại tâm nhà C = -33 + 6k, C ± 1.55) ----
+	# ---- đồ phố (ref-07/08/09/10): xe dựa hiên, chậu cảnh NÉP CHÂN THỀM hai bên
+	# cửa (C ± 2.2 với C = -33 + 6k là tâm nhà), chuối nép góc trụ nhà —
+	# lòng đường + vùng tam cấp (C ± 1.55) + trụ đèn (x = -30..30 bước 12, z 10.2)
+	# luôn trống ----
 	Parts.bicycle(self, Vector3(-17.3, 0, 13.55), 0.0, -0.12)
 	Parts.bicycle(self, Vector3(30.6, 0, 13.5), 0.0, -0.1)
 	Parts.motorbike(self, Vector3(18.9, 0, 13.1), 0.18)
 	Parts.motorbike(self, Vector3(-24.3, 0, 13.25), -0.25)
-	for pp in [[-6.0, 13.6, 2], [-29.5, 13.6, 3], [5.8, 13.55, 1], [-18.6, 13.6, 0],
-			[12.3, 13.6, 3], [24.0, 13.6, 1], [29.3, 13.6, 0]]:
+	for pp in [[-29.2, 13.55, 2], [-18.8, 13.55, 3], [-11.2, 13.55, 1], [-6.8, 13.55, 0],
+			[5.2, 13.55, 3], [11.2, 13.55, 1], [29.2, 13.55, 0]]:
 		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 1.0)
-	for pp2 in [[-11.2, 8.5, 3], [11.8, 8.5, 0], [23.5, 8.55, 2], [-29.8, 8.5, 1]]:
+	for pp2 in [[-11.2, 8.45, 3], [11.2, 8.45, 0], [23.2, 8.45, 2], [-29.2, 8.45, 1]]:
 		Parts.pot_plant(self, Vector3(pp2[0], 0, pp2[1]), int(pp2[2]), 0.9)
-	# bụi chuối chen cạnh gốc cây — "có nơi có cây chuối"
-	Parts.banana_clump(self, Vector3(-11.3, 0, 13.05), 1.3)
-	Parts.banana_clump(self, Vector3(17.4, 0, 13.0), 1.5)
+	# bụi chuối nép góc trụ giữa hai nhà, tàu lá phía tường tự ngắn (ref-10)
+	Parts.banana_clump(self, Vector3(-30.1, 0, 13.3), 1.3, Vector3(0, 0, 1))
+	Parts.banana_clump(self, Vector3(17.9, 0, 13.3), 1.5, Vector3(0, 0, 1))
 	# dây đèn giăng ngang phố
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(0.95, 0.25, 0.4)]
 	var idx := 0
@@ -209,14 +212,22 @@ func _build_main_street() -> void:
 			prev = top
 			_string_lanterns.append([Build.lantern(self, 0.13, 0.24, Vector3(sx, y, z)), palette[idx % palette.size()]])
 			idx += 1
-	# cây xanh phá đường mái — phố thật luôn có tán cây chen giữa nhà
-	# (z=12.2: tán xa mặt tiền z=14.2, không chọc xuyên tường; gốc có ụ đất)
-	for tp in [Vector3(-11.9, 0, 12.2), Vector3(23.0, 0, 12.2)]:
-		Build.ball(self, 0.5, 0.2, tp, Build.mat(Color(0.22, 0.15, 0.1), 1.0))
-		Build.cyl(self, 0.14, 0.2, 2.8, tp + Vector3(0, 1.4, 0), Build.mat(Color(0.16, 0.12, 0.09), 0.95), 8)
-		for fb in range(4):
-			var off := Vector3(sin(fb * 1.9) * 0.65, 3.1 + (fb % 2) * 0.55, cos(fb * 1.9) * 0.55)
-			Build.ball(self, 0.62 + 0.18 * (fb % 2), 1.1, tp + off, Build.leaf_mat(Color(0.09, 0.16, 0.07), 0.05, 1.0))
+	# cây xanh phá đường mái — thân vỏ cây thật + cành rẽ + tán texture + ụ đất.
+	# Đặt tại RANH hai nhà (x=0 đối diện miệng ngõ, x=24), né dây đèn (±12/±26)
+	# và trụ đèn (-30..30 bước 12); tán z tối đa 13.5 < mặt tiền 14.2.
+	for tp in [Vector3(0.0, 0, 12.1), Vector3(24.0, 0, 12.1)]:
+		Build.ball(self, 0.5, 0.2, tp, Build.pbr("res://assets/textures/MudLeaves01", 0.9, Color(0.85, 0.8, 0.75), 1.3))
+		var bark := Build.pbr("res://assets/textures/Bark02", 1.2, Color(0.8, 0.72, 0.6), 1.5)
+		Build.cyl(self, 0.13, 0.2, 2.9, tp + Vector3(0, 1.45, 0), bark, 8)
+		for bk in range(3):
+			var ba := bk * 2.1 + 0.5
+			var br := Build.cyl(self, 0.05, 0.09, 1.3, tp + Vector3(cos(ba) * 0.45, 3.15, sin(ba) * 0.45), bark, 6)
+			br.rotation.z = cos(ba) * 0.55
+			br.rotation.x = -sin(ba) * 0.55
+		var lm := Build.leaf_mat("ForestLeaves03", Color(0.5, 0.7, 0.4), 0.05, 1.0, 0.55)
+		for fb in range(7):
+			var off := Vector3(sin(fb * 1.9) * 0.75, 3.4 + 0.45 * sin(fb * 2.7), cos(fb * 1.9) * 0.7)
+			Build.ball(self, 0.45 + 0.08 * (fb % 3), 0.8, tp + off, lm)
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
 		var mist := Build.box(self, Vector3(0.4, 7.0, 14.0), Vector3(mx, 3.5, 11.0), null)
@@ -292,8 +303,8 @@ func _house(pos: Vector3, yrot: float, idx: int) -> void:
 			var fx := -absf(sin(fi * 2.39 + idx)) * 0.2
 			var fy := -absf(sin(fi * 1.7)) * 0.85
 			var fz := cos(fi * 2.39 + idx) * 0.26
-			var fc := Color(0.78, 0.12, 0.4) if fi % 4 != 0 else Color(0.1, 0.22, 0.08)
-			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.leaf_mat(fc, 0.035, 1.6))
+			var fc := Color(1.9, 0.3, 1.0) if fi % 4 != 0 else Color(0.4, 0.65, 0.3)
+			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.leaf_mat("ForestLeaves03", fc, 0.035, 1.6, 1.4))
 
 func _build_lantern_strings() -> void:
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(1.0, 0.32, 0.08), Color(0.95, 0.25, 0.4)]
