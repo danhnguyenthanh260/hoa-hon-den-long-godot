@@ -108,6 +108,15 @@ Cầu An Hội + dải nhà thấp bờ nam + chợ đêm đèn lồng — sân 
 | 3 dây đèn | z=-87,-90,-93.5 | 9 đèn/dây E-W, vào _string_lanterns |
 | Glow phản chiếu | z=-82.4 | 6 emis disc cạnh bờ nam hắt lên mặt sông |
 
-## Phase 7 — Địa hình + hoàn thiện
+## Phase 7 — Địa hình + hoàn thiện — ✅ xong 2026-06-12
 
 Độ dốc phố (ref-10), ngõ hẹp khu cầu, map lại 5 chương vào các zone mới.
+
+| Phần tử | Vị trí | Chi tiết |
+|---|---|---|
+| Thềm đá nâng (ref-10) | Trần Phú 2 dãy | Dãy Bắc z=13.7→14.25 (x=-37.5..14.5), dãy Nam z=7.95→8.45 hai bên miệng ngõ — cao 0.14m, đăng ký floor, chậu cảnh dời lên thềm |
+| Ngõ hẹp khu cầu | x=-38.45→-40.75, z=9.4/12.6 | 2 vách vữa 3.4m + mũ gỗ + rêu chân, cổng trụ + lanh tô + mái ngói + đèn lồng (_hanging) tại x=-38.6, bậc đá ngưỡng cổng |
+| Clamp mở rộng | x tới -40.55, z∈[9.95,12.05] | Lách qua sương tới chân cầu; ván cầu vẫn phong ấn (interact "Chân Chùa Cầu" trong c1) |
+| Zone địa lý | pho_dem / ngo_cau | `update_zone_geo()` chạy mỗi frame khi chapter 1 + sau light_up: ngõ=c1_lit, phố=pho_dem (ấm), khu cầu=ngo_cau (sương đặc lạnh) |
+| Map 5 chương | — | C1 ngõ+phố (geo zones), C2 giếng z=-28..-43 (zone c2), C3 nhà ký ức x=60 (c3), C4 bến sông Phase-3 (c4), C5 cầu treo y=40 (c5) — C2-C5 giữ zone riêng, geo chỉ chạy ở C1 |
+| Fix biên | clamp_alley | \|x\|>5.5 luôn xử lý theo phố — hết giật ngang khi lọt biên z=8 trên thềm Nam |

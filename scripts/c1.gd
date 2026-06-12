@@ -97,6 +97,8 @@ func _build_street_life() -> void:
 	m.add_interact(Vector3(-19.5, 0, 14.0), 1.8, "Gõ cửa ngôi nhà tối", Callable(self, "_knock_door"), false)
 	# Chùa Cầu sau sương Tây
 	m.add_interact(Vector3(-36.5, 0, 11.0), 2.5, "Nhìn về phía cây cầu", Callable(self, "_seal_bridge"), false)
+	# chân cầu cuối ngõ hẹp (Phase 7) — đặt được một bước lên ván là sương đẩy ngược
+	m.add_interact(Vector3(-40.2, 0, 11.0), 2.0, "Chân Chùa Cầu", Callable(self, "_bridge_foot"), false)
 	# chợ sau sương Đông
 	m.add_interact(Vector3(36.5, 0, 11.0), 2.5, "Lắng nghe phía chợ", Callable(self, "_seal_market"), false)
 	# gánh hoa đăng bỏ không
@@ -217,6 +219,13 @@ func _seal_bridge() -> void:
 	m.say([
 		["Minh (nghĩ)", "Chùa Cầu. Sương đặc đến mức cây cầu chỉ còn là một nét mực tàu."],
 		["Minh (nghĩ)", "Có gì đó bên kia sương... vẫn nhớ tôi. Chưa phải lúc. Nhưng sẽ phải đến."],
+	])
+
+
+func _bridge_foot() -> void:
+	m.say([
+		["Minh (nghĩ)", "Ván cầu ngay trước mũi chân. Tôi đưa chân lên — sương đặc lại thành một bức tường mềm, đẩy ngược."],
+		["Minh (nghĩ)", "Con linh thú đá bên vách nhìn thẳng. Không dữ. Chỉ như muốn nói: chưa phải lượt của cậu."],
 	])
 
 

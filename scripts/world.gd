@@ -29,6 +29,12 @@ const ZONES := {
 		"fog": Color(0.05, 0.035, 0.09), "fog_d": 0.011, "vol": 0.035},
 	"c5": {"bg": Color(0.004, 0.003, 0.01), "amb": Color(0.16, 0.14, 0.26), "amb_e": 1.05,
 		"fog": Color(0.015, 0.012, 0.03), "fog_d": 0.005, "vol": 0.045},
+	# Phase 7 — zone địa lý khi tự do khám phá C1 (sau light_up):
+	# phố Trần Phú ấm đèn lồng / hành lang khu cầu sương phong ấn đặc lạnh
+	"pho_dem": {"bg": Color(0.025, 0.022, 0.045), "amb": Color(0.3, 0.22, 0.2), "amb_e": 0.85,
+		"fog": Color(0.085, 0.055, 0.06), "fog_d": 0.009, "vol": 0.022},
+	"ngo_cau": {"bg": Color(0.008, 0.016, 0.038), "amb": Color(0.13, 0.17, 0.3), "amb_e": 0.5,
+		"fog": Color(0.045, 0.055, 0.1), "fog_d": 0.026, "vol": 0.07},
 }
 
 var _env: Environment
@@ -42,6 +48,7 @@ var _windows: Array = []
 var _moon_ball: MeshInstance3D
 var _time := 0.0
 var blackout := 0.0    # >0: mọi đèn phụt tắt một nhịp (beat kinh dị)
+var geo_zone_on := false   # bật sau light_up() — C1 roam tự do, zone đổi theo nơi đứng
 
 var _plaster: StandardMaterial3D
 var _wood: StandardMaterial3D
@@ -106,6 +113,19 @@ func set_zone(zone: String) -> void:
 
 func set_moon_visible(v: bool) -> void:
 	_moon_ball.visible = v
+
+
+# Phase 7 — map khu vực vào zone theo vị trí (chỉ C1 roam tự do; C2-C5 tự đặt zone riêng):
+# ngõ giữ c1_lit, ra phố Trần Phú ấm đèn (pho_dem), lách vào hành lang khu cầu thì sương đặc (ngo_cau)
+func update_zone_geo(pos: Vector3) -> void:
+	if not geo_zone_on:
+		return
+	if pos.x < -38.0:
+		set_zone("ngo_cau")
+	elif pos.z > 8.0:
+		set_zone("pho_dem")
+	else:
+		set_zone("c1_lit")
 
 
 func _apply_zone(z: Dictionary, w: float) -> void:
@@ -193,11 +213,12 @@ func _build_main_street() -> void:
 	Parts.bicycle(self, Vector3(30.6, 0, 13.5), 0.0, -0.1)
 	Parts.motorbike(self, Vector3(18.9, 0, 13.1), 0.18)
 	Parts.motorbike(self, Vector3(-24.3, 0, 13.25), -0.25)
-	for pp in [[-29.2, 13.55, 2], [-18.8, 13.55, 3], [-11.2, 13.55, 1], [-6.8, 13.55, 0],
-			[5.2, 13.55, 3], [11.2, 13.55, 1], [29.2, 13.55, 0]]:
-		Parts.pot_plant(self, Vector3(pp[0], 0, pp[1]), int(pp[2]), 1.0)
-	for pp2 in [[-11.2, 8.45, 3], [11.2, 8.45, 0], [23.2, 8.45, 2], [-29.2, 8.45, 1]]:
-		Parts.pot_plant(self, Vector3(pp2[0], 0, pp2[1]), int(pp2[2]), 0.9)
+	# chậu đứng TRÊN thềm đá nâng (ref-10) — trừ x>14.5 (khu hội quán không có thềm)
+	for pp in [[-29.2, 2], [-18.8, 3], [-11.2, 1], [-6.8, 0], [5.2, 3], [11.2, 1]]:
+		Parts.pot_plant(self, Vector3(pp[0], 0.14, 13.95), int(pp[1]), 1.0)
+	Parts.pot_plant(self, Vector3(29.2, 0, 13.55), 0, 1.0)
+	for pp2 in [[-11.2, 3], [11.2, 0], [23.2, 2], [-29.2, 1]]:
+		Parts.pot_plant(self, Vector3(pp2[0], 0.14, 8.2), int(pp2[1]), 0.9)
 	# bụi chuối nép góc trụ giữa hai nhà, tàu lá phía tường tự ngắn (ref-10)
 	Parts.banana_clump(self, Vector3(-30.1, 0, 13.3), 1.3, Vector3(0, 0, 1))
 	Parts.banana_clump(self, Vector3(17.9, 0, 13.3), 1.5, Vector3(0, 0, 1))
@@ -249,7 +270,45 @@ func _build_main_street() -> void:
 		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mist.material_override = mm
 		mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_build_sidewalks()
+	_build_ngo_hep()
 	_build_chua_cau()
+
+
+# Phase 7 — thềm đá nâng kiểu ref-10: nhà đứng trên nền đá liền, lòng đường thấp hơn
+# một nhịp 0.14m. Đăng ký floor để người chơi bước hẳn lên thềm, đi dọc chân nhà.
+func _build_sidewalks() -> void:
+	var kerb := Build.pbr("res://assets/textures/PavingStones138", 0.5, Color(0.45, 0.43, 0.42), 0.45)
+	# dãy Bắc Trần Phú: thềm liền từ sương Tây tới ranh hội quán (x>14.5 sân riêng)
+	Build.box(self, Vector3(52.0, 0.14, 0.55), Vector3(-11.5, 0.07, 13.975), kerb)
+	_reg_floor(Vector3.ZERO, 0.0, -37.5, 14.5, 13.7, 14.25, 0.14)
+	# dãy Nam: hai dải hai bên miệng ngõ
+	for sgn in [-1.0, 1.0]:
+		Build.box(self, Vector3(31.6, 0.14, 0.5), Vector3(sgn * 21.7, 0.07, 8.2), kerb)
+		_reg_floor(Vector3.ZERO, 0.0, sgn * 5.9, sgn * 37.5, 7.95, 8.45, 0.14)
+
+
+# Phase 7 — ngõ hẹp khu cầu: hành lang vữa cao ép sát hai bên, cổng trụ + lanh tô +
+# đèn lồng ở đầu Đông. Lách qua màn sương là tới chân Chùa Cầu (tượng linh thú ngay
+# vách Bắc) — lên ván cầu vẫn bị phong ấn (C1: "chưa phải lúc").
+func _build_ngo_hep() -> void:
+	for sz in [9.4, 12.6]:
+		Build.box(self, Vector3(2.3, 3.4, 0.5), Vector3(-39.6, 1.7, sz), _plaster)
+		Build.box(self, Vector3(2.42, 0.12, 0.62), Vector3(-39.6, 3.46, sz), _darkwood)
+		Build.box(self, Vector3(2.3, 0.5, 0.06), Vector3(-39.6, 0.25, sz + (0.26 if sz < 11.0 else -0.26)), _moss)
+	# cổng vào: hai trụ vuông + lanh tô + mái ngói nhỏ + một đèn lồng (sáng cùng light_up)
+	for pz in [9.8, 12.2]:
+		Build.box(self, Vector3(0.38, 2.9, 0.38), Vector3(-38.6, 1.45, pz), _plaster)
+	Build.box(self, Vector3(0.46, 0.5, 3.1), Vector3(-38.6, 3.05, 11.0), _plaster)
+	Build.box(self, Vector3(0.95, 0.1, 3.6), Vector3(-38.6, 3.42, 11.0), Build.mat(Color(0.09, 0.08, 0.09), 0.7))
+	_hanging.append(Build.lantern(self, 0.13, 0.24, Vector3(-38.6, 2.52, 11.0)))
+	# bậc đá thấp ngay ngưỡng cổng — phố dốc nhẹ xuống phía cầu (ref-10)
+	var kerb := Build.pbr("res://assets/textures/PavingStones138", 0.5, Color(0.42, 0.4, 0.4), 0.5)
+	Build.box(self, Vector3(0.6, 0.1, 2.6), Vector3(-38.2, 0.05, 11.0), kerb)
+	_reg_floor(Vector3.ZERO, 0.0, -38.5, -37.9, 9.7, 12.3, 0.1)
+	# cỏ kẽ đá chân vách — hành lang ẩm, ít người qua
+	Parts.grass_tuft(self, Vector3(-39.4, 0, 9.9), 0.85)
+	Parts.grass_tuft(self, Vector3(-40.3, 0, 12.15), 0.9)
 
 
 # Phase 2 — Nguyễn Thái Học + Lê Lợi + Hoàng Văn Thụ
@@ -839,6 +898,7 @@ func light_up() -> void:
 		l.position = Vector3(0, 3.0, z)
 		add_child(l)
 	set_zone("c1_lit")
+	geo_zone_on = true   # phố đã thức — từ giờ zone đổi theo nơi Minh đứng (Phase 7)
 
 
 # đèn cả phố phụt tắt một nhịp rồi sáng lại — "có thứ gì vừa đi qua"
@@ -860,13 +920,20 @@ func update_world(delta: float) -> void:
 
 func clamp_alley(pos: Vector3) -> Vector3:
 	# trên phố Trần Phú: đi ngang thoải mái giữa hai màn sương
-	if pos.z > 8.0:
-		pos.x = clampf(pos.x, -37.5, 37.5)
+	# (|x|>5.5 luôn xử lý theo phố — kẻo lọt biên z=8 trên thềm Nam bị giật về ngõ)
+	if pos.z > 8.0 or absf(pos.x) > ALLEY_HALF + 0.5:
+		# ngõ hẹp khu cầu (Phase 7): đúng dải cổng hẹp thì lách qua sương tới chân cầu
+		var xmin := -40.55 if (pos.z >= 9.95 and pos.z <= 12.05) else -37.5
+		pos.x = clampf(pos.x, xmin, 37.5)
+		if pos.x < -37.5:
+			pos.z = clampf(pos.z, 9.95, 12.05)
 		var on_floor := ground_height(pos) > 0.05
-		# nhà nào có thềm thì bước hẳn lên thềm trước cửa, không thì dừng trước hiên
-		var zmax := 14.25 if ground_height(Vector3(pos.x, 0, 14.1)) > 0.3 else 13.6
+		# có tam cấp thì lên tận cửa; chỉ có thềm đá (Phase 7) thì đi dọc thềm;
+		# không có gì thì dừng trước hiên
+		var gh_n := ground_height(Vector3(pos.x, 0, 14.1))
+		var zmax := 14.25 if gh_n > 0.3 else (14.1 if gh_n > 0.05 else 13.6)
 		pos.z = clampf(pos.z, 8.0, zmax)
-		# ngoài miệng ngõ thì không xuống được dãy nhà Nam (trừ khi đang đứng trên bậc)
+		# ngoài miệng ngõ thì không xuống được dãy nhà Nam (trừ khi đứng trên bậc/thềm)
 		if absf(pos.x) > ALLEY_HALF and pos.z < 8.4 and not on_floor:
 			pos.z = 8.4
 		pos.y = ground_height(pos)

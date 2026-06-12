@@ -308,6 +308,8 @@ func _process(delta: float) -> void:
 		State.PLAY:
 			player.update_move(delta, Callable(current_chapter(), "clamp_player"))
 			player.set_near_house(world.near_house(player.position))
+			if chapter_no == 1:
+				world.update_zone_geo(player.position)
 			var it = _nearest_interact()
 			ui.show_prompt(it["prompt"] if it != null else "")
 		State.PUZZLE:
@@ -711,6 +713,27 @@ func _house_view() -> void:
 	camera.look_at(Vector3(0.0, 2.5, -89.0))
 	await get_tree().create_timer(0.6).timeout
 	await _shot(dir + "/p6-cho-dem.png")
+	# Phase 7: chụp đúng trạng thái sau light_up — đèn lồng sáng, zone geo theo chân Minh,
+	# đèn sào của Minh là nguồn sáng chính từng khung
+	world.light_up()
+	# thềm đá nâng ref-10 dọc dãy Bắc — Minh đứng giữa lòng đường (z=11: ngoài rìa
+	# near_house để đèn không bị che), góc thấp thấy bậc + chậu trên thềm
+	player.position = Vector3(-18.0, 0, 11.0)
+	camera.position = Vector3(-13.5, 1.5, 11.2)
+	camera.look_at(Vector3(-21.0, 0.9, 14.0))
+	await get_tree().create_timer(1.4).timeout
+	await _shot(dir + "/p7-sidewalk.png")
+	# ngõ hẹp khu cầu — từ phố nhìn qua cổng hẹp, Minh đã lách vào trong hành lang
+	player.position = Vector3(-40.0, 0, 10.3)
+	camera.position = Vector3(-34.5, 2.1, 11.0)
+	camera.look_at(Vector3(-41.5, 1.6, 11.0))
+	await get_tree().create_timer(1.4).timeout
+	await _shot(dir + "/p7-ngo-hep.png")
+	# trong hành lang nhìn ra chân cầu + tượng linh thú (zone ngo_cau — sương đặc)
+	camera.position = Vector3(-38.9, 1.7, 11.0)
+	camera.look_at(Vector3(-43.0, 1.5, 11.4))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(dir + "/p7-chan-cau.png")
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
 
