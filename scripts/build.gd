@@ -34,10 +34,31 @@ static func pbr(folder: String, scale: float, tint := Color(1, 1, 1), normal_str
 # triplanar + đung đưa theo gió (foliage_sway.gdshader). Cache theo tham số —
 # cả phố dùng chung vài material, lệch pha gió theo world-pos.
 static var _foliage_shader: Shader = null
+static var _leaf_alpha_tex: ImageTexture = null
 static var _leaf_cache := {}
 
-static func leaf_mat(tex_set: String, tint: Color, sway := 0.05, speed := 1.4, tex_scale := 0.45) -> ShaderMaterial:
-	var key := "%s|%s|%.3f|%.2f|%.2f" % [tex_set, tint.to_html(), sway, speed, tex_scale]
+# mask alpha cho card lá: noise cellular × falloff hướng tâm — viền tán rách tự nhiên
+static func _leaf_alpha() -> ImageTexture:
+	if _leaf_alpha_tex != null:
+		return _leaf_alpha_tex
+	var n := FastNoiseLite.new()
+	n.noise_type = FastNoiseLite.TYPE_CELLULAR
+	n.frequency = 0.06
+	var src := n.get_seamless_image(128, 128)
+	var out := Image.create(128, 128, true, Image.FORMAT_L8)
+	for y in range(128):
+		for x in range(128):
+			var d := Vector2(x - 64, y - 64).length() / 64.0
+			var fall := clampf(1.55 - 1.55 * d, 0.0, 1.0)
+			var v := src.get_pixel(x, y).r * fall
+			var aa := clampf(v * 2.2 - 0.18, 0.0, 1.0)
+			out.set_pixel(x, y, Color(aa, aa, aa))
+	out.generate_mipmaps()
+	_leaf_alpha_tex = ImageTexture.create_from_image(out)
+	return _leaf_alpha_tex
+
+static func leaf_mat(tex_set: String, tint: Color, sway := 0.05, speed := 1.4, tex_scale := 0.45, alpha_cut := 0.0) -> ShaderMaterial:
+	var key := "%s|%s|%.3f|%.2f|%.2f|%.2f" % [tex_set, tint.to_html(), sway, speed, tex_scale, alpha_cut]
 	if _leaf_cache.has(key):
 		return _leaf_cache[key]
 	if _foliage_shader == null:
@@ -51,8 +72,23 @@ static func leaf_mat(tex_set: String, tint: Color, sway := 0.05, speed := 1.4, t
 	sm.set_shader_parameter("tex_scale", tex_scale)
 	sm.set_shader_parameter("tex_diff", load(dir + "/" + tex_set + "_Color.jpg"))
 	sm.set_shader_parameter("tex_nrm", load(dir + "/" + tex_set + "_NormalGL.jpg"))
+	if alpha_cut > 0.0:
+		sm.set_shader_parameter("alpha_cut", alpha_cut)
+		sm.set_shader_parameter("alpha_tex", _leaf_alpha())
 	_leaf_cache[key] = sm
 	return sm
+
+
+# card lá phẳng (quad) — dùng với leaf_mat(alpha_cut>0) làm tán cross-plane
+static func leaf_card(parent: Node3D, size: Vector2, pos: Vector3, material: Material) -> MeshInstance3D:
+	var q := QuadMesh.new()
+	q.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	mi.position = pos
+	mi.material_override = material
+	parent.add_child(mi)
+	return mi
 
 
 static func emis(albedo: Color, emission: Color, energy: float, rough: float = 0.6) -> StandardMaterial3D:
@@ -162,8 +198,9 @@ static func lathe(parent: Node3D, profile: Array, pos: Vector3, material: Materi
 	return mi
 
 
-# dải vải mềm: lưới đỉnh cong dần về cuối, normal mịn — cho tà áo, rèm
-static func ribbon(parent: Node3D, width: float, length: float, curve: float, taper: float, material: Material, segs: int = 9) -> MeshInstance3D:
+# dải vải mềm: lưới đỉnh cong dần về cuối, normal mịn — cho tà áo, rèm, tàu lá
+# serrate > 0: mép bóp nhả theo sin dọc chiều dài — răng cưa lá chuối/dương xỉ
+static func ribbon(parent: Node3D, width: float, length: float, curve: float, taper: float, material: Material, segs: int = 9, serrate: float = 0.0) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st.set_smooth_group(0)
@@ -171,6 +208,8 @@ static func ribbon(parent: Node3D, width: float, length: float, curve: float, ta
 	for i in range(segs + 1):
 		var t := float(i) / segs
 		var w := width * (1.0 - taper * t) * 0.5
+		if serrate > 0.0:
+			w *= 1.0 - serrate * (0.5 + 0.5 * sin(t * 26.0))
 		rows.append([
 			Vector3(-w, -length * t, curve * length * t * t),
 			Vector3(w, -length * t, curve * length * t * t),

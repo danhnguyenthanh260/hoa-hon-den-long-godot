@@ -8,7 +8,7 @@ Văn Thụ, Nguyễn Huệ, Nguyễn Thị Minh Khai), sông Hoài, khu An Hội
 Quy trình mỗi phase: build → compile check → render houseview/boundary →
 user duyệt → commit riêng.
 
-## Phase 0 — Mặt tiền "thở" (fix nợ hiện tại)
+## Phase 0 — Mặt tiền "thở" (fix nợ hiện tại) — ✅ xong 2026-06-12
 
 Chẩn đoán (đo code 2026-06-12): mặt tiền 6m bị NHỒI — các khung dính nhau:
 
@@ -26,7 +26,7 @@ cửa sổ ww 0.78 → 0.62 (viền 0.86) tâm ±1.84 → hai khe đều ~0.18m;
 h05 khung 1.0 → 0.9 tâm ±1.85; h02 ô bông gió 1.15 → 1.05 tâm ±1.76;
 ô gió lanh tô 2.2 → 2.0. Render boundary12/34 + door* đối chiếu.
 
-## Phase 1 — Cây cối v3 (hết "fake")
+## Phase 1 — Cây cối v3 (hết "fake") — ✅ xong 2026-06-12
 
 - Tán cây/quất: bỏ quả cầu trơn → cụm 3–4 alpha-card chéo nhau (cross-plane,
   chuẩn game foliage); alpha mask sinh procedural (cellular noise threshold)

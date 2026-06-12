@@ -11,8 +11,11 @@ uniform float sway : hint_range(0.0, 0.3) = 0.05;
 uniform float speed : hint_range(0.0, 4.0) = 1.4;
 uniform float tex_scale = 0.45;
 uniform float nrm_depth : hint_range(0.0, 2.0) = 0.8;
+// alpha_cut > 0: card lá đục lỗ theo mask UV (scissor giữ depth-write, không cần sort)
+uniform float alpha_cut : hint_range(0.0, 1.0) = 0.0;
 uniform sampler2D tex_diff : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D alpha_tex : filter_linear_mipmap, repeat_enable;
 
 varying vec3 v_tpos;
 varying vec3 v_tnrm;
@@ -42,4 +45,8 @@ void fragment() {
 		+ texture(tex_nrm, v_tpos.xy).rgb * w.z;
 	NORMAL_MAP_DEPTH = nrm_depth;
 	ROUGHNESS = roughness;
+	if (alpha_cut > 0.0) {
+		ALPHA = texture(alpha_tex, UV).r;
+		ALPHA_SCISSOR_THRESHOLD = alpha_cut;
+	}
 }

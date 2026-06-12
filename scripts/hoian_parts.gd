@@ -124,9 +124,13 @@ static func pot_plant(parent: Node3D, pos: Vector3, kind: int, s: float = 1.0, a
 			for pad in [[-0.16, 0.42, 0.0, 0.17], [0.07, 0.33, 0.06, 0.12], [-0.05, 0.5, -0.05, 0.1]]:
 				var b := Build.ball(p, pad[3] * s, pad[3] * 2.0 * s, Vector3(pad[0] * s, h + pad[1] * s, pad[2] * s), leaf_d)
 				b.scale = Vector3(1.0, 0.32, 1.0)
-		1:	# quất: tán tròn dày + quả cam đính NGOÀI mặt tán mới thấy được
+		1:	# quất: lõi tán tròn + card lá rách viền xòe quanh + quả cam đính NGOÀI
 			Build.cyl(p, 0.03 * s, 0.04 * s, 0.32 * s, Vector3(0, h + 0.15 * s, 0), trunk, 6)
-			Build.ball(p, 0.3 * s, 0.56 * s, Vector3(0, h + 0.52 * s, 0), leaf)
+			Build.ball(p, 0.26 * s, 0.5 * s, Vector3(0, h + 0.52 * s, 0), leaf)
+			var card_m := Build.leaf_mat("ForestLeaves03", Color(0.62, 0.85, 0.45), 0.03, 1.5, 1.1, 0.5)
+			for ci in range(4):
+				var card := Build.leaf_card(p, Vector2(0.64 * s, 0.5 * s), Vector3(0, h + 0.52 * s, 0), card_m)
+				card.rotation = Vector3(0.3 * sin(ci * 2.1), ci * PI / 4.0, 0.25 * cos(ci * 1.7))
 			for fi in range(9):
 				var ang := fi * 2.7
 				var fy := sin(fi * 1.3) * 0.55
@@ -168,9 +172,12 @@ static func banana_clump(parent: Node3D, pos: Vector3, s: float = 1.5, wall_dir:
 	for rk in range(6):
 		var ra := rk * 1.047 + 0.4
 		Build.ball(p, (0.06 + 0.025 * (rk % 2)) * s, 0.09 * s, Vector3(cos(ra) * 0.56 * s, 0.025, sin(ra) * 0.56 * s), Build.pbr("res://assets/textures/ConcreteWall004", 0.5, Color(0.7, 0.68, 0.64), 1.2))
-	# thân giả xanh nhẵn vân dọc + TÀU LÁ ribbon cong rủ + lá non dựng giữa ngọn
-	var stem_m := Build.pbr("res://assets/textures/LeafyGrass", 1.4, Color(0.62, 0.72, 0.42), 0.8)
-	var leaf_m := Build.leaf_mat("LeafyGrass", Color(0.5, 0.78, 0.35), 0.06, 1.1, 0.7)
+	# thân giả xanh nhẵn vân dọc + TÀU LÁ ribbon răng cưa + gân giữa + lá non dựng ngọn
+	# hue lệch theo từng bụi (deterministic theo vị trí) — không bụi nào xanh y hệt nhau
+	var hv := 0.88 + 0.24 * fposmod(pos.x * 0.737 + pos.z * 0.311, 1.0)
+	var stem_m := Build.pbr("res://assets/textures/LeafyGrass", 1.4, Color(0.62, 0.72, 0.42) * hv, 0.8)
+	var leaf_m := Build.leaf_mat("LeafyGrass", Color(0.5, 0.78, 0.35) * hv, 0.06, 1.1, 0.7)
+	var rib_m := Build.leaf_mat("LeafyGrass", Color(0.72, 0.95, 0.5) * hv, 0.06, 1.1, 1.2)
 	for st in range(3):
 		var off := Vector3(sin(st * 2.5) * 0.3 * s, 0, cos(st * 2.5) * 0.3 * s)
 		var hh := (1.1 + 0.4 * (st % 2)) * s
@@ -187,14 +194,31 @@ static func banana_clump(parent: Node3D, pos: Vector3, s: float = 1.5, wall_dir:
 			piv.rotation.y = -ang
 			piv.rotation.x = tilt
 			p.add_child(piv)
-			Build.ribbon(piv, 0.46 * s, ll, -0.3, 0.75, leaf_m, 7)
+			Build.ribbon(piv, 0.46 * s, ll, -0.3, 0.75, leaf_m, 13, 0.3)
+			# gân giữa sáng màu chạy dọc tàu lá (nổi nhẹ khỏi mặt lá)
+			var rib := Build.ribbon(piv, 0.04 * s, ll * 0.97, -0.3, 0.7, rib_m, 13)
+			rib.position = Vector3(0, 0.008, 0.006)
 		var top := Node3D.new()
 		top.position = off + Vector3(0, hh + 0.12 * s, 0)
 		top.rotation.x = -2.95
 		top.rotation.y = st * 1.1
 		p.add_child(top)
-		Build.ribbon(top, 0.2 * s, 0.7 * s, -0.15, 0.6, leaf_m, 5)
+		Build.ribbon(top, 0.2 * s, 0.7 * s, -0.15, 0.6, leaf_m, 7, 0.25)
 	return p
+
+
+# ---------- bụi cỏ lá dài chân tường/chân trụ — phố cổ ẩm, cỏ chen kẽ đá ----------
+static func grass_tuft(parent: Node3D, pos: Vector3, s: float = 1.0) -> void:
+	var hv := 0.85 + 0.3 * fposmod(pos.x * 0.531 + pos.z * 0.377, 1.0)
+	var gm := Build.leaf_mat("LeafyGrass", Color(0.52, 0.78, 0.38) * hv, 0.05, 1.8, 1.5)
+	for i in range(5):
+		var ang := i * 1.26 + pos.x
+		var piv := Node3D.new()
+		piv.position = pos
+		piv.rotation.y = ang
+		piv.rotation.x = -2.6 - 0.2 * (i % 3)
+		parent.add_child(piv)
+		Build.ribbon(piv, 0.05 * s, (0.22 + 0.09 * (i % 3)) * s, -0.3, 0.85, gm, 4)
 
 
 # ---------- xe đạp cũ (ref-07): khung xanh rêu, giỏ mây, chắn bùn ----------

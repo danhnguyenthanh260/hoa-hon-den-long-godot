@@ -224,10 +224,17 @@ func _build_main_street() -> void:
 			var br := Build.cyl(self, 0.05, 0.09, 1.3, tp + Vector3(cos(ba) * 0.45, 3.15, sin(ba) * 0.45), bark, 6)
 			br.rotation.z = cos(ba) * 0.55
 			br.rotation.x = -sin(ba) * 0.55
-		var lm := Build.leaf_mat("ForestLeaves03", Color(0.5, 0.7, 0.4), 0.05, 1.0, 0.55)
+		# hue lệch theo cây + tán = lõi ball + card lá rách viền (cross-plane) xòe quanh
+		var hv := 0.88 + 0.24 * fposmod(tp.x * 0.737 + tp.z * 0.311, 1.0)
+		var lm := Build.leaf_mat("ForestLeaves03", Color(0.5, 0.7, 0.4) * hv, 0.05, 1.0, 0.55)
+		var cm := Build.leaf_mat("ForestLeaves03", Color(0.55, 0.78, 0.42) * hv, 0.05, 1.0, 0.8, 0.5)
 		for fb in range(7):
 			var off := Vector3(sin(fb * 1.9) * 0.75, 3.4 + 0.45 * sin(fb * 2.7), cos(fb * 1.9) * 0.7)
 			Build.ball(self, 0.45 + 0.08 * (fb % 3), 0.8, tp + off, lm)
+		for cb in range(8):
+			var coff := Vector3(sin(cb * 2.4) * 0.85, 3.45 + 0.5 * sin(cb * 1.7), cos(cb * 2.4) * 0.8)
+			var card := Build.leaf_card(self, Vector2(1.5, 1.15), tp + coff, cm)
+			card.rotation = Vector3(fposmod(cb * 0.97, 1.0) - 0.5, cb * 0.79, fposmod(cb * 0.61, 0.8) - 0.4)
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
 		var mist := Build.box(self, Vector3(0.4, 7.0, 14.0), Vector3(mx, 3.5, 11.0), null)
@@ -305,6 +312,10 @@ func _house(pos: Vector3, yrot: float, idx: int) -> void:
 			var fz := cos(fi * 2.39 + idx) * 0.26
 			var fc := Color(1.9, 0.3, 1.0) if fi % 4 != 0 else Color(0.4, 0.65, 0.3)
 			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.leaf_mat("ForestLeaves03", fc, 0.035, 1.6, 1.4))
+	# bụi cỏ chen chân đế — phố ẩm, cỏ mọc kẽ đá (một nửa số nhà, vị trí lệch theo idx)
+	if (idx * 7) % 2 == 0:
+		Parts.grass_tuft(a, Vector3(-0.22, 0, -2.7 + fposmod(idx * 1.93, 0.9)), 0.9)
+		Parts.grass_tuft(a, Vector3(-0.3, 0, 1.9 + fposmod(idx * 1.31, 0.7)), 0.8)
 
 func _build_lantern_strings() -> void:
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(1.0, 0.32, 0.08), Color(0.95, 0.25, 0.4)]
