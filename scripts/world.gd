@@ -246,28 +246,10 @@ func _build_main_street() -> void:
 		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mist.material_override = mm
 		mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# CHÙA CẦU — bóng sau sương đầu Tây (phiên bản thật của đấu trường chương 5)
-	var bridge := Node3D.new()
-	bridge.position = Vector3(-46, 0, 11)
-	add_child(bridge)
-	var dark := Build.mat(Color(0.1, 0.08, 0.07), 0.9)
-	for s in range(5):
-		var sx := -3.0 + s * 1.5
-		Build.box(bridge, Vector3(1.6, 0.18, 3.2), Vector3(sx, 0.7 + 0.45 * (1.0 - pow(sx / 3.0, 2.0)), 0), dark)
-	for sx in [-2.8, 2.8]:
-		for sz in [-1.3, 1.3]:
-			Build.box(bridge, Vector3(0.2, 2.4, 0.2), Vector3(sx, 2.2, sz), dark)
-	Build.box(bridge, Vector3(8.0, 0.2, 4.2), Vector3(0, 3.5, 0), dark)
-	for kk in [-1.0, 1.0]:
-		Build.box(bridge, Vector3(8.2, 0.1, 2.3), Vector3(0, 3.9, kk * 1.15), dark).rotation.x = kk * 0.36
-	var altar_glow := OmniLight3D.new()
-	altar_glow.light_color = Color(1.0, 0.4, 0.15)
-	altar_glow.light_energy = 0.6
-	altar_glow.omni_range = 5.0
-	altar_glow.position = Vector3(-46, 2.0, 10)
-	add_child(altar_glow)
+	_build_chua_cau()
 	# CHỢ HỘI AN — nhà lồng cao phía TÂY BẮC sau dãy Bắc (đúng sơ đồ tổng thể),
 	# mái nhô trên đường mái phố, ánh đèn ấm hắt lên — thấy được từ ngoài phố
+	var dark := Build.mat(Color(0.1, 0.08, 0.07), 0.9)
 	var market := Node3D.new()
 	market.position = Vector3(-20, 0, 26)
 	add_child(market)
@@ -513,6 +495,72 @@ func _build_phase3_river() -> void:
 			var ang := TAU * p / 6.0
 			Build.ball(hd, 0.085, 0.07, Vector3(cos(ang) * 0.13, 0.02, sin(ang) * 0.13),
 					Build.emis(Color(0.9, 0.45, 0.55), Color(0.9, 0.35, 0.4), 0.5, 0.7))
+
+
+# Phase 4 — Chùa Cầu thật: cầu gỗ vòm có mái ngói, miếu Bắc Đế giữa cầu, tượng thú trấn hai đầu.
+# Khớp c5.gd về chất lượng hình học; vật liệu PBR; vai trò phong ấn C1 giữ nguyên (sau mist x=-39).
+func _build_chua_cau() -> void:
+	var bridge := Node3D.new()
+	bridge.position = Vector3(-46, 0, 11)
+	add_child(bridge)
+	var deckwood := Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.5, 0.34, 0.2), 1.2)
+	var redcol := Build.mat(Color(0.42, 0.1, 0.07), 0.6)
+	var rooftile := Build.mat(Color(0.09, 0.08, 0.09), 0.7)
+	var stonegrey := Build.mat(Color(0.22, 0.22, 0.24), 0.9)
+	# mặt cầu cong vòm: 7 nhịp ván gỗ theo đường parabol
+	for s in range(7):
+		var sx := -4.5 + s * 1.5
+		var sy := 0.6 + 0.55 * (1.0 - pow(sx / 4.5, 2.0))
+		var seg := Build.box(bridge, Vector3(1.6, 0.18, 3.2), Vector3(sx, sy, 0), deckwood)
+		seg.rotation.z = -sx * 0.05
+		for sz in [-1.5, 1.5]:
+			Build.box(bridge, Vector3(1.55, 0.06, 0.08), Vector3(sx, sy + 0.75, sz), deckwood).rotation.z = -sx * 0.05
+			Build.cyl(bridge, 0.035, 0.035, 0.72, Vector3(sx, sy + 0.4, sz), redcol, 6)
+	# cột đỏ đỡ mái: 4 cặp tại sx=±4.2, ±1.4
+	for sx in [-4.2, -1.4, 1.4, 4.2]:
+		for sz in [-1.35, 1.35]:
+			Build.box(bridge, Vector3(0.22, 2.6, 0.22), Vector3(sx, 2.4, sz), redcol)
+	# mái âm dương cong: slab ngang + 2 mái dốc ngói
+	Build.box(bridge, Vector3(11.5, 0.22, 4.4), Vector3(0, 3.7, 0), rooftile)
+	for k in [-1.0, 1.0]:
+		var slope := Node3D.new()
+		slope.position = Vector3(0, 4.15, k * 1.3)
+		slope.rotation.x = k * 0.38
+		bridge.add_child(slope)
+		var slab := BoxMesh.new()
+		slab.size = Vector3(11.8, 0.1, 2.4)
+		var smi := MeshInstance3D.new()
+		smi.mesh = slab
+		smi.material_override = Build.mat(Color(0.11, 0.1, 0.115), 0.6)
+		slope.add_child(smi)
+		Build.tile_rows(slope, 2.4, 11.8)
+	# đòn nóc ngang + đầu đao vểnh hai đầu
+	Build.cyl(bridge, 0.1, 0.1, 11.9, Vector3(0, 4.75, 0), Build.mat(Color(0.08, 0.06, 0.05)), 8).rotation.z = PI / 2.0
+	for ke in [-1.0, 1.0]:
+		var horn := Build.cyl(bridge, 0.012, 0.11, 0.7, Vector3(ke * 5.9, 4.9, 0), Build.mat(Color(0.08, 0.06, 0.05)), 8)
+		horn.rotation.z = ke * 1.0
+	# miếu nhỏ giữa cầu — thờ Bắc Đế Trấn Vũ (trấn phong ba sông Hoài)
+	Build.box(bridge, Vector3(1.6, 1.4, 1.0), Vector3(0, 1.9, -2.1), Build.mat(Color(0.36, 0.25, 0.14), 0.9))
+	Build.box(bridge, Vector3(1.9, 0.12, 1.3), Vector3(0, 2.7, -2.1), rooftile)
+	Build.box(bridge, Vector3(0.7, 0.5, 0.05), Vector3(0, 1.8, -1.58), Build.mat(Color(0.05, 0.03, 0.03), 0.6))
+	var altar_glow := OmniLight3D.new()
+	altar_glow.light_color = Color(1.0, 0.5, 0.2)
+	altar_glow.light_energy = 0.8
+	altar_glow.omni_range = 4.5
+	altar_glow.position = Vector3(0, 2.0, -1.8)
+	bridge.add_child(altar_glow)
+	# tượng linh khuyển / linh hầu trấn hai đầu cầu
+	for ke in [-1.0, 1.0]:
+		var ped := Vector3(ke * 5.6, 0, 1.0)
+		Build.box(bridge, Vector3(0.6, 0.7, 0.6), ped + Vector3(0, 0.35, 0), stonegrey)
+		Build.ball(bridge, 0.22, 0.42, ped + Vector3(0, 0.92, 0), Build.mat(Color(0.3, 0.3, 0.32), 0.85))
+		Build.ball(bridge, 0.13, 0.26, ped + Vector3(ke * 0.08, 1.25, 0.08), Build.mat(Color(0.3, 0.3, 0.32), 0.85))
+		for ear in [-0.07, 0.07]:
+			Build.cyl(bridge, 0.01, 0.04, 0.12, ped + Vector3(ke * 0.08 + ear, 1.4, 0.08), Build.mat(Color(0.28, 0.28, 0.3), 0.85), 6)
+	# đèn lồng đỏ dưới mái — kích hoạt cùng light_up()
+	for i in range(5):
+		var lan := Build.lantern(bridge, 0.14, 0.26, Vector3(-4.0 + i * 2.0, 2.6, 0))
+		_hanging.append(lan)
 
 
 # nhà phố Hội An: xoay vòng 5 MẪU NHÀ dựng theo ảnh ref (house01..house05) —

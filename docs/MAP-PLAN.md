@@ -67,10 +67,20 @@ Tất cả ở |x|>9 (tránh C4 corridor |x|≤7.4, z∈[-57.4,-44.5]).
 | 3 dây đèn qua sông | z=-60,-64.5,-69 | 9 đèn/dây, vắt full width |
 | 8 hoa đăng tĩnh | flanks |x|>9 | atmospheric, C4 xử lý chuyển động giữa dòng |
 
-## Phase 4 — Chùa Cầu thật (1)
+## Phase 4 — Chùa Cầu thật (1) — ✅ xong 2026-06-12
 
 Thay silhouette hiện tại bằng mô hình đi xuyên được: cầu gỗ có mái, miếu giữa,
 tượng chó/khỉ hai đầu. Giữ vai trò phong ấn chương 1.
+
+| Phần tử | Chi tiết |
+|---|---|
+| Mặt cầu vòm | 7 nhịp ván WoodFloor043 PBR, arch sy=0.6..1.15, span 9m |
+| Lan can | tay vịn + chấn song đỏ mỗi nhịp |
+| Cột đỏ | 4 cặp redcol 0.22×2.6m tại sx=±4.2, ±1.4 |
+| Mái ngói | slab 11.5×4.4m + 2 dốc tile_rows + đòn nóc cyl + đầu đao |
+| Miếu giữa | box gỗ 1.6×1.4×1.0 + altar_glow vàng ấm |
+| Tượng | linh khuyển/linh hầu: bệ + thân + đầu + tai tại x=±5.6 |
+| Đèn lồng | 5 đèn x=-4..+4, kích hoạt qua light_up() |
 
 ## Phase 5 — Landmark quest (2)(4)(5)
 
