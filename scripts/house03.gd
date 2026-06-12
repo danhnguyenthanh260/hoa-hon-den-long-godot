@@ -35,6 +35,10 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.4, o
 	Build.box(a, Vector3(D, 0.46, jamb_z * 2.0), Vector3(D / 2.0, Y1 - 0.23, 0), m["plaster"])
 	Parts.weather_facade(a, W, H_BASE, Y1, m, 3)
 	Parts.pilasters(a, W, H_BASE, H1, m)
+	# cửa sổ chớp hai bên cửa buôn + ô gió song gỗ trên lanh tô
+	for wgz in [-1.92, 1.92]:
+		Parts.window_ground(a, wgz, H_BASE, m)
+	Parts.door_vent(a, Y1 - 0.21, 2.2, m)
 	for jz in [-1.0, 1.0]:
 		Build.box(a, Vector3(0.14, H1 - 0.4, 0.16), Vector3(-0.04, H_BASE + (H1 - 0.4) / 2.0, jz * jamb_z), m["frame"])
 	Build.box(a, Vector3(0.16, 0.2, jamb_z * 2.0 + 0.3), Vector3(-0.045, Y1 - 0.52, 0), m["frame"])

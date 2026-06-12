@@ -324,6 +324,36 @@ static func balcony_breeze(a: Node3D, w: float, y_floor: float, m: Dictionary) -
 	pot_plant(a, Vector3(-depth + 0.32, y_floor + 0.05, w / 2.0 - 0.38), 1, 0.7)
 
 
+# ---------- cửa sổ chớp tầng trệt (hai bên cửa buôn) ----------
+# cánh chớp gỗ sậm đóng kín trong viền vữa trắng + bậu nhô — đặt nổi trên mặt tường x=0
+static func window_ground(a: Node3D, z_c: float, h_base: float, m: Dictionary) -> void:
+	var sill_y := h_base + 1.0
+	var wh := 1.3
+	var ww := 0.78
+	# viền vữa trắng ôm quanh ô
+	Build.box(a, Vector3(0.05, wh + 0.22, ww + 0.24), Vector3(-0.02, sill_y + wh / 2.0, z_c), m["trim"])
+	# khung gỗ sậm + hai cánh chớp
+	Build.box(a, Vector3(0.06, wh, ww), Vector3(-0.04, sill_y + wh / 2.0, z_c), m["frame"])
+	var lw := (ww - 0.1) / 2.0
+	for lf in [-1.0, 1.0]:
+		var lz: float = z_c + lf * (lw / 2.0 + 0.02)
+		Build.box(a, Vector3(0.05, wh - 0.12, lw), Vector3(-0.08, sill_y + wh / 2.0, lz), m["shutter"])
+		for sl in range(6):
+			var slat := Build.box(a, Vector3(0.028, 0.045, lw - 0.1), Vector3(-0.11, sill_y + 0.18 + sl * 0.18, lz), m["frame"])
+			slat.rotation.z = 0.55
+	# bậu nhô
+	Build.box(a, Vector3(0.12, 0.08, ww + 0.34), Vector3(-0.05, sill_y - 0.05, z_c), m["trim"])
+
+
+# ô gió song gỗ đứng trên lanh tô cửa buôn — thoáng khí kiểu nhà thương mại
+static func door_vent(a: Node3D, y_c: float, w: float, m: Dictionary) -> void:
+	Build.box(a, Vector3(0.06, 0.34, w), Vector3(-0.03, y_c, 0), m["frame"])
+	Build.box(a, Vector3(0.04, 0.26, w - 0.08), Vector3(-0.045, y_c, 0), m["door"])
+	var bars := int((w - 0.2) / 0.14)
+	for bi in range(bars + 1):
+		Build.cyl(a, 0.018, 0.018, 0.26, Vector3(-0.075, y_c, -(w - 0.2) / 2.0 + bi * ((w - 0.2) / bars)), m["shutter"], 6)
+
+
 # trụ bổ tường hai góc mặt tiền: đầu trụ chỉ vữa trắng, chân ố xám
 static func pilasters(a: Node3D, w: float, h_base: float, h1: float, m: Dictionary) -> void:
 	for pz in [-1.0, 1.0]:
