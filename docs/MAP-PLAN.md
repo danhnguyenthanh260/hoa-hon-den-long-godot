@@ -82,10 +82,17 @@ tượng chó/khỉ hai đầu. Giữ vai trò phong ấn chương 1.
 | Tượng | linh khuyển/linh hầu: bệ + thân + đầu + tai tại x=±5.6 |
 | Đèn lồng | 5 đèn x=-4..+4, kích hoạt qua light_up() |
 
-## Phase 5 — Landmark quest (2)(4)(5)
+## Phase 5 — Landmark quest (2)(4)(5) — ✅ xong 2026-06-12
 
 Chợ Hội An (nhà lồng — hub đông người theo ghi chú), hội quán Phúc Kiến +
 Quảng Đông (cổng tam quan màu nổi) — điểm neo quest lịch sử/tín ngưỡng.
+
+| Công trình | Vị trí | Chi tiết |
+|---|---|---|
+| Chợ Hội An | (-20, 0, 26) | Nhà lồng 8 cột arcade gỗ, mái ngói 2 dốc, 6 quầy, 4 đèn lồng |
+| Hội quán Quảng Đông | (18, 0, 14.2) | Tam quan 3 nhịp tường cam + ngói lục, sân + chính điện 5.8m sâu |
+| Hội quán Phúc Kiến | (30, 0, 14.2) | Tam quan tường đỏ son + ngói xanh, to hơn Quảng Đông |
+| Dãy Bắc x≥15 | — | Bỏ trống nhường chỗ hội quán (4 căn x=15,21,27,33) |
 
 ## Phase 6 — An Hội bờ nam (10)
 

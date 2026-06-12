@@ -144,6 +144,7 @@ func _build_houses() -> void:
 	_build_main_street()
 	_build_phase2_streets()
 	_build_phase3_river()
+	_build_phase5_landmarks()
 
 
 # ---------- mặt sàn đi được (đế nhà + tam cấp) ----------
@@ -179,7 +180,8 @@ func _build_main_street() -> void:
 	# dãy phố 6m/căn xoay vòng 5 mẫu nhà ref — mặt tiền liền kề liên tục
 	for k in range(12):
 		var x := -33.0 + k * 6.0
-		_house(Vector3(x, 0, 14.2), -PI / 2.0, k)            # dãy Bắc, mặt quay Nam
+		if x < 15.0:   # x≥15 dành cho hội quán Quảng Đông (x=18) + Phúc Kiến (x=30)
+			_house(Vector3(x, 0, 14.2), -PI / 2.0, k)        # dãy Bắc, mặt quay Nam
 		if absf(x) > 7.0:                                    # chừa miệng ngõ ở dãy Nam
 			_house(Vector3(x, 0, 7.9), PI / 2.0, k + 2)
 	# ---- đồ phố (ref-07/08/09/10): xe dựa hiên, chậu cảnh NÉP CHÂN THỀM hai bên
@@ -247,24 +249,6 @@ func _build_main_street() -> void:
 		mist.material_override = mm
 		mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_build_chua_cau()
-	# CHỢ HỘI AN — nhà lồng cao phía TÂY BẮC sau dãy Bắc (đúng sơ đồ tổng thể),
-	# mái nhô trên đường mái phố, ánh đèn ấm hắt lên — thấy được từ ngoài phố
-	var dark := Build.mat(Color(0.1, 0.08, 0.07), 0.9)
-	var market := Node3D.new()
-	market.position = Vector3(-20, 0, 26)
-	add_child(market)
-	for cxk in range(4):
-		for czk in range(2):
-			Build.box(market, Vector3(0.3, 6.0, 0.3), Vector3(-4.5 + cxk * 3.0, 3.0, -2.0 + czk * 4.0), dark)
-	Build.box(market, Vector3(11.0, 0.2, 6.5), Vector3(0, 6.2, 0), dark)
-	for kk in [-1.0, 1.0]:
-		Build.box(market, Vector3(11.2, 0.12, 3.5), Vector3(0, 6.7, kk * 1.7), dark).rotation.x = kk * 0.3
-	var mglow := OmniLight3D.new()
-	mglow.light_color = Color(1.0, 0.55, 0.25)
-	mglow.light_energy = 0.8
-	mglow.omni_range = 10.0
-	mglow.position = Vector3(-20, 3.5, 25)
-	add_child(mglow)
 
 
 # Phase 2 — Nguyễn Thái Học + Lê Lợi + Hoàng Văn Thụ
@@ -495,6 +479,115 @@ func _build_phase3_river() -> void:
 			var ang := TAU * p / 6.0
 			Build.ball(hd, 0.085, 0.07, Vector3(cos(ang) * 0.13, 0.02, sin(ang) * 0.13),
 					Build.emis(Color(0.9, 0.45, 0.55), Color(0.9, 0.35, 0.4), 0.5, 0.7))
+
+
+# Phase 5 — Landmarks: Chợ Hội An (nhà lồng) + 2 Hội quán (Quảng Đông + Phúc Kiến).
+func _build_phase5_landmarks() -> void:
+	_build_cho_hoi_an()
+	# Hội quán Quảng Đông — tường vôi cam, ngói lục (phía tây hơn)
+	_build_hoi_quan(Vector3(18.0, 0, 14.2),
+		Build.mat(Color(0.72, 0.42, 0.12), 0.75),
+		Build.mat(Color(0.18, 0.22, 0.14), 0.65))
+	# Hội quán Phúc Kiến — tường đỏ son, ngói xanh (phía đông, nổi bật nhất)
+	_build_hoi_quan(Vector3(30.0, 0, 14.2),
+		Build.mat(Color(0.70, 0.12, 0.09), 0.75),
+		Build.mat(Color(0.14, 0.25, 0.12), 0.65))
+
+
+# Chợ Hội An nhà lồng: arcade 8 cột gỗ, mái ngói 2 dốc, quầy hàng, 4 đèn lồng.
+func _build_cho_hoi_an() -> void:
+	var mkt := Node3D.new()
+	mkt.position = Vector3(-20, 0, 26)
+	add_child(mkt)
+	var col_wood := Build.pbr("res://assets/textures/WoodFloor043", 0.8, Color(0.38, 0.24, 0.14), 1.1)
+	var roof_dark := Build.mat(Color(0.11, 0.09, 0.09), 0.65)
+	var stall_mat := Build.mat(Color(0.80, 0.68, 0.50), 0.9)
+	# 8 cột arcade: 4 nhịp × 2 hàng (hàng z=±2.2)
+	for ci in range(4):
+		for cz in [-2.2, 2.2]:
+			Build.box(mkt, Vector3(0.35, 5.6, 0.35), Vector3(-4.5 + ci * 3.0, 2.8, cz), col_wood)
+	# xà ngang + xà dọc mái
+	for cz in [-2.2, 2.2]:
+		Build.box(mkt, Vector3(11.5, 0.18, 0.22), Vector3(0, 5.55, cz), col_wood)
+	for ci in range(3):
+		Build.box(mkt, Vector3(2.75, 0.18, 4.5), Vector3(-3.0 + ci * 3.0, 5.55, 0), col_wood)
+	# mái 2 dốc ngói
+	Build.box(mkt, Vector3(12.2, 0.22, 5.0), Vector3(0, 5.7, 0), roof_dark)
+	for k in [-1.0, 1.0]:
+		var sl := Node3D.new()
+		sl.position = Vector3(0, 6.15, k * 1.55)
+		sl.rotation.x = k * 0.42
+		mkt.add_child(sl)
+		var sm := BoxMesh.new(); sm.size = Vector3(12.4, 0.1, 2.5)
+		var smi := MeshInstance3D.new(); smi.mesh = sm
+		smi.material_override = roof_dark; sl.add_child(smi)
+		Build.tile_rows(sl, 2.5, 12.4)
+	Build.cyl(mkt, 0.1, 0.1, 12.6, Vector3(0, 6.85, 0), Build.mat(Color(0.07, 0.05, 0.04)), 8).rotation.z = PI / 2.0
+	# quầy hàng (6 gian, 2 hàng)
+	for si in range(3):
+		for sz in [-1.6, 1.6]:
+			Build.box(mkt, Vector3(2.5, 0.85, 1.7), Vector3(-3.0 + si * 3.0, 0.425, sz), stall_mat)
+	# 4 đèn lồng treo giữa chợ
+	for li in range(4):
+		_hanging.append(Build.lantern(mkt, 0.16, 0.28, Vector3(-4.5 + li * 3.0, 4.2, 0)))
+	var iglow := OmniLight3D.new()
+	iglow.light_color = Color(1.0, 0.62, 0.32)
+	iglow.light_energy = 1.2; iglow.omni_range = 14.0
+	iglow.position = Vector3(0, 4.0, 0); mkt.add_child(iglow)
+
+
+# Hội quán generic: cổng tam quan 3 nhịp + sân + chính điện — parameterized màu.
+# wpos = vị trí node (mặt Nam cổng ngay tại đây), compound kéo Bắc 11m.
+func _build_hoi_quan(wpos: Vector3, wall: StandardMaterial3D, tile: StandardMaterial3D) -> void:
+	var hq := Node3D.new()
+	hq.position = wpos
+	add_child(hq)
+	var gold := Build.mat(Color(0.72, 0.56, 0.18), 0.5)
+	var stone := Build.mat(Color(0.50, 0.44, 0.38), 0.85)
+	# ── Cổng tam quan: 2 cột biên + 2 cột trong, gate depth 1.4m ──
+	for gx in [-3.5, 3.5]:   # cột biên thấp
+		Build.box(hq, Vector3(0.42, 3.6, 0.42), Vector3(gx, 1.8, 0.7), wall)
+	for gx in [-1.1, 1.1]:   # cột trong cao (nhịp giữa)
+		Build.box(hq, Vector3(0.42, 4.2, 0.42), Vector3(gx, 2.1, 0.7), wall)
+	# tường bịt 2 bên
+	for side in [-1.0, 1.0]:
+		Build.box(hq, Vector3(1.85, 3.2, 0.32), Vector3(side * 2.6, 1.6, 0.7), wall)
+	# đà ngang vàng
+	Build.box(hq, Vector3(2.4, 0.26, 0.36), Vector3(0, 3.85, 0.7), gold)
+	for side in [-1.0, 1.0]:
+		Build.box(hq, Vector3(2.1, 0.22, 0.33), Vector3(side * 2.6, 3.2, 0.7), gold)
+	# mái cổng: slab + 2 dốc + đòn nóc
+	Build.box(hq, Vector3(8.2, 0.2, 2.0), Vector3(0, 4.5, 0.7), tile)
+	for k in [-1.0, 1.0]:
+		var gs := Node3D.new()
+		gs.position = Vector3(0, 4.85, 0.7 + k * 0.62)
+		gs.rotation.x = k * 0.44; hq.add_child(gs)
+		var gm := BoxMesh.new(); gm.size = Vector3(8.4, 0.1, 1.5)
+		var gmi := MeshInstance3D.new(); gmi.mesh = gm; gmi.material_override = tile
+		gs.add_child(gmi); Build.tile_rows(gs, 1.5, 8.4)
+	Build.cyl(hq, 0.09, 0.09, 8.6, Vector3(0, 5.3, 0.7), Build.mat(Color(0.07, 0.05, 0.04)), 8).rotation.z = PI / 2.0
+	# ── Sân trong ──
+	Build.box(hq, Vector3(8.0, 0.07, 4.2), Vector3(0, 0.035, 3.5), stone)
+	# ── Chính điện: tường hồi + hậu + mái lớn ──
+	for hx in [-3.8, 3.8]:
+		Build.box(hq, Vector3(0.38, 4.6, 5.8), Vector3(hx, 2.3, 7.2), wall)
+	Build.box(hq, Vector3(8.0, 4.6, 0.32), Vector3(0, 2.3, 10.0), wall)
+	Build.box(hq, Vector3(8.5, 0.22, 6.5), Vector3(0, 4.8, 7.2), tile)
+	for k in [-1.0, 1.0]:
+		var hs := Node3D.new()
+		hs.position = Vector3(0, 5.15, 7.2 + k * 2.0)
+		hs.rotation.x = k * 0.38; hq.add_child(hs)
+		var hm := BoxMesh.new(); hm.size = Vector3(8.7, 0.1, 2.8)
+		var hmi := MeshInstance3D.new(); hmi.mesh = hm; hmi.material_override = tile
+		hs.add_child(hmi); Build.tile_rows(hs, 2.8, 8.7)
+	Build.cyl(hq, 0.1, 0.1, 9.0, Vector3(0, 5.95, 7.2), Build.mat(Color(0.07, 0.05, 0.04)), 8).rotation.z = PI / 2.0
+	# đèn lồng cổng + nội sáng
+	for li in range(3):
+		_hanging.append(Build.lantern(hq, 0.14, 0.26, Vector3(-2.0 + li * 2.0, 3.8, 0.7)))
+	var hglow := OmniLight3D.new()
+	hglow.light_color = Color(1.0, 0.42, 0.15)
+	hglow.light_energy = 1.2; hglow.omni_range = 10.0
+	hglow.position = Vector3(0, 3.0, 4.5); hq.add_child(hglow)
 
 
 # Phase 4 — Chùa Cầu thật: cầu gỗ vòm có mái ngói, miếu Bắc Đế giữa cầu, tượng thú trấn hai đầu.

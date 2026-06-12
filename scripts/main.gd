@@ -686,6 +686,21 @@ func _house_view() -> void:
 	camera.look_at(Vector3(-46.0, 2.0, 11.5))
 	await get_tree().create_timer(0.5).timeout
 	await _shot(dir + "/p4-chua-cau-south.png")
+	# Phase 5: Chợ Hội An — nhìn từ Nam vào nhà lồng
+	camera.position = Vector3(-20.0, 6.5, 18.0)
+	camera.look_at(Vector3(-20.0, 3.0, 26.0))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(dir + "/p5-cho-hoi-an.png")
+	# Hội quán Phúc Kiến (đỏ son) nhìn chính diện từ Nam
+	camera.position = Vector3(30.0, 5.5, 8.0)
+	camera.look_at(Vector3(30.0, 2.5, 14.5))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(dir + "/p5-phuc-kien.png")
+	# Hội quán Quảng Đông (cam vàng) nhìn chính diện
+	camera.position = Vector3(18.0, 5.5, 8.0)
+	camera.look_at(Vector3(18.0, 2.5, 14.5))
+	await get_tree().create_timer(0.5).timeout
+	await _shot(dir + "/p5-quang-dong.png")
 	print("HOUSEVIEW DONE")
 	get_tree().quit()
 
