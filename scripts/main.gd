@@ -45,6 +45,8 @@ var fp_yaw := PI
 var fp_pitch := -0.08
 var bot_mode := false
 var free_cam := false
+var map_mode := false
+var _pre_map_fp := false
 var _interacts: Array = []
 var _say_then: Callable = Callable()
 var _dust: GPUParticles3D
@@ -276,6 +278,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			first_person = not first_person
 			player.set_first_person(first_person)
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if first_person else Input.MOUSE_MODE_VISIBLE
+		elif event.keycode == KEY_M and state != State.INTRO and state != State.CUTSCENE and state != State.WON:
+			_toggle_map()
 		elif event.keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 	ui.update_colors()
@@ -339,6 +343,43 @@ func _update_camera(delta: float) -> void:
 	cam_look = cam_look.lerp(look, t)
 	if camera.position.distance_to(cam_look) > 0.05:
 		camera.look_at(cam_look)
+
+
+# ---------- bản đồ từ trên cao (phím M) ----------
+func _toggle_map() -> void:
+	if map_mode:
+		# đóng: tween camera về sau lưng người chơi rồi thả cho _update_camera
+		map_mode = false
+		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		var fp_restore := _pre_map_fp
+		var tw := create_tween()
+		tw.tween_property(camera, "position", player.position + Vector3(0, 3.2, 5.6), 0.4) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_callback(func():
+			free_cam = false
+			first_person = fp_restore
+			player.set_first_person(first_person)
+			if first_person:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		)
+	else:
+		# mở: tween lên y=70, chuyển orthographic khi đến nơi
+		_pre_map_fp = first_person
+		map_mode = true
+		free_cam = true
+		first_person = false
+		player.set_first_person(false)
+		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		var tw := create_tween()
+		tw.tween_property(camera, "position", Vector3(0, 70, -22), 0.65) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_callback(func():
+			camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+			camera.size = 60.0
+			camera.look_at(Vector3(0, 0, -22))
+		)
+		ui.toast("Bản đồ — nhấn M để đóng")
 
 
 # ---------- autoplay: chụp ảnh kiểm tra từng chương ----------
