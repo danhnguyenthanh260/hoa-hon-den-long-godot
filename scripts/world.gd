@@ -52,7 +52,7 @@ var _lacquer := Build.mat(Color(0.32, 0.06, 0.04), 0.55)   # sơn ta đỏ sậm
 
 func _ready() -> void:
 	# vữa vôi vàng nghệ + gỗ — PBR thật (ambientCG, CC0), normal map bắt ánh đèn nổi khối
-	_plaster = Build.pbr("res://assets/textures/Plaster001", 0.5, Color(0.82, 0.58, 0.27), 1.4)
+	_plaster = Build.pbr("res://assets/textures/Plaster001", 0.5, Color(0.86, 0.7, 0.44), 1.4)
 	_wood = Build.pbr("res://assets/textures/WoodFloor043", 0.85, Color(0.5, 0.38, 0.27), 1.2)
 	_build_environment()
 	_build_ground()

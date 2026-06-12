@@ -7,11 +7,13 @@ const Build := preload("res://scripts/build.gd")
 
 
 # bảng vật liệu theo TUỔI NHÀ: age 0 = mới sơn, 0.5 = hơi cũ, 1 = cổ
-# (vữa vàng xỉn dần, vữa trắng ngả xám, ngói bạc màu, gỗ phai, đá lên rêu)
+# (vữa VÀNG NGÀ oxi hóa dần, vữa trắng ngả xám, ngói bạc màu, gỗ phai,
+#  đá xám bê tông sần hạt — texture thật, lên rêu theo tuổi)
 static func mats(age: float = 0.45) -> Dictionary:
-	var plaster_c := Color(0.97, 0.68, 0.2).lerp(Color(0.68, 0.5, 0.24), age * 0.85)
+	var plaster_c := Color(0.96, 0.8, 0.46).lerp(Color(0.7, 0.6, 0.42), age * 0.9)
 	var trim_c := Color(0.93, 0.92, 0.88).lerp(Color(0.71, 0.7, 0.61), age)
-	var stone_c := Color(0.32, 0.32, 0.3).lerp(Color(0.2, 0.24, 0.16), age)
+	var stone_c := Color(0.62, 0.6, 0.55).lerp(Color(0.44, 0.5, 0.38), age)
+	var step_c := Color(0.74, 0.72, 0.66).lerp(Color(0.56, 0.6, 0.46), age)
 	var tile_tint := Color(0.65, 0.46, 0.32).lerp(Color(0.42, 0.36, 0.3), age)
 	var tile_row_c := Color(0.48, 0.3, 0.21).lerp(Color(0.3, 0.26, 0.22), age)
 	var wood_c := Color(0.5, 0.35, 0.22).lerp(Color(0.33, 0.26, 0.2), age)
@@ -22,8 +24,8 @@ static func mats(age: float = 0.45) -> Dictionary:
 		"shutter": Build.mat(wood_c.darkened(0.34), 0.85),
 		"frame": Build.mat(Color(0.14, 0.1, 0.07), 0.85),
 		"trim": Build.mat(trim_c, 0.85),
-		"stone": Build.mat(stone_c, 0.97),
-		"step": Build.mat(Color(0.4, 0.4, 0.38).lerp(Color(0.3, 0.32, 0.26), age), 0.95),
+		"stone": Build.pbr("res://assets/textures/ConcreteWall004", 0.55, stone_c, 1.4),
+		"step": Build.pbr("res://assets/textures/ConcreteWall004", 0.4, step_c, 1.2),
 		"roof_tex": Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, tile_tint, 1.2),
 		"tile_c": tile_row_c,
 		"moss": Build.mat(Color(0.13, 0.18, 0.09), 0.98),
@@ -67,6 +69,15 @@ static func roof_vines(slope: Node3D, slab_l: float, roof_w: float, m: Dictionar
 static func plinth_steps(a: Node3D, w: float, d: float, h_base: float, m: Dictionary) -> void:
 	Build.box(a, Vector3(d + 0.18, h_base, w + 0.22), Vector3(d / 2.0, h_base / 2.0, 0), m["stone"])
 	Build.box(a, Vector3(d + 0.3, 0.09, w + 0.34), Vector3(d / 2.0, h_base - 0.045, 0), m["step"])
+	# rêu bám chân đế + lan lên mặt đá theo tuổi nhà
+	var age: float = m["age"]
+	if age > 0.25:
+		for i in range(int(3.0 + age * 7.0)):
+			var z := -w / 2.0 + 0.3 + fposmod(i * 1.73, w - 0.6)
+			var mr := 0.07 + 0.08 * fposmod(i * 0.91, 1.0)
+			var my := 0.04 + fposmod(i * 0.37, 1.0) * h_base * 0.55
+			var mb := Build.ball(a, mr, mr * 0.9, Vector3(-0.1 - 0.04 * fposmod(i * 0.53, 1.0), my, z), m["moss"])
+			mb.scale = Vector3(0.35, 1.0, 1.0)
 	var rise := h_base / 5.0
 	for i in range(5):
 		var top_y := h_base - i * rise
