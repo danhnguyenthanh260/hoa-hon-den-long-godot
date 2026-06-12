@@ -28,8 +28,8 @@ static func mats(age: float = 0.45) -> Dictionary:
 		"step": Build.pbr("res://assets/textures/ConcreteWall004", 0.4, step_c, 1.2),
 		"roof_tex": Build.pbr("res://assets/textures/RoofingTiles013A", 0.6, tile_tint, 1.2),
 		"tile_c": tile_row_c,
-		"moss": Build.mat(Color(0.13, 0.18, 0.09), 0.98),
-		"leaf": Build.mat(Color(0.16, 0.3, 0.1), 0.95),
+		"moss": Build.leaf_mat(Color(0.13, 0.18, 0.09), 0.0, 0.0),
+		"leaf": Build.leaf_mat(Color(0.16, 0.3, 0.1), 0.04, 1.3),
 		"pot": Build.mat(Color(0.45, 0.28, 0.2).lerp(Color(0.36, 0.3, 0.2), age), 0.9),
 		"age": age,
 	}
@@ -107,8 +107,8 @@ static func pot_plant(parent: Node3D, pos: Vector3, kind: int, s: float = 1.0, a
 	var clay := Build.mat(Color(0.52, 0.3, 0.2).lerp(Color(0.38, 0.32, 0.22), age * 0.7), 0.92)
 	var soil := Build.mat(Color(0.16, 0.11, 0.07), 1.0)
 	var trunk := Build.mat(Color(0.3, 0.2, 0.12), 0.95)
-	var leaf := Build.mat(Color(0.2, 0.38, 0.12), 0.9)
-	var leaf_d := Build.mat(Color(0.12, 0.24, 0.08), 0.95)
+	var leaf := Build.leaf_mat(Color(0.2, 0.38, 0.12), 0.022, 1.5)
+	var leaf_d := Build.leaf_mat(Color(0.12, 0.24, 0.08), 0.022, 1.5)
 	var r := 0.26 * s
 	var h := 0.34 * s
 	# chậu bụng phình miệng loe + lớp đất
@@ -135,7 +135,7 @@ static func pot_plant(parent: Node3D, pos: Vector3, kind: int, s: float = 1.0, a
 			Build.cyl(p, 0.05 * s, 0.075 * s, 0.55 * s, Vector3(0, h + 0.26 * s, 0), Build.mat(Color(0.45, 0.55, 0.3), 0.85), 8)
 			for li in range(6):
 				var ang := li * 1.05 + 0.4
-				var lb := Build.ball(p, 0.4 * s, 0.8 * s, Vector3(cos(ang) * 0.3 * s, h + (0.62 + 0.1 * (li % 3)) * s, sin(ang) * 0.3 * s), Build.mat(Color(0.25, 0.5, 0.14), 0.75))
+				var lb := Build.ball(p, 0.4 * s, 0.8 * s, Vector3(cos(ang) * 0.3 * s, h + (0.62 + 0.1 * (li % 3)) * s, sin(ang) * 0.3 * s), Build.leaf_mat(Color(0.25, 0.5, 0.14), 0.05, 1.2))
 				lb.scale = Vector3(0.85, 0.12, 0.3)
 				lb.rotation.y = -ang
 				lb.rotation.z = 0.45
@@ -154,13 +154,18 @@ static func banana_clump(parent: Node3D, pos: Vector3, s: float = 1.5) -> Node3D
 	var p := Node3D.new()
 	p.position = pos
 	parent.add_child(p)
+	# ụ đất trồng + viên đá viền — chuối mọc từ đất, không mọc thẳng trên nền lát đá
+	Build.ball(p, 0.62 * s, 0.24 * s, Vector3(0, 0.0, 0), Build.mat(Color(0.22, 0.15, 0.1), 1.0))
+	for rk in range(6):
+		var ra := rk * 1.047 + 0.4
+		Build.ball(p, (0.06 + 0.025 * (rk % 2)) * s, 0.09 * s, Vector3(cos(ra) * 0.56 * s, 0.025, sin(ra) * 0.56 * s), Build.mat(Color(0.38, 0.36, 0.33), 0.95))
 	for st in range(3):
 		var off := Vector3(sin(st * 2.5) * 0.3 * s, 0, cos(st * 2.5) * 0.3 * s)
 		var hh := (1.1 + 0.4 * (st % 2)) * s
 		Build.cyl(p, 0.05 * s, 0.09 * s, hh, off + Vector3(0, hh / 2.0, 0), Build.mat(Color(0.45, 0.55, 0.3), 0.85), 8)
 		for li in range(5):
 			var ang := li * 1.26 + st
-			var lb := Build.ball(p, 0.5 * s, 1.0 * s, off + Vector3(cos(ang) * 0.35 * s, hh + 0.15 * s, sin(ang) * 0.35 * s), Build.mat(Color(0.22, 0.46, 0.12), 0.75))
+			var lb := Build.ball(p, 0.5 * s, 1.0 * s, off + Vector3(cos(ang) * 0.35 * s, hh + 0.15 * s, sin(ang) * 0.35 * s), Build.leaf_mat(Color(0.22, 0.46, 0.12), 0.07, 1.1))
 			lb.scale = Vector3(0.9, 0.12, 0.3)
 			lb.rotation.y = -ang
 			lb.rotation.z = 0.5
@@ -381,8 +386,8 @@ static func window_ground(a: Node3D, z_c: float, h_base: float, m: Dictionary) -
 		for sl in range(6):
 			var slat := Build.box(a, Vector3(0.028, 0.045, lw - 0.1), Vector3(-0.11, sill_y + 0.18 + sl * 0.18, lz), m["frame"])
 			slat.rotation.z = 0.55
-	# bậu nhô
-	Build.box(a, Vector3(0.12, 0.08, ww + 0.34), Vector3(-0.05, sill_y - 0.05, z_c), m["trim"])
+	# bậu nhô — ngắn hơn viền để không đâm vào khung cửa/trụ bổ tường hai bên
+	Build.box(a, Vector3(0.12, 0.08, ww + 0.16), Vector3(-0.05, sill_y - 0.05, z_c), m["trim"])
 
 
 # ô gió song gỗ đứng trên lanh tô cửa buôn — thoáng khí kiểu nhà thương mại

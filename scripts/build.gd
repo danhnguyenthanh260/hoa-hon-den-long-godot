@@ -30,6 +30,40 @@ static func pbr(folder: String, scale: float, tint := Color(1, 1, 1), normal_str
 	return m
 
 
+# vật liệu lá cây: đốm noise + normal sần + đung đưa theo gió (foliage_sway.gdshader).
+# Cache theo (màu, sway, speed) — cả phố dùng chung vài material, đổi phase theo world-pos.
+static var _foliage_shader: Shader = null
+static var _foliage_noise: ImageTexture = null
+static var _foliage_nrm: ImageTexture = null
+static var _leaf_cache := {}
+
+static func leaf_mat(c: Color, sway := 0.05, speed := 1.4) -> ShaderMaterial:
+	var key := "%s|%.3f|%.2f" % [c.to_html(), sway, speed]
+	if _leaf_cache.has(key):
+		return _leaf_cache[key]
+	if _foliage_shader == null:
+		_foliage_shader = load("res://assets/shaders/foliage_sway.gdshader")
+		# sinh noise ĐỒNG BỘ (NoiseTexture2D sinh nền → frame đầu trắng bệt)
+		var n := FastNoiseLite.new()
+		n.noise_type = FastNoiseLite.TYPE_CELLULAR
+		n.frequency = 0.05
+		_foliage_noise = ImageTexture.create_from_image(n.get_seamless_image(256, 256))
+		var n2 := FastNoiseLite.new()
+		n2.frequency = 0.09
+		var img2 := n2.get_seamless_image(256, 256)
+		img2.bump_to_normal_map(1.0)
+		_foliage_nrm = ImageTexture.create_from_image(img2)
+	var sm := ShaderMaterial.new()
+	sm.shader = _foliage_shader
+	sm.set_shader_parameter("albedo", c)
+	sm.set_shader_parameter("sway", sway)
+	sm.set_shader_parameter("speed", speed)
+	sm.set_shader_parameter("noise_tex", _foliage_noise)
+	sm.set_shader_parameter("noise_nrm", _foliage_nrm)
+	_leaf_cache[key] = sm
+	return sm
+
+
 static func emis(albedo: Color, emission: Color, energy: float, rough: float = 0.6) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = albedo

@@ -210,11 +210,13 @@ func _build_main_street() -> void:
 			_string_lanterns.append([Build.lantern(self, 0.13, 0.24, Vector3(sx, y, z)), palette[idx % palette.size()]])
 			idx += 1
 	# cây xanh phá đường mái — phố thật luôn có tán cây chen giữa nhà
-	for tp in [Vector3(-11.9, 0, 12.9), Vector3(23.0, 0, 12.9)]:
+	# (z=12.2: tán xa mặt tiền z=14.2, không chọc xuyên tường; gốc có ụ đất)
+	for tp in [Vector3(-11.9, 0, 12.2), Vector3(23.0, 0, 12.2)]:
+		Build.ball(self, 0.5, 0.2, tp, Build.mat(Color(0.22, 0.15, 0.1), 1.0))
 		Build.cyl(self, 0.14, 0.2, 2.8, tp + Vector3(0, 1.4, 0), Build.mat(Color(0.16, 0.12, 0.09), 0.95), 8)
 		for fb in range(4):
 			var off := Vector3(sin(fb * 1.9) * 0.65, 3.1 + (fb % 2) * 0.55, cos(fb * 1.9) * 0.55)
-			Build.ball(self, 0.62 + 0.18 * (fb % 2), 1.1, tp + off, Build.mat(Color(0.09, 0.16, 0.07), 0.95))
+			Build.ball(self, 0.62 + 0.18 * (fb % 2), 1.1, tp + off, Build.leaf_mat(Color(0.09, 0.16, 0.07), 0.05, 1.0))
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
 		var mist := Build.box(self, Vector3(0.4, 7.0, 14.0), Vector3(mx, 3.5, 11.0), null)
@@ -279,15 +281,19 @@ func _house(pos: Vector3, yrot: float, idx: int) -> void:
 	# mặt sàn đi được: đế + từng bậc tam cấp — người chơi bước lên thềm thật
 	for r in Parts.floor_rects(6.0, 5.0, ms.H_BASE):
 		_reg_floor(pos, yrot, r["x0"], r["x1"], r["z0"], r["z1"], r["y"])
-	# hoa giấy rủ góc hiên — mỗi ba nhà một giàn
+	# hoa giấy ôm trụ góc mặt tiền — mỗi ba nhà một giàn, có thân leo bám tường
+	# (khóm hoa nửa chìm vào mặt trụ z=2.72 — dính tường chứ không lơ lửng,
+	#  né hẳn vùng cửa sổ trệt z≤2.43)
 	if (idx * 11) % 3 == 0:
-		var base_p := Vector3(-0.55, ms.H_BASE + 2.3, 2.5)
+		var vine_h: float = ms.H_BASE + 2.1
+		Build.cyl(a, 0.022, 0.032, vine_h, Vector3(-0.16, vine_h / 2.0 + 0.25, 2.72), Build.mat(Color(0.25, 0.17, 0.1), 0.9), 6)
+		var base_p := Vector3(-0.12, ms.H_BASE + 2.45, 2.72)
 		for fi in range(16):
-			var fx := sin(fi * 2.39 + idx) * 0.3
-			var fy := -absf(sin(fi * 1.7)) * 0.7
-			var fz := cos(fi * 2.39 + idx) * 0.3
+			var fx := -absf(sin(fi * 2.39 + idx)) * 0.2
+			var fy := -absf(sin(fi * 1.7)) * 0.85
+			var fz := cos(fi * 2.39 + idx) * 0.26
 			var fc := Color(0.78, 0.12, 0.4) if fi % 4 != 0 else Color(0.1, 0.22, 0.08)
-			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.mat(fc, 0.85))
+			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.leaf_mat(fc, 0.035, 1.6))
 
 func _build_lantern_strings() -> void:
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(1.0, 0.32, 0.08), Color(0.95, 0.25, 0.4)]

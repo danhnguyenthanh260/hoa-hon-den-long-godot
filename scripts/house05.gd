@@ -55,14 +55,15 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 	# ---------- cửa sổ chớp gỗ hai bên ----------
 	var wins: Array = out.get("windows", [])
 	for sz in [-1.0, 1.0]:
-		var wz2: float = sz * 2.1
+		# z=±1.9: mép khung 2.4 < trụ bổ tường 2.44 — không đè khung lên trụ
+		var wz2: float = sz * 1.9
 		Build.box(a, Vector3(0.08, 1.2, 1.0), Vector3(-0.03, H_BASE + 1.55, wz2), m["frame"])
 		var leaf := Build.box(a, Vector3(0.06, 1.1, 0.9), Vector3(-0.06, H_BASE + 1.55, wz2), m["shutter"])
 		wins.append(leaf)
 		for sl in range(6):
 			var slat := Build.box(a, Vector3(0.03, 0.045, 0.8), Vector3(-0.09, H_BASE + 1.12 + sl * 0.17, wz2), m["frame"])
 			slat.rotation.z = 0.55
-		Build.box(a, Vector3(0.3, 0.07, 1.1), Vector3(-0.1, H_BASE + 0.92, wz2), m["trim"])
+		Build.box(a, Vector3(0.3, 0.07, 1.0), Vector3(-0.1, H_BASE + 0.92, wz2), m["trim"])
 	out["windows"] = wins
 
 	# ---------- hiên ngói che vỉa hè trên hai cột gỗ ----------

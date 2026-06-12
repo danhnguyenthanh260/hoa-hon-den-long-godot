@@ -543,6 +543,23 @@ func _house_view() -> void:
 	camera.look_at(base2 + Vector3(0.3, 2.25, 1.95))
 	await get_tree().create_timer(0.4).timeout
 	await _shot(dir + "/breeze.png")
+	# house03/04/05 trên sân khấu: chính diện + cận cửa từng mẫu (audit khe hở/đè khối)
+	var stage3 := [
+		[preload("res://scripts/house03.gd"), base + Vector3(0, 0, 12), "03"],
+		[preload("res://scripts/house04.gd"), base + Vector3(0, 0, 20), "04"],
+		[preload("res://scripts/house05.gd"), base + Vector3(10, 0, 6), "05"],
+	]
+	for hd in stage3:
+		var hb: Vector3 = hd[1]
+		hd[0].build(self, hb, 0.0)
+		camera.position = hb + Vector3(-14.0, 3.4, 0)
+		camera.look_at(hb + Vector3(1.5, 3.0, 0))
+		await get_tree().create_timer(0.4).timeout
+		await _shot(dir + "/front" + hd[2] + ".png")
+		camera.position = hb + Vector3(-5.5, 2.1, 1.6)
+		camera.look_at(hb + Vector3(0.4, 1.9, 0))
+		await get_tree().create_timer(0.4).timeout
+		await _shot(dir + "/door" + hd[2] + ".png")
 	# dàn đạo cụ phố trên sân khấu: xe đạp, xe Cub, chậu cây, bụi chuối (ref-07/08/09)
 	var parts3 := preload("res://scripts/hoian_parts.gd")
 	var pbase := base2 + Vector3(0, 0, -10)
