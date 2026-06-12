@@ -652,56 +652,90 @@ func _build_phase3_river() -> void:
 # Phase 5 — Landmarks: Chợ Hội An (nhà lồng) + 2 Hội quán (Quảng Đông + Phúc Kiến).
 func _build_phase5_landmarks() -> void:
 	_build_cho_hoi_an()
-	# Hội quán Quảng Đông — tường vôi cam, ngói lục (phía tây hơn)
+	# Quảng Đông: tường ochre/cam ★ + ngói lục men xanh ★ (phân biệt với Phúc Kiến)
 	_build_hoi_quan(Vector3(18.0, 0, 14.2),
 		Build.mat(Color(0.72, 0.42, 0.12), 0.75),
-		Build.mat(Color(0.18, 0.22, 0.14), 0.65))
-	# Hội quán Phúc Kiến — tường đỏ son, ngói xanh (phía đông, nổi bật nhất)
+		Build.mat(Color(0.22, 0.52, 0.26), 0.55))   # green glazed (dossier: ★)
+	# Phúc Kiến: tường đỏ son ★ + ngói rust-orange amber ★ (khác Quảng Đông rõ ràng)
 	_build_hoi_quan(Vector3(30.0, 0, 14.2),
 		Build.mat(Color(0.70, 0.12, 0.09), 0.75),
-		Build.mat(Color(0.14, 0.25, 0.12), 0.65))
+		Build.mat(Color(0.54, 0.28, 0.13), 0.60))   # rust-orange glazed (dossier: ★)
 
 
-# Chợ Hội An nhà lồng: arcade 8 cột gỗ, mái ngói 2 dốc, quầy hàng, 4 đèn lồng.
+# Chợ Hội An: nhà lồng arcade dài — reality rebuild per dossier.
+# Thật: vàng mù tạt ★, 9-11 vịnh arcade ★, mái gable liên tục (không phải đền), awning canvas ★.
 func _build_cho_hoi_an() -> void:
 	var mkt := Node3D.new()
 	mkt.position = Vector3(-20, 0, 26)
 	add_child(mkt)
-	var col_wood := Build.pbr("res://assets/textures/WoodFloor043", 0.8, Color(0.38, 0.24, 0.14), 1.1)
-	var roof_dark := Build.mat(Color(0.11, 0.09, 0.09), 0.65)
-	var stall_mat := Build.mat(Color(0.80, 0.68, 0.50), 0.9)
-	# 8 cột arcade: 4 nhịp × 2 hàng (hàng z=±2.2)
-	for ci in range(4):
-		for cz in [-2.2, 2.2]:
-			Build.box(mkt, Vector3(0.35, 5.6, 0.35), Vector3(-4.5 + ci * 3.0, 2.8, cz), col_wood)
-	# xà ngang + xà dọc mái
-	for cz in [-2.2, 2.2]:
-		Build.box(mkt, Vector3(11.5, 0.18, 0.22), Vector3(0, 5.55, cz), col_wood)
-	for ci in range(3):
-		Build.box(mkt, Vector3(2.75, 0.18, 4.5), Vector3(-3.0 + ci * 3.0, 5.55, 0), col_wood)
-	# mái 2 dốc ngói
-	Build.box(mkt, Vector3(12.2, 0.22, 5.0), Vector3(0, 5.7, 0), roof_dark)
+	var mustard  := Build.mat(Color(0.82, 0.72, 0.22), 0.80)   # vàng mù tạt ★
+	var rooftile := Build.mat(Color(0.48, 0.24, 0.11), 0.70)   # ngói đỏ nâu ★
+	var colmat   := Build.mat(Color(0.80, 0.70, 0.22), 0.78)   # cột vàng ★
+	var awning   := Build.mat(Color(0.62, 0.56, 0.44), 0.88)   # canvas mù tạt ◇
+	var stall_mat := Build.mat(Color(0.78, 0.66, 0.48), 0.92)
+	var darkwood  := Build.mat(Color(0.20, 0.13, 0.08), 0.88)
+
+	# ── THÂN NHÀ LỒNG (mustard yellow plaster) ──
+	# Tường dọc mặt tiền (hướng Nam, mặt Trần Phú)
+	Build.box(mkt, Vector3(30.0, 4.5, 0.35), Vector3(0.0, 2.25, -3.0), mustard)
+	# Tường hậu + tường đầu hồi
+	Build.box(mkt, Vector3(30.0, 4.5, 0.35), Vector3(0.0, 2.25, 3.0), mustard)
+	for ex in [-15.0, 15.0]:
+		Build.box(mkt, Vector3(0.35, 4.5, 6.4), Vector3(ex, 2.25, 0.0), mustard)
+
+	# ── ARCADE 10 VỊNH VÒM (lặp đều, 2.8m nhịp) ──
+	# Arcade mặt tiền (phía Nam z=-3): 10 cột + vòm nửa tròn
+	for ci in range(10):
+		var axf: float = -13.5 + ci * 3.0   # x position của cột
+		# Cột arcade (vàng, tiết diện vuông)
+		Build.box(mkt, Vector3(0.38, 4.5, 0.38), Vector3(axf, 2.25, -3.0), colmat)
+		# Vòm arcade: 2 pillar bên + arch top (đơn giản hóa bằng box ngang trên)
+		Build.box(mkt, Vector3(2.6, 0.55, 0.38), Vector3(axf + 1.4, 4.25, -3.0), mustard)
+		# Awning canvas nghiêng ra ngoài
+		var aw := Build.box(mkt, Vector3(2.6, 0.06, 1.8), Vector3(axf + 1.4, 3.9, -4.1), awning)
+		aw.rotation.x = -0.22
+	# Đóng 2 đầu arcade (cột đầu hồi)
+	for ex2 in [-15.0, 15.0]:
+		var ex2f: float = ex2
+		Build.box(mkt, Vector3(0.38, 4.5, 0.38), Vector3(ex2f, 2.25, -3.0), colmat)
+
+	# ── MÁI GABLE LIÊN TỤC (không phải đền — không đầu đao, không mái chồng) ──
+	Build.box(mkt, Vector3(30.5, 0.22, 6.5), Vector3(0.0, 4.62, 0.0), rooftile)
 	for k in [-1.0, 1.0]:
+		var kf: float = k
 		var sl := Node3D.new()
-		sl.position = Vector3(0, 6.15, k * 1.55)
-		sl.rotation.x = k * 0.42
+		sl.position = Vector3(0.0, 4.88, kf * 2.15)
+		sl.rotation.x = kf * 0.38
 		mkt.add_child(sl)
-		var sm := BoxMesh.new(); sm.size = Vector3(12.4, 0.1, 2.5)
-		var smi := MeshInstance3D.new(); smi.mesh = sm
-		smi.material_override = roof_dark; sl.add_child(smi)
-		Build.tile_rows(sl, 2.5, 12.4)
-	Build.cyl(mkt, 0.1, 0.1, 12.6, Vector3(0, 6.85, 0), Build.mat(Color(0.07, 0.05, 0.04)), 8).rotation.z = PI / 2.0
-	# quầy hàng (6 gian, 2 hàng)
+		var sm := BoxMesh.new()
+		sm.size = Vector3(30.5, 0.1, 2.8)
+		var smi := MeshInstance3D.new()
+		smi.mesh = sm
+		smi.material_override = rooftile
+		sl.add_child(smi)
+		Build.tile_rows(sl, 2.8, 30.5)
+	# Đỉnh nóc dài liên tục (không horn đầu đao kiểu đền)
+	Build.cyl(mkt, 0.08, 0.08, 30.6, Vector3(0.0, 5.72, 0.0), darkwood, 8).rotation.z = PI / 2.0
+	# Gable marker trung tâm (clock/dormer nhỏ — nhận biết chợ từ xa)
+	Build.box(mkt, Vector3(2.4, 1.2, 0.38), Vector3(0.0, 5.85, 0.0), mustard)
+	Build.box(mkt, Vector3(2.8, 0.16, 0.55), Vector3(0.0, 6.55, 0.0), rooftile)
+
+	# ── QUẦY HÀNG 6 gian bên trong ──
 	for si in range(3):
-		for sz in [-1.6, 1.6]:
-			Build.box(mkt, Vector3(2.5, 0.85, 1.7), Vector3(-3.0 + si * 3.0, 0.425, sz), stall_mat)
-	# 4 đèn lồng treo giữa chợ
-	for li in range(4):
-		_hanging.append(Build.lantern(mkt, 0.16, 0.28, Vector3(-4.5 + li * 3.0, 4.2, 0)))
+		var sxf: float = -9.0 + si * 6.0
+		for sz in [-1.5, 1.5]:
+			var szf: float = sz
+			Build.box(mkt, Vector3(5.0, 0.85, 1.8), Vector3(sxf, 0.425, szf), stall_mat)
+
+	# ── ĐÈN LỒNG + ÁNH SÁNG ──
+	for li in range(5):
+		_hanging.append(Build.lantern(mkt, 0.16, 0.28, Vector3(-12.0 + li * 6.0, 3.8, 0.0)))
 	var iglow := OmniLight3D.new()
-	iglow.light_color = Color(1.0, 0.62, 0.32)
-	iglow.light_energy = 1.2; iglow.omni_range = 14.0
-	iglow.position = Vector3(0, 4.0, 0); mkt.add_child(iglow)
+	iglow.light_color = Color(1.0, 0.65, 0.30)
+	iglow.light_energy = 1.2
+	iglow.omni_range = 18.0
+	iglow.position = Vector3(0.0, 3.8, 0.0)
+	mkt.add_child(iglow)
 
 
 # Hội quán generic: cổng tam quan 3 nhịp + sân + chính điện — parameterized màu.
