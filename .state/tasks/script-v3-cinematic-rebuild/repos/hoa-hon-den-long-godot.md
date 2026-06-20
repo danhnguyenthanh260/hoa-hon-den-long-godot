@@ -15,7 +15,7 @@
 - Ahead/behind verified: origin/master...master = 0 behind, 3 ahead on 2026-06-18
 
 ## Delivery state
-- Pushed: no, current local commits are 6 ahead of origin/master (HEAD `d2c1ebc`)
+- Pushed: no, 6 ahead of origin/master (HEAD `285c599`) — verified via `git rev-list --count origin/master..master` on 2026-06-20 (prior "3/4/5 ahead" notes were extrapolated from a stale 06-18 base; 6 is the real count).
 - PR: none
 - Gate: passing locally
 - Gate evidence: full suite re-run on 2026-06-20 before commit `1de4511` — all gates PASS (reference provenance, narrative state, checkpoint service, dialogue choice signal, voice director, memory-stall UI, bird-stencil puzzle, C1 progression, player-shadow, import/parse, `--flow` outcome=release). ObjectDB-leak-at-exit is a benign Godot stderr warning; PowerShell wraps it as NativeCommandError (exit 1) but the gates themselves pass.
@@ -32,7 +32,10 @@
   - Committed C1 vertical slice `1de4511`: Chim Lac 3-part stencil puzzle, memory-stall inspect UI, Tran Phu street life (cat AI, knockable door, 6 lightable lamps, ruin/wall/river/bridge thought beats), main.gd wiring, and 3 new gates.
   - Committed C1 graphics PBR migration `c93fb6b` (Phase A of C1 upgrade, "do hoa truoc" per user): replaced flat `Build.mat(Color)` on all C1 architecture with shared `Build.pbr()` palette (Plaster001/WoodFloor043/PavingStones138/RoofingTiles013A, same sets+tints as world.gd). Emissive/organic props left flat. Verified import/parse, C1 gate, --flow release. Fresh screenshot NOT captured — autoplay bot needs an interactive render session that did not complete under automation.
 - Committed player mesh body `d2c1ebc` ("Duong 2" per user — build to Meshy quality): new rig_glb_player.py (18-bone rig WITH arms, nearest-segment auto-skin, keeps Hunyuan vertex colors) rigs minh_apose_0.glb -> minh_player_rigged.glb; player.gd swaps primitive body for the mesh under USE_MESH_BODY flag (reversible), bone-driven walk + arm swing, pole/lantern/color/first-person preserved. Gates pass (import/parse, player-shadow, --flow release). VISUAL NOT verified — this env cannot render; awaiting user local run to tune MESH_YAW_OFFSET / scale / ARM_REST_DROP / pole-in-hand.
-- Next repo step: (1) iterate player mesh visuals from user screenshots (orientation, arm rest pose, attach pole to handR via BoneAttachment3D, possibly texture/UV gen since current mesh is geometry-only). (2) Phase B of C1: widen pre-light_up playable area beyond the T while keeping gated-linear pacing ("gated nhung giau hon"). Then reflection rendering rules, real-input/collision QA, audio/caption timing.
+- Committed third-person camera `da53de8`: V cycles First -> Third(orbit) -> Follow; player.gd gains cam_relative+view_yaw.
+- Committed QA turntable `285c599` (scenes/turntable.tscn + scripts/tools/turntable.gd): renders 360 + walk to shots/qa/. This env CANNOT render (no display/GPU) — user must run locally and send frames.
+- HARD GATE (user directive 2026-06-20): user judged the player mesh "kì cục" (weird hand/lantern, off anatomy/walk/color). User said "QA truoc, chua code" — NO upgrade code until the rig redesign blueprint is approved. Awaiting user turntable frames + blueprint sign-off.
+- Next repo step (PENDING APPROVAL — do not code yet): rig redesign per anatomy — calibrate joint placement (Loomis/Unity-Humanoid landmarks: shoulder line, elbow ~navel, wrist ~upper-thigh), add neck + foot ball, anatomical skinning (fix armpit/crotch bleed), proper rest pose + walk cycle (pelvis sway, foot roll, correct arm-swing axis), attach lantern to handR via BoneAttachment3D, skin/cloth material (or UV+texture gen since mesh is geometry-only). Then Phase B of C1 (widen the T). Then reflection rules, input/collision QA, audio/caption timing.
 - Blocked on: none
 
 ## Shared path ownership
