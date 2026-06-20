@@ -20,6 +20,8 @@ var _walk_speed := 1.0
 var _walk_t := 0.0
 var _snap := 0
 var _capturing := false
+var _lantern: Node3D
+var _hand_bone := -1
 
 
 func _ready() -> void:
@@ -72,6 +74,10 @@ func _ready() -> void:
 			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
 	# tay-buông: không hạ tay
+	# đèn lồng (vật phẩm riêng) cầm tay phải
+	_hand_bone = _bone.get("handR", -1)
+	_lantern = preload("res://scripts/lantern.gd").make()
+	add_child(_lantern)
 
 	var cl := CanvasLayer.new()
 	add_child(cl)
@@ -126,6 +132,10 @@ func _capture_360() -> void:
 		_pose(n, Quaternion.IDENTITY)
 	for i in range(24):
 		_model.rotation.y = TAU * float(i) / 24.0
+		if _lantern and _hand_bone >= 0:
+			var hw := _skel.global_transform * _skel.get_bone_global_pose(_hand_bone)
+			_lantern.global_position = hw.origin
+			_lantern.rotation.y = _model.rotation.y
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
@@ -140,6 +150,11 @@ func _process(delta: float) -> void:
 	if _spinning:
 		_yaw += _spin * delta
 	_model.rotation.y = _yaw
+	# đèn lồng bám bàn tay phải + xoay theo thân
+	if _lantern and _hand_bone >= 0:
+		var hw := _skel.global_transform * _skel.get_bone_global_pose(_hand_bone)
+		_lantern.global_position = hw.origin
+		_lantern.rotation.y = _yaw
 	if _walking:
 		_walk_t += delta * 7.0 * _walk_speed
 		var sw := sin(_walk_t) * 0.5
