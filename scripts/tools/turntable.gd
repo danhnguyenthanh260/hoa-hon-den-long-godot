@@ -90,10 +90,15 @@ func _ready() -> void:
 	_lbl.add_theme_color_override("font_color", Color(1, 0.86, 0.5))
 	cl.add_child(_lbl)
 
-	# tự chụp trọn 360 rồi thoát khi chạy với "-- cap360"
-	if "cap360" in OS.get_cmdline_user_args():
+	# tự chụp rồi thoát: "-- cap360" (xoay vòng) hoặc "-- walkcap" (chu kỳ đi bộ)
+	var ua := OS.get_cmdline_user_args()
+	if "cap360" in ua:
 		await get_tree().process_frame
 		await _capture_360()
+		get_tree().quit()
+	elif "walkcap" in ua:
+		await get_tree().process_frame
+		await _capture_walk()
 		get_tree().quit()
 
 
@@ -135,6 +140,33 @@ func _walk_pose(p: float) -> void:
 	_pose("spine", Quaternion(Vector3.UP, legL * 0.05))
 	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.5))
 	# tay phải giữ đèn — không vung
+
+
+# Chụp chu kỳ đi bộ nhìn NGHIÊNG (profile) — 16 khung qua 1 nhịp, để soi
+# chân bước tới/lui + thân-chân có khớp hướng không.
+func _capture_walk() -> void:
+	_capturing = true
+	var dir := ProjectSettings.globalize_path("res://shots/qa/walkcap")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var d := DirAccess.open(dir)
+	if d:
+		for f in d.get_files():
+			if f.ends_with(".png"):
+				d.remove(f)
+	_model.rotation.y = PI * 0.5     # nhìn nghiêng: thấy rõ chân vung tới/lui
+	for i in range(16):
+		var p := TAU * float(i) / 16.0
+		_walk_pose(p)
+		if _lantern and _hand_bone >= 0:
+			var hw := _skel.global_transform * _skel.get_bone_global_pose(_hand_bone)
+			_lantern.global_position = hw.origin
+			_lantern.rotation.y = _model.rotation.y
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(dir + "/walk-%02d.png" % i)
+	print("CHUP DI BO XONG -> ", dir, " (walk-00..15.png, nhin nghieng)")
+	_capturing = false
 
 
 func _capture_360() -> void:
