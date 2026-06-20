@@ -76,7 +76,7 @@ func _ready() -> void:
 	# tay-buông: không hạ tay
 	# đèn lồng (vật phẩm riêng) cầm tay phải
 	_hand_bone = _bone.get("handR", -1)
-	_lantern = preload("res://scripts/lantern.gd").make()
+	_lantern = preload("res://scripts/lantern.gd").new()
 	add_child(_lantern)
 
 	var cl := CanvasLayer.new()
