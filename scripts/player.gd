@@ -307,10 +307,7 @@ func _build_mesh_body() -> bool:
 			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
 
-	# tư thế nghỉ: hạ hai tay từ A-pose xuống sát thân — tính từ hình học xương,
-	# xoay vector vai→cổ tay về thẳng đứng xuống (không dùng góc đoán)
-	_drop_arm("upperarmL", "handL")
-	_drop_arm("upperarmR", "handR")
+	# Mesh nguồn là tay-buông (minh_shape_0): tay đã xuống sẵn ở rest → KHÔNG hạ tay.
 
 	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
 	for c in _body_parts:

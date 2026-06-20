@@ -2,8 +2,9 @@
 # Khác bản heuristic cũ: khớp đặt theo MỐC giải phẫu (Loomis/Unity Humanoid),
 # thêm Neck + Toe, khuỷu/cổ tay theo tỉ lệ đúng dọc trục tay A-pose. Skin theo
 # "đoạn-xương gần nhất" (2 ảnh hưởng/đỉnh) tự bám theo vị trí khớp mới.
-# Mốc %H (từ chân lên): vai 0.81 · ngực 0.72 · cổ 0.82 · đầu 0.88 · hông 0.52
-#   gối 0.27 · cổ chân 0.05 ; khuỷu = 0.45 dọc vai→ngón, cổ tay = 0.82.
+# Mốc %H (từ chân lên): vai 0.80 · ngực 0.72 · cổ 0.82 · đầu 0.88 · hông 0.52
+#   gối 0.27 · cổ chân 0.05 · khuỷu 0.61 · cổ tay 0.46 (tay buông dọc cạnh thân).
+# Nguồn nên là mesh TAY-BUÔNG (minh_shape_0.glb) để khỏi phải hạ tay khi chạy.
 # Dùng: python scripts/rig_glb_player.py <vao.glb> <ra.glb>
 import sys
 
@@ -15,7 +16,7 @@ from pygltflib import (
     UNSIGNED_INT, SCALAR, VEC3, VEC4, MAT4,
 )
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else "assets/models/minh_apose_0.glb"
+SRC = sys.argv[1] if len(sys.argv) > 1 else "assets/models/minh_shape_0.glb"
 DST = sys.argv[2] if len(sys.argv) > 2 else "assets/models/minh_player_rigged.glb"
 
 scene = trimesh.load(SRC, force="scene")
@@ -47,26 +48,27 @@ right_x = float(low[low[:, 0] >= cx][:, 0].mean())
 footv = V[y01 < 0.10]
 front_z = float(np.percentile(footv[:, 2], 90)) if len(footv) else mid_z
 
-# tay A-pose: ngón = đỉnh xa tâm nhất mỗi phía; vai theo bề ngang chuẩn;
-# khuỷu/cổ tay theo tỉ lệ dọc trục vai→ngón.
-upper = V[y01 > 0.45]
+# tay BUÔNG (mesh minh_shape_0): tay đã xuống sẵn dọc thân → xương tay là cột dọc
+# ở cạnh thân, KHÔNG cần hạ tay lúc runtime (chính cái gây rách/zombie ở bản A-pose).
+def side_x(t, sign, band=0.05):
+    yc = lo[1] + t * H
+    m = (V[:, 1] > yc - band * H) & (V[:, 1] < yc + band * H)
+    xs = V[m, 0]
+    if len(xs) < 5:
+        return cx + sign * 0.16 * W
+    return float(np.percentile(xs, 95.0 if sign > 0 else 5.0))
 
 
-def arm(sign):
-    side = upper[(upper[:, 0] * sign) > (cx * sign)]
-    if len(side) < 10:
-        tip = np.array([cx + sign * 0.42 * W, lo[1] + 0.55 * H, mid_z], dtype=np.float32)
-    else:
-        tip = side[np.argmax(np.abs(side[:, 0] - cx))].astype(np.float32)
-        tip[2] = mid_z
-    shoulder = np.array([cx + sign * 0.18 * W, lo[1] + 0.81 * H, mid_z], dtype=np.float32)
-    elbow = shoulder + 0.45 * (tip - shoulder)
-    wrist = shoulder + 0.82 * (tip - shoulder)
+def arm_down(sign):
+    cxk = side_x(0.80, sign) - sign * 0.045 * W       # kéo vào tâm chi
+    shoulder = np.array([cxk, lo[1] + 0.80 * H, mid_z], dtype=np.float32)
+    elbow = np.array([cxk, lo[1] + 0.61 * H, mid_z], dtype=np.float32)
+    wrist = np.array([cxk, lo[1] + 0.46 * H, mid_z], dtype=np.float32)
     return shoulder, elbow, wrist
 
 
-shL, elL, wrL = arm(-1.0)
-shR, elR, wrR = arm(+1.0)
+shL, elL, wrL = arm_down(-1.0)
+shR, elR, wrR = arm_down(+1.0)
 print("vai L/R:", np.round(shL, 3), np.round(shR, 3))
 print("co tay L/R:", np.round(wrL, 3), np.round(wrR, 3))
 

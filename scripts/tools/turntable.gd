@@ -71,8 +71,7 @@ func _ready() -> void:
 	for n in ["thighL", "shinL", "thighR", "shinR", "spine", "head",
 			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
-	_drop_arm("upperarmL", "handL")
-	_drop_arm("upperarmR", "handR")
+	# tay-buông: không hạ tay
 
 	var cl := CanvasLayer.new()
 	add_child(cl)
