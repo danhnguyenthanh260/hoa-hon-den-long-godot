@@ -68,6 +68,7 @@ var _robe_mat: StandardMaterial3D
 # mesh body
 var _skel: Skeleton3D
 var _glb_root: Node3D
+var _hand_bone := -1       # xương bàn tay phải — sào đèn bám theo
 var _bone: Dictionary = {}        # tên xương -> index
 var _bone_rest: Dictionary = {}   # index -> Quaternion nghỉ (sau khi hạ tay)
 var _use_mesh := false            # thật sự đang chạy thân mesh?
@@ -308,6 +309,7 @@ func _build_mesh_body() -> bool:
 		_bone[n] = _skel.find_bone(n)
 
 	# Mesh nguồn là tay-buông (minh_shape_0): tay đã xuống sẵn ở rest → KHÔNG hạ tay.
+	_hand_bone = _bone.get("handR", -1)   # sào đèn sẽ bám bàn tay phải
 
 	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
 	for c in _body_parts:
@@ -515,3 +517,8 @@ func _process(delta: float) -> void:
 	_light.light_energy = (2.2 + sin(_anim_t * 2.3) * 0.15) * (1.0 - 0.82 * _courtesy)
 	_light.omni_range = 9.0 - 5.5 * _courtesy
 	_paper_mat.emission_energy_multiplier = 2.8 - 2.25 * _courtesy
+
+	# tay phải cầm sào: gốc sào bám theo bàn tay phải của mesh (rotation giữ theo thân)
+	if _use_mesh and _hand_bone >= 0:
+		var hw := _skel.global_transform * _skel.get_bone_global_pose(_hand_bone)
+		_pole_holder.global_position = hw.origin
