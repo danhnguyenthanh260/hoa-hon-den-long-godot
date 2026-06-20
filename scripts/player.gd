@@ -35,6 +35,8 @@ var _near_house := false      # đứng sát thềm nhà ai đó
 var _courtesy := 0.0          # 0 → 1: hạ sào + che đèn (phép lịch sự ban đêm)
 var first_person := false     # ẩn thân, đi theo hướng nhìn; sào đèn vẫn hiện
 var fp_yaw := PI
+var cam_relative := true   # WASD theo hướng camera (Ngôi-1 / Ngôi-3); false = theo trục thế giới (Follow)
+var view_yaw := PI         # hướng camera để xoay WASD
 var _body_parts: Array = []
 var _pole_holder: Node3D
 var _pole_mi: MeshInstance3D
@@ -430,8 +432,8 @@ func update_move(delta: float, clamp_cb: Callable) -> void:
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
 		dir.x += 1.0
 	_moving = dir.length_squared() > 0.0
-	if first_person and _moving:
-		dir = dir.rotated(Vector3.UP, fp_yaw - PI)
+	if cam_relative and _moving:
+		dir = dir.rotated(Vector3.UP, view_yaw - PI)
 	move_dir = dir
 	if _moving:
 		dir = dir.normalized()

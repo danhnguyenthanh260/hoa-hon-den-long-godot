@@ -51,6 +51,13 @@ var active_puzzle = null
 var first_person := true
 var fp_yaw := PI
 var fp_pitch := -0.08
+# Góc nhìn: V xoay vòng Ngôi-1 -> Ngôi-3 (orbit sau lưng) -> Follow cố định
+enum View { FIRST, THIRD, FOLLOW }
+var view_mode: int = View.FIRST
+var tp_yaw := PI            # hướng orbit ngôi-3 (chuột)
+var tp_pitch := 0.18        # góc ngẩng/cúi ngôi-3
+var tp_dist := 4.2          # khoảng cách sau lưng
+var tp_height := 1.45       # tâm ngắm ngang vai
 var bot_mode := false
 var free_cam := false
 var map_mode := false
@@ -465,6 +472,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		fp_pitch = clampf(fp_pitch - event.relative.y * 0.0028, -1.15, 0.65)
 		player.fp_yaw = fp_yaw
 		return
+	if event is InputEventMouseMotion and view_mode == View.THIRD and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		tp_yaw -= event.relative.x * 0.0028
+		tp_pitch = clampf(tp_pitch + event.relative.y * 0.0028, -0.25, 0.95)
+		return
 	if memory_stall != null and memory_stall.active:
 		return
 	if dialogue.active:
@@ -492,9 +503,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_R and state == State.WON:
 			get_tree().reload_current_scene()
 		elif event.keycode == KEY_V:
-			first_person = not first_person
-			player.set_first_person(first_person)
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if first_person else Input.MOUSE_MODE_VISIBLE
+			view_mode = (view_mode + 1) % 3
+			_apply_view_mode()
 		elif event.keycode == KEY_M and state != State.INTRO and state != State.CUTSCENE and state != State.WON:
 			_toggle_map()
 		elif event.keycode == KEY_ESCAPE:
@@ -529,6 +539,17 @@ func _on_interact_key() -> void:
 		it["cb"].call()
 
 
+func _apply_view_mode() -> void:
+	first_person = view_mode == View.FIRST
+	player.set_first_person(first_person)
+	player.cam_relative = view_mode != View.FOLLOW
+	if view_mode == View.THIRD:
+		tp_yaw = player.facing_yaw      # bắt đầu sau lưng theo hướng đang quay
+	var capture := view_mode == View.FIRST or view_mode == View.THIRD
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
+	ui.toast(["Góc nhìn thứ nhất", "Góc nhìn thứ ba", "Camera theo dõi"][view_mode])
+
+
 # ---------- vòng lặp ----------
 func _process(delta: float) -> void:
 	if _debug_mode:
@@ -557,6 +578,7 @@ func _process(delta: float) -> void:
 			]
 	match state:
 		State.PLAY:
+			player.view_yaw = tp_yaw if view_mode == View.THIRD else fp_yaw
 			player.update_move(delta, Callable(current_chapter(), "clamp_player"))
 			player.set_near_house(world.near_house(player.position))
 			if chapter_no == 1:
@@ -587,6 +609,16 @@ func _update_camera(delta: float) -> void:
 		# góc nhìn thứ nhất: mắt ở đầu, lắc nhẹ theo nhịp bước — giữ nguyên cả khi thoại
 		camera.position = player.position + Vector3(0, 1.56 + player._visual.position.y * 0.6, 0)
 		camera.rotation = Vector3(fp_pitch, fp_yaw - PI, 0)
+		return
+	elif view_mode == View.THIRD and (state == State.PLAY or state == State.DIALOGUE):
+		# góc nhìn thứ ba: camera sau lưng, xoay quanh bằng chuột, ngắm ngang vai
+		var pivot := player.position + Vector3(0, tp_height, 0)
+		var fwd := Vector3(sin(tp_yaw), 0, cos(tp_yaw))
+		desired = pivot - fwd * (tp_dist * cos(tp_pitch)) + Vector3.UP * (tp_dist * sin(tp_pitch))
+		var tt := 1.0 - pow(0.0001, delta)
+		camera.position = camera.position.lerp(desired, tt)
+		cam_look = cam_look.lerp(pivot, tt)
+		camera.look_at(cam_look)
 		return
 	else:
 		desired = player.position + Vector3(0, 3.2, 5.6)
