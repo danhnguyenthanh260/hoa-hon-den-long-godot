@@ -369,23 +369,23 @@ func _animate_mesh(_sw: float) -> void:
 	var g := _gait
 	var legL := sin(p) * WALK_DIR
 	var legR := sin(p + PI) * WALK_DIR
-	# đùi vung đối xứng (trái/phải ngược pha)
-	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.5 * g))
-	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.5 * g))
-	# gối gập NHẤC bàn chân khi chân đưa tới — hết cảm giác trượt/đi lùi
+	# đùi vung NHỎ — người mặc áo bước ngắn, tránh xé vạt áo ở hông
+	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.22 * g))
+	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.22 * g))
+	# gối gập nhấc bàn chân (vừa phải)
 	var liftL := clampf(sin(p + 1.4) * WALK_DIR, 0.0, 1.0)
 	var liftR := clampf(sin(p + PI + 1.4) * WALK_DIR, 0.0, 1.0)
-	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 1.1 * g))
-	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 1.1 * g))
+	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 0.55 * g))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 0.55 * g))
 	# bàn chân hất mũi khi nhấc
-	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.4 * g))
-	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.4 * g))
-	# thân + đầu đảo nhẹ
-	_pose("spine", Quaternion(Vector3.UP, legL * 0.05 * g))
-	_pose("head", Quaternion(Vector3.UP, sin(p * 0.5) * 0.04))
+	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.25 * g))
+	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.25 * g))
+	# thân + đầu đảo rất nhẹ
+	_pose("spine", Quaternion(Vector3.UP, legL * 0.03 * g))
+	_pose("head", Quaternion(Vector3.UP, sin(p * 0.5) * 0.03))
 	# tay trái vung ngược chân trái (tay phải giữ đèn — không đụng)
-	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.5 * g))
-	_pose("forearmL", Quaternion(Vector3.RIGHT, (0.3 + maxf(0.0, legL) * 0.3) * g))
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.35 * g))
+	_pose("forearmL", Quaternion(Vector3.RIGHT, (0.3 + maxf(0.0, legL) * 0.2) * g))
 
 
 func set_near_house(v: bool) -> void:

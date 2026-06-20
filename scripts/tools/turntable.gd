@@ -129,16 +129,16 @@ func _pose(n: String, q: Quaternion) -> void:
 func _walk_pose(p: float) -> void:
 	var legL := sin(p)
 	var legR := sin(p + PI)
-	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.5))
-	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.5))
+	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.22))
+	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.22))
 	var liftL := clampf(sin(p + 1.4), 0.0, 1.0)
 	var liftR := clampf(sin(p + PI + 1.4), 0.0, 1.0)
-	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 1.1))
-	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 1.1))
-	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.4))
-	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.4))
-	_pose("spine", Quaternion(Vector3.UP, legL * 0.05))
-	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.5))
+	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 0.55))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 0.55))
+	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.25))
+	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.25))
+	_pose("spine", Quaternion(Vector3.UP, legL * 0.03))
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.35))
 	# tay phải giữ đèn — không vung
 
 
