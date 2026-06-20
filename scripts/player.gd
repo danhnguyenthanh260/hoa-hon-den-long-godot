@@ -304,20 +304,39 @@ func _build_mesh_body() -> bool:
 
 	# tra index xương
 	for n in ["hips", "spine", "chest", "head", "thighL", "shinL", "thighR", "shinR",
-			"upperarmL", "forearmL", "upperarmR", "forearmR"]:
+			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
 
-	# tư thế nghỉ: hạ hai tay từ A-pose xuống sát thân
-	_set_rest("upperarmL", Quaternion(Vector3.FORWARD, ARM_REST_DROP))
-	_set_rest("upperarmR", Quaternion(Vector3.FORWARD, -ARM_REST_DROP))
-	_set_rest("forearmL", Quaternion(Vector3.RIGHT, 0.25))
-	_set_rest("forearmR", Quaternion(Vector3.RIGHT, 0.25))
+	# tư thế nghỉ: hạ hai tay từ A-pose xuống sát thân — tính từ hình học xương,
+	# xoay vector vai→cổ tay về thẳng đứng xuống (không dùng góc đoán)
+	_drop_arm("upperarmL", "handL")
+	_drop_arm("upperarmR", "handR")
 
 	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
 	for c in _body_parts:
 		c.visible = false
 	_body_parts = [inst]
 	return true
+
+
+# Hạ tay: xoay xương cánh tay sao cho vector vai→cổ tay chỉ thẳng xuống.
+# Xương rig chỉ có translation (parent global rotation = identity) nên góc tính ở
+# không gian skeleton == không gian local của xương.
+func _drop_arm(up_name: String, hand_name: String) -> void:
+	var bu: int = _bone.get(up_name, -1)
+	var bh: int = _bone.get(hand_name, -1)
+	if bu < 0 or bh < 0:
+		return
+	var sh := _skel.get_bone_global_rest(bu).origin
+	var wr := _skel.get_bone_global_rest(bh).origin
+	var dir := (wr - sh).normalized()
+	var down := Vector3.DOWN
+	var axis := dir.cross(down)
+	var q := Quaternion.IDENTITY
+	if axis.length() > 0.001:
+		q = Quaternion(axis.normalized(), dir.angle_to(down))
+	_bone_rest[bu] = q
+	_skel.set_bone_pose_rotation(bu, q)
 
 
 func _set_rest(name: String, q: Quaternion) -> void:

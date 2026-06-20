@@ -1,21 +1,24 @@
-# QA-ONLY (không phải code nâng cấp): render turntable 360° + chu kỳ đi bộ của
-# minh_player_rigged.glb ra shots/qa/ để đánh giá rig/anatomy/màu/dáng đi.
-# Chạy (CÓ render, KHÔNG --headless):
-#   tools\Godot_v4.5-stable_win64.exe --path . res://scenes/turntable.tscn
-# Ảnh lưu: shots/qa/turntable-00..23.png  và  shots/qa/walk-00..15.png
+# QA viewer (tương tác) cho minh_player_rigged.glb — xoay 360 + đi bộ, chỉnh tốc độ.
+# Chạy (CÓ render): tools\Godot_v4.5-stable_win64.exe --path . res://scenes/turntable.tscn
+# Phím:  ◄ ►  xoay tay   ·  ▲ ▼  tốc độ xoay   ·  Space  dừng/chạy xoay
+#        W  bật/tắt đi bộ ·  [ ]  tốc độ đi bộ  ·  S  chụp ảnh  ·  Esc  thoát
 extends Node3D
 
 const MODEL := "res://assets/models/minh_player_rigged.glb"
-const ARM_REST_DROP := 0.95
-const TURN_FRAMES := 24
-const WALK_FRAMES := 16
 const TARGET_H := 1.72
 
 var _skel: Skeleton3D
 var _bone := {}
 var _bone_rest := {}
 var _model: Node3D
-var _cam: Camera3D
+var _lbl: Label
+var _yaw := 0.0
+var _spin := 0.5          # rad/s
+var _spinning := true
+var _walking := true
+var _walk_speed := 1.0
+var _walk_t := 0.0
+var _snap := 0
 
 
 func _ready() -> void:
@@ -24,7 +27,7 @@ func _ready() -> void:
 	env.background_color = Color(0.16, 0.16, 0.19)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.55, 0.55, 0.6)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_energy = 0.6
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	var we := WorldEnvironment.new()
 	we.environment = env
@@ -40,13 +43,12 @@ func _ready() -> void:
 	fill.omni_range = 14.0
 	add_child(fill)
 
-	_cam = Camera3D.new()
-	_cam.position = Vector3(0, TARGET_H * 0.62, 3.2)
-	_cam.look_at(Vector3(0, TARGET_H * 0.55, 0))
-	add_child(_cam)
+	var cam := Camera3D.new()
+	cam.position = Vector3(0, TARGET_H * 0.6, 3.3)
+	cam.look_at(Vector3(0, TARGET_H * 0.52, 0))
+	add_child(cam)
 
-	var packed := load(MODEL) as PackedScene
-	_model = packed.instantiate()
+	_model = (load(MODEL) as PackedScene).instantiate()
 	add_child(_model)
 	_skel = _model.find_children("*", "Skeleton3D", true, false)[0]
 
@@ -66,59 +68,86 @@ func _ready() -> void:
 	_model.position.y = -min_y * s
 
 	for n in ["thighL", "shinL", "thighR", "shinR", "spine", "head",
-			"upperarmL", "forearmL", "upperarmR", "forearmR"]:
+			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
-	_set_rest("upperarmL", Quaternion(Vector3.FORWARD, ARM_REST_DROP))
-	_set_rest("upperarmR", Quaternion(Vector3.FORWARD, -ARM_REST_DROP))
-	_run()
+	_drop_arm("upperarmL", "handL")
+	_drop_arm("upperarmR", "handR")
+
+	var cl := CanvasLayer.new()
+	add_child(cl)
+	_lbl = Label.new()
+	_lbl.position = Vector2(16, 12)
+	_lbl.add_theme_color_override("font_color", Color(1, 0.86, 0.5))
+	cl.add_child(_lbl)
 
 
-func _set_rest(n: String, q: Quaternion) -> void:
-	var b: int = _bone.get(n, -1)
-	if b < 0:
+func _drop_arm(up_name: String, hand_name: String) -> void:
+	var bu: int = _bone.get(up_name, -1)
+	var bh: int = _bone.get(hand_name, -1)
+	if bu < 0 or bh < 0:
 		return
-	var base := _skel.get_bone_rest(b).basis.get_rotation_quaternion()
-	_bone_rest[b] = base * q
-	_skel.set_bone_pose_rotation(b, base * q)
+	var sh := _skel.get_bone_global_rest(bu).origin
+	var wr := _skel.get_bone_global_rest(bh).origin
+	var dir := (wr - sh).normalized()
+	var axis := dir.cross(Vector3.DOWN)
+	var q := Quaternion.IDENTITY
+	if axis.length() > 0.001:
+		q = Quaternion(axis.normalized(), dir.angle_to(Vector3.DOWN))
+	_bone_rest[bu] = q
+	_skel.set_bone_pose_rotation(bu, q)
 
 
 func _pose(n: String, q: Quaternion) -> void:
 	var b: int = _bone.get(n, -1)
 	if b < 0:
 		return
-	var rest: Quaternion = _bone_rest.get(b, _skel.get_bone_rest(b).basis.get_rotation_quaternion())
+	var rest: Quaternion = _bone_rest.get(b, Quaternion.IDENTITY)
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
-func _run() -> void:
-	var dir := ProjectSettings.globalize_path("res://shots/qa")
-	DirAccess.make_dir_recursive_absolute(dir)
-	await RenderingServer.frame_post_draw
-	# turntable 360
-	for i in range(TURN_FRAMES):
-		_model.rotation.y = TAU * float(i) / TURN_FRAMES
-		await RenderingServer.frame_post_draw
-		await RenderingServer.frame_post_draw
-		_shot(dir + "/turntable-%02d.png" % i)
-	# chu kỳ đi bộ (góc 3/4 sau lưng)
-	_model.rotation.y = PI + 0.5
-	for i in range(WALK_FRAMES):
-		var t := TAU * float(i) / WALK_FRAMES
-		var sw := sin(t) * 0.55
+func _process(delta: float) -> void:
+	if _spinning:
+		_yaw += _spin * delta
+	_model.rotation.y = _yaw
+	if _walking:
+		_walk_t += delta * 7.0 * _walk_speed
+		var sw := sin(_walk_t) * 0.5
 		_pose("thighL", Quaternion(Vector3.RIGHT, sw))
 		_pose("thighR", Quaternion(Vector3.RIGHT, -sw))
-		_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(t - 0.7)) * 0.9))
-		_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(t - 0.7 + PI)) * 0.9))
-		_pose("spine", Quaternion(Vector3.UP, sin(t) * 0.04))
-		_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.7))
-		_pose("upperarmR", Quaternion(Vector3.RIGHT, sw * 0.7))
-		await RenderingServer.frame_post_draw
-		await RenderingServer.frame_post_draw
-		_shot(dir + "/walk-%02d.png" % i)
-	print("QA SHOTS DONE -> ", dir)
-	get_tree().quit()
+		_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7)) * 0.9))
+		_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7 + PI)) * 0.9))
+		_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.6))
+		_pose("upperarmR", Quaternion(Vector3.RIGHT, sw * 0.6))
+	_lbl.text = "GÓC NHÌN QA — Minh\nxoay: %s (%.1f rad/s)   đi bộ: %s (x%.1f)\n◄►: xoay tay  ▲▼: tốc độ xoay  Space: dừng xoay\nW: đi bộ  [ ]: tốc độ đi  S: chụp  Esc: thoát" % [
+		"CHẠY" if _spinning else "DỪNG", _spin,
+		"BẬT" if _walking else "TẮT", _walk_speed]
 
 
-func _shot(path: String) -> void:
-	var img := get_viewport().get_texture().get_image()
-	img.save_png(path)
+func _unhandled_input(e: InputEvent) -> void:
+	if not (e is InputEventKey and e.pressed):
+		return
+	match e.keycode:
+		KEY_SPACE:
+			_spinning = not _spinning
+		KEY_LEFT:
+			_yaw -= 0.12
+		KEY_RIGHT:
+			_yaw += 0.12
+		KEY_UP:
+			_spin = minf(_spin + 0.15, 4.0)
+		KEY_DOWN:
+			_spin = maxf(_spin - 0.15, 0.0)
+		KEY_W:
+			_walking = not _walking
+		KEY_BRACKETLEFT:
+			_walk_speed = maxf(_walk_speed - 0.25, 0.0)
+		KEY_BRACKETRIGHT:
+			_walk_speed = minf(_walk_speed + 0.25, 4.0)
+		KEY_S:
+			var p := ProjectSettings.globalize_path("res://shots/qa")
+			DirAccess.make_dir_recursive_absolute(p)
+			var img := get_viewport().get_texture().get_image()
+			img.save_png(p + "/snap-%02d.png" % _snap)
+			_snap += 1
+		KEY_ESCAPE:
+			get_tree().quit()
