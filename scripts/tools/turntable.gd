@@ -19,6 +19,7 @@ var _walking := true
 var _walk_speed := 1.0
 var _walk_t := 0.0
 var _snap := 0
+var _capturing := false
 
 
 func _ready() -> void:
@@ -105,7 +106,26 @@ func _pose(n: String, q: Quaternion) -> void:
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
+func _capture_360() -> void:
+	_capturing = true
+	var dir := ProjectSettings.globalize_path("res://shots/qa")
+	DirAccess.make_dir_recursive_absolute(dir)
+	# tư thế đứng yên cho turntable sạch (dễ soi rig/skin)
+	for n in ["thighL", "thighR", "shinL", "shinR"]:
+		_pose(n, Quaternion.IDENTITY)
+	for i in range(24):
+		_model.rotation.y = TAU * float(i) / 24.0
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(dir + "/turntable-%02d.png" % i)
+	print("CHUP 360 XONG -> ", dir, " (turntable-00..23.png)")
+	_capturing = false
+
+
 func _process(delta: float) -> void:
+	if _capturing:
+		return
 	if _spinning:
 		_yaw += _spin * delta
 	_model.rotation.y = _yaw
@@ -118,7 +138,7 @@ func _process(delta: float) -> void:
 		_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7 + PI)) * 0.9))
 		_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.6))
 		_pose("upperarmR", Quaternion(Vector3.RIGHT, sw * 0.6))
-	_lbl.text = "GÓC NHÌN QA — Minh\nxoay: %s (%.1f rad/s)   đi bộ: %s (x%.1f)\n◄►: xoay tay  ▲▼: tốc độ xoay  Space: dừng xoay\nW: đi bộ  [ ]: tốc độ đi  S: chụp  Esc: thoát" % [
+	_lbl.text = "GÓC NHÌN QA — Minh\nxoay: %s (%.1f rad/s)   đi bộ: %s (x%.1f)\n◄►: xoay tay  ▲▼: tốc độ xoay  Space: dừng xoay\nW: đi bộ  [ ]: tốc độ đi  C: CHỤP 360°  S: chụp 1  Esc: thoát" % [
 		"CHẠY" if _spinning else "DỪNG", _spin,
 		"BẬT" if _walking else "TẮT", _walk_speed]
 
@@ -149,5 +169,8 @@ func _unhandled_input(e: InputEvent) -> void:
 			var img := get_viewport().get_texture().get_image()
 			img.save_png(p + "/snap-%02d.png" % _snap)
 			_snap += 1
+		KEY_C:
+			if not _capturing:
+				_capture_360()
 		KEY_ESCAPE:
 			get_tree().quit()
