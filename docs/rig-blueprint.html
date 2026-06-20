@@ -1,0 +1,332 @@
+<title>Bản vẽ rig — Nhân vật Minh</title>
+<style>
+  :root{
+    --ground:#141821;        /* sương đêm Hội An */
+    --ground-2:#1B2230;
+    --text:#E8E2D4;          /* giấy dó / xương */
+    --muted:#9AA3B0;
+    --accent:#F0A23C;        /* lửa lồng đèn — Sắc Hỏa */
+    --accent-2:#6E93A8;      /* xanh sương — chú thích phụ */
+    --bone:#BDB39A;
+    --bad:#D9694B;           /* đánh dấu sai */
+    --line:#2C3545;
+    --mono:"Consolas","Menlo","SF Mono",ui-monospace,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--ground); color:var(--text);
+    font-family:var(--serif); line-height:1.55;
+    background-image:
+      linear-gradient(transparent 95%, rgba(110,147,168,.045) 95%),
+      linear-gradient(90deg, transparent 95%, rgba(110,147,168,.045) 95%);
+    background-size:34px 34px;
+  }
+  .sheet{ max-width:1140px; margin:0 auto; padding:clamp(18px,4vw,46px); }
+
+  /* ---- header ---- */
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.32em;
+    text-transform:uppercase; color:var(--accent-2);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .eyebrow .rule{ height:1px; background:var(--line); flex:1; min-width:30px; }
+  .chip{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); border:1px solid var(--accent); border-radius:2px;
+    padding:3px 9px; white-space:nowrap;
+  }
+  h1{
+    font-family:var(--sans); font-weight:800;
+    font-size:clamp(28px,5.2vw,52px); line-height:1.02; letter-spacing:-.01em;
+    margin:.34em 0 .1em; text-transform:uppercase;
+  }
+  h1 em{ color:var(--accent); font-style:normal; }
+  .dek{ color:var(--muted); max-width:60ch; font-size:clamp(15px,1.6vw,17px); margin:0 0 8px; }
+
+  /* ---- main grid ---- */
+  .plate{
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(16px,2.4vw,34px);
+    margin-top:30px; align-items:stretch;
+  }
+  .card{
+    background:linear-gradient(180deg,var(--ground-2),rgba(27,34,48,.4));
+    border:1px solid var(--line); border-radius:6px; padding:clamp(14px,2vw,22px);
+  }
+  .card h2{
+    font-family:var(--mono); font-size:12px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--accent-2); margin:0 0 14px; font-weight:600;
+    display:flex; gap:10px; align-items:baseline;
+  }
+  .card h2 .no{ color:var(--accent); }
+
+  figure{ margin:0; }
+  .figwrap{ width:100%; overflow-x:auto; }
+  svg{ display:block; width:100%; height:auto; }
+
+  .legend{ font-family:var(--mono); font-size:11.5px; color:var(--muted); display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; }
+  .legend span{ display:inline-flex; align-items:center; gap:7px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  /* ---- bone tree ---- */
+  .tree{ font-family:var(--mono); font-size:13.5px; line-height:1.95; color:var(--bone); margin:0; white-space:pre; overflow-x:auto; }
+  .tree b{ color:var(--text); font-weight:600; }
+  .tree .new{ color:var(--accent); font-weight:700; }
+  .tree .hand{ color:var(--accent-2); }
+  .note{ font-family:var(--serif); font-size:14px; color:var(--muted); margin:16px 0 0; border-left:2px solid var(--accent); padding-left:12px; }
+  .note .lant{ color:var(--accent); font-family:var(--mono); font-size:12.5px; }
+
+  /* ---- defects ---- */
+  .defects{ margin-top:clamp(16px,2.4vw,34px); }
+  table{ width:100%; border-collapse:collapse; font-size:14.5px; }
+  thead th{
+    font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent-2); text-align:left; padding:0 14px 10px; border-bottom:1px solid var(--line); font-weight:600;
+  }
+  tbody td{ padding:13px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .sym{ color:var(--bad); font-family:var(--sans); font-weight:600; width:26%; }
+  .cause{ color:var(--muted); width:42%; }
+  .fix{ color:var(--text); }
+  .fix code, .cause code{ font-family:var(--mono); font-size:12.5px; color:var(--accent); background:rgba(240,162,60,.08); padding:1px 5px; border-radius:3px; }
+
+  /* ---- phases ---- */
+  .phases{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-top:clamp(16px,2.4vw,34px); }
+  .ph{ border:1px solid var(--line); border-radius:5px; padding:12px 11px; background:var(--ground-2); }
+  .ph .k{ font-family:var(--mono); font-size:12px; color:var(--accent); letter-spacing:.08em; display:flex; justify-content:space-between; }
+  .ph .t{ font-family:var(--sans); font-weight:700; font-size:14px; margin:7px 0 4px; }
+  .ph .d{ font-size:12.5px; color:var(--muted); line-height:1.4; }
+  .ph.done{ border-color:var(--accent); }
+  .ph.done .k{ color:var(--accent); }
+  .ph.pending .t::after{ content:""; }
+
+  /* ---- title block ---- */
+  .titleblock{
+    margin-top:36px; border:1px solid var(--line); border-radius:6px; overflow:hidden;
+    display:grid; grid-template-columns:repeat(4,1fr); font-family:var(--mono); font-size:12px;
+  }
+  .titleblock div{ padding:13px 15px; border-right:1px solid var(--line); }
+  .titleblock div:last-child{ border-right:none; }
+  .titleblock .lbl{ color:var(--accent-2); letter-spacing:.14em; text-transform:uppercase; font-size:10px; display:block; margin-bottom:5px; }
+  .titleblock .val{ color:var(--text); }
+  .titleblock .val.hot{ color:var(--accent); }
+
+  @media (max-width:760px){
+    .plate{ grid-template-columns:1fr; }
+    .phases{ grid-template-columns:repeat(2,1fr); }
+    .titleblock{ grid-template-columns:repeat(2,1fr); }
+    .titleblock div:nth-child(2){ border-right:none; }
+    .sym,.cause,.fix{ width:auto; }
+  }
+
+  .glow{ transform-box:fill-box; transform-origin:center; }
+  @media (prefers-reduced-motion:no-preference){
+    .glow{ animation:pulse 3.4s ease-in-out infinite; }
+    @keyframes pulse{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+  }
+  a{ color:var(--accent); }
+</style>
+
+<div class="sheet">
+
+  <div class="eyebrow">
+    <span>Bản vẽ kỹ thuật · Rig nhân vật</span>
+    <span class="rule"></span>
+    <span class="chip">Chờ duyệt</span>
+  </div>
+
+  <h1>Bộ xương giải phẫu —<br><em>Nhân vật Minh</em></h1>
+  <p class="dek">Đặt lại từng khớp theo mốc cơ thể người (chuẩn Loomis 8 đầu · Unity Humanoid), thay cho rig heuristic hiện tại. Mỗi khớp neo vào một mốc giải phẫu có thật, không đặt áng chừng.</p>
+
+  <div class="plate">
+
+    <!-- ===== FIGURE ===== -->
+    <div class="card">
+      <h2><span class="no">A.</span> Mặt đứng · thước mốc khớp</h2>
+      <figure>
+      <div class="figwrap">
+      <svg viewBox="0 0 460 740" role="img" aria-label="Hình người đứng với các mốc khớp theo phần trăm chiều cao và sào đèn lồng gắn vào tay phải">
+        <defs>
+          <radialGradient id="lan" cx="50%" cy="42%" r="60%">
+            <stop offset="0%" stop-color="#FFD37A"/>
+            <stop offset="55%" stop-color="#F0A23C"/>
+            <stop offset="100%" stop-color="#C9742A"/>
+          </radialGradient>
+        </defs>
+
+        <!-- landmark rulers -->
+        <g font-family="Consolas,monospace" font-size="11" fill="#6E93A8">
+          <!-- y, %H, label vietnamese, bone -->
+          <g stroke="#2C3545" stroke-dasharray="3 4">
+            <line x1="120" y1="40"  x2="430" y2="40"/>
+            <line x1="120" y1="128" x2="430" y2="128"/>
+            <line x1="120" y1="162" x2="430" y2="162"/>
+            <line x1="120" y1="230" x2="430" y2="230"/>
+            <line x1="120" y1="298" x2="430" y2="298"/>
+            <line x1="120" y1="394" x2="430" y2="394"/>
+            <line x1="120" y1="550" x2="430" y2="550"/>
+            <line x1="120" y1="686" x2="430" y2="686"/>
+          </g>
+          <text x="18" y="44">100%  ĐỈNH ĐẦU</text>
+          <text x="18" y="132">87%   CẰM</text>
+          <text x="18" y="166" fill="#F0A23C">82%   VAI · clavicle</text>
+          <text x="18" y="234">72%   NGỰC · chest</text>
+          <text x="18" y="302" fill="#F0A23C">62%   RỐN ≈ KHUỶU</text>
+          <text x="18" y="398" fill="#F0A23C">48%   HÁNG ≈ CỔ TAY</text>
+          <text x="18" y="554">25%   GỐI · shin</text>
+          <text x="18" y="690">5%    CỔ CHÂN · foot</text>
+        </g>
+
+        <!-- silhouette -->
+        <path d="M230 70
+                 C246 70 256 84 256 102 C256 118 248 130 238 134
+                 C262 140 268 158 270 178 L290 300 L300 392 L286 396 L272 300 L268 232
+                 L268 300 C268 360 264 430 262 470 L256 690 L246 690 L240 480
+                 L230 470 L220 480 L214 690 L204 690 L198 470
+                 C196 430 192 360 192 300 L192 232 L188 300 L174 396 L160 392 L170 300 L190 178
+                 C192 158 198 140 222 134 C212 130 204 118 204 102 C204 84 214 70 230 70 Z"
+              fill="#BDB39A" fill-opacity="0.07" stroke="#BDB39A" stroke-opacity="0.18" stroke-width="1"/>
+
+        <!-- bones -->
+        <g stroke="#BDB39A" stroke-width="3.2" stroke-linecap="round" fill="none" opacity="0.9">
+          <!-- spine chain -->
+          <line x1="230" y1="110" x2="230" y2="150"/>
+          <line x1="230" y1="150" x2="230" y2="258"/>
+          <line x1="230" y1="258" x2="230" y2="346"/>
+          <line x1="230" y1="346" x2="230" y2="394"/>
+          <!-- left arm -->
+          <line x1="230" y1="165" x2="190" y2="165"/>
+          <line x1="190" y1="165" x2="178" y2="298"/>
+          <line x1="178" y1="298" x2="170" y2="394"/>
+          <line x1="170" y1="394" x2="166" y2="424"/>
+          <!-- right arm -->
+          <line x1="230" y1="165" x2="270" y2="165"/>
+          <line x1="270" y1="165" x2="282" y2="298"/>
+          <line x1="282" y1="298" x2="290" y2="394"/>
+          <line x1="290" y1="394" x2="294" y2="424"/>
+          <!-- left leg -->
+          <line x1="230" y1="394" x2="206" y2="400"/>
+          <line x1="206" y1="400" x2="200" y2="550"/>
+          <line x1="200" y1="550" x2="196" y2="686"/>
+          <line x1="196" y1="686" x2="190" y2="712"/>
+          <!-- right leg -->
+          <line x1="230" y1="394" x2="254" y2="400"/>
+          <line x1="254" y1="400" x2="260" y2="550"/>
+          <line x1="260" y1="550" x2="264" y2="686"/>
+          <line x1="264" y1="686" x2="270" y2="712"/>
+        </g>
+
+        <!-- lantern pole on right hand -->
+        <g>
+          <line x1="294" y1="424" x2="318" y2="150" stroke="#8A6A3A" stroke-width="4" stroke-linecap="round"/>
+          <line x1="318" y1="150" x2="352" y2="196" stroke="#8A6A3A" stroke-width="4" stroke-linecap="round"/>
+          <line x1="352" y1="196" x2="352" y2="214" stroke="#7A5A30" stroke-width="2"/>
+          <circle class="glow" cx="352" cy="246" r="30" fill="url(#lan)"/>
+          <ellipse cx="352" cy="246" rx="18" ry="26" fill="none" stroke="#C9742A" stroke-width="1.4" opacity="0.7"/>
+          <text x="352" y="300" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#F0A23C">đèn lồng</text>
+        </g>
+
+        <!-- joints -->
+        <g fill="#F0A23C" stroke="#141821" stroke-width="1.5">
+          <circle cx="230" cy="110" r="5.5"/>  <!-- head -->
+          <circle cx="230" cy="150" r="5"/>     <!-- neck -->
+          <circle cx="230" cy="258" r="5.5"/>  <!-- chest -->
+          <circle cx="230" cy="346" r="5"/>     <!-- spine -->
+          <circle cx="230" cy="394" r="6.5"/>  <!-- hips -->
+          <circle cx="190" cy="165" r="5"/><circle cx="270" cy="165" r="5"/>
+          <circle cx="178" cy="298" r="5"/><circle cx="282" cy="298" r="5"/>
+          <circle cx="170" cy="394" r="4.5"/><circle cx="290" cy="394" r="6"/>
+          <circle cx="206" cy="400" r="5"/><circle cx="254" cy="400" r="5"/>
+          <circle cx="200" cy="550" r="5"/><circle cx="260" cy="550" r="5"/>
+          <circle cx="196" cy="686" r="4.5"/><circle cx="264" cy="686" r="4.5"/>
+        </g>
+        <!-- head circle -->
+        <circle cx="230" cy="88" r="22" fill="none" stroke="#BDB39A" stroke-width="2.2" opacity="0.55"/>
+        <!-- new-bone markers -->
+        <g font-family="Consolas,monospace" font-size="10.5" fill="#F0A23C">
+          <text x="238" y="148">+ neck</text>
+          <text x="272" y="730" text-anchor="middle">+ toe</text>
+          <text x="298" y="408" fill="#6E93A8">handR ►</text>
+        </g>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#F0A23C"></span>khớp · joint</span>
+        <span><span class="dot" style="background:#BDB39A"></span>xương · bone</span>
+        <span><span class="dot" style="background:#6E93A8"></span>thước mốc %H</span>
+      </div>
+      </figure>
+    </div>
+
+    <!-- ===== TREE + LANTERN ===== -->
+    <div class="card">
+      <h2><span class="no">B.</span> Cây xương đích · ~20 khớp</h2>
+<pre class="tree"><b>Hips</b>
+├─ <b>Spine</b> ─ <b>Chest</b>
+│   ├─ <span class="new">Neck</span> ─ <b>Head</b>
+│   ├─ ClavicleL ─ UpperArmL ─ ForearmL ─ <span class="hand">HandL</span>
+│   └─ ClavicleR ─ UpperArmR ─ ForearmR ─ <span class="hand">HandR ◄ đèn</span>
+├─ ThighL ─ ShinL ─ FootL ─ <span class="new">ToeL</span>
+└─ ThighR ─ ShinR ─ FootR ─ <span class="new">ToeR</span></pre>
+      <p class="note">
+        Rig hiện tại có 18 xương nhưng <b>thiếu Neck + Toe</b> và đặt khớp áng chừng.
+        Khác biệt cốt lõi không phải số xương — mà là <b>tọa độ khớp neo theo mốc giải phẫu</b> ở cột A.
+      </p>
+      <p class="note">
+        <span class="lant">Đạo cụ:</span> sào đèn gắn bằng <span class="lant">BoneAttachment3D → HandR</span>,
+        tư thế tay phải nắm sào ghì vai. Hết cảnh “đèn lơ lửng cạnh vai”.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== DEFECTS ===== -->
+  <div class="card defects">
+    <h2><span class="no">C.</span> Lỗi hiện tại → cách sửa</h2>
+    <table>
+      <thead><tr><th>Triệu chứng</th><th>Nguyên nhân (trong code)</th><th>Sửa</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="sym">Tay cầm đèn kỳ lạ</td>
+          <td class="cause">Sào ghim ở offset vai của thân primitive cũ <code>(0.18,1.42,0.05)</code>, không có bàn tay nắm.</td>
+          <td class="fix">Gắn <code>BoneAttachment3D</code> vào <code>HandR</code>; pose tay phải ghì sào.</td>
+        </tr>
+        <tr>
+          <td class="sym">Khớp sai vị trí</td>
+          <td class="cause">Khuỷu = trung điểm vai↔tay; vai cố định <code>0.80×H</code>; bàn tay = đỉnh xa nhất.</td>
+          <td class="fix">Đặt theo mốc: khuỷu@rốn 62%, cổ tay@háng 48%, vai@82%.</td>
+        </tr>
+        <tr>
+          <td class="sym">Dáng đi cứng</td>
+          <td class="cause">Skin “đoạn-xương gần nhất” rỉ ở nách/háng; sin thô, không cổ chân, không lắc hông.</td>
+          <td class="fix">Vùng trọng số giải phẫu + chu kỳ đi: lắc hông, đảo bàn chân, vung tay đúng trục.</td>
+        </tr>
+        <tr>
+          <td class="sym">Màu nhợt</td>
+          <td class="cause">Chỉ có vertex-color Hunyuan; mesh <code>76k đỉnh, KHÔNG UV/texture</code>.</td>
+          <td class="fix">Material da + áo chàm + nón; hoặc sinh UV (xatlas) + bake texture.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== PHASES ===== -->
+  <div class="phases">
+    <div class="ph done"><div class="k">R0 <span>✓</span></div><div class="t">Nhìn được</div><div class="d">Turntable + walk → shots/qa</div></div>
+    <div class="ph pending"><div class="k">R1 <span>○</span></div><div class="t">Rig giải phẫu</div><div class="d">Đặt khớp theo mốc + Neck/Toe</div></div>
+    <div class="ph pending"><div class="k">R2 <span>○</span></div><div class="t">Skin sạch</div><div class="d">Trọng số vùng, hết rỉ nách/háng</div></div>
+    <div class="ph pending"><div class="k">R3 <span>○</span></div><div class="t">Dáng đi</div><div class="d">Lắc hông · đảo chân · vung tay</div></div>
+    <div class="ph pending"><div class="k">R4 <span>○</span></div><div class="t">Đèn vào tay</div><div class="d">BoneAttachment → HandR</div></div>
+    <div class="ph pending"><div class="k">R5 <span>○</span></div><div class="t">Màu/chất liệu</div><div class="d">Da+áo, hoặc UV+texture</div></div>
+  </div>
+
+  <!-- ===== TITLE BLOCK ===== -->
+  <div class="titleblock">
+    <div><span class="lbl">Bản vẽ số</span><span class="val">HHDL-RIG-001</span></div>
+    <div><span class="lbl">Mesh nguồn</span><span class="val">minh_apose_0.glb · 76.624 đỉnh</span></div>
+    <div><span class="lbl">Chuẩn</span><span class="val">Loomis 8-đầu · Unity Humanoid</span></div>
+    <div><span class="lbl">Trạng thái</span><span class="val hot">CHỜ DUYỆT · chưa code</span></div>
+  </div>
+
+</div>
