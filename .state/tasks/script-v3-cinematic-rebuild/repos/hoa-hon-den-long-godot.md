@@ -35,7 +35,10 @@
 - Committed third-person camera `da53de8`: V cycles First -> Third(orbit) -> Follow; player.gd gains cam_relative+view_yaw.
 - Committed QA turntable `285c599` (scenes/turntable.tscn + scripts/tools/turntable.gd): renders 360 + walk to shots/qa/. This env CANNOT render (no display/GPU) — user must run locally and send frames.
 - Blueprint HHDL-RIG-001 APPROVED by user 2026-06-20 (docs/rig-blueprint.svg + .html). Phased R0-R5 underway, QA (turntable) between phases.
-- R1 DONE `16556e8`: rig_glb_player.py v2 = 21-bone anatomical rig (added Neck + Toe L/R; joints at Loomis/Unity-Humanoid landmarks; elbow=0.45 / wrist=0.82 along shoulder->fingertip on the A-pose arm axis). minh_player_rigged.glb regenerated, vertex-colors kept. Gates green. AWAITING user turntable QA of joint placement before R2 (skin refine) — only do R2 if R1 turntable shows armpit/crotch bleed.
+- R1 DONE `16556e8`: 21-bone anatomical rig (Neck+Toe). User QA'd 24-frame turntable: arms were "zombie/giua nguc" — A-pose arm-drop tore shoulders.
+- ARM FIX `61c0f66`: re-rig source switched A-pose -> minh_shape_0.glb (arms already DOWN), removed _drop_arm entirely (rig_glb_player.py arm_down = vertical side column). Gates green.
+- R4 lantern `3c3640d`: pole base follows handR global_position each frame -> lantern carried in RIGHT hand; LEFT arm swings on walk (1 tay cam den, 1 tay dung dua per user). NOTE: turntable QA loads mesh only (no pole) -> lantern must be verified IN-GAME (run game, press V to third-person).
+- AWAITING: user re-runs cap360 (arms) + in-game check (lantern/arm-swing). Pending after arms OK: nón lá authenticity (mesh hat is generic cone -> regenerate or overlay procedural nón lá), walk "đi lùi" (MESH_YAW_OFFSET / leg phase, verify in-game), color R5 (vertex-color ~white).
 - Next repo step (PENDING APPROVAL — do not code yet): rig redesign per anatomy — calibrate joint placement (Loomis/Unity-Humanoid landmarks: shoulder line, elbow ~navel, wrist ~upper-thigh), add neck + foot ball, anatomical skinning (fix armpit/crotch bleed), proper rest pose + walk cycle (pelvis sway, foot roll, correct arm-swing axis), attach lantern to handR via BoneAttachment3D, skin/cloth material (or UV+texture gen since mesh is geometry-only). Then Phase B of C1 (widen the T). Then reflection rules, input/collision QA, audio/caption timing.
 - Blocked on: none
 
