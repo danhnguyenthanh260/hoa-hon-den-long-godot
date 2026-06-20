@@ -8,6 +8,15 @@ const Textures := preload("res://scripts/textures.gd")
 
 const SPEED := 4.0
 
+# ---- thân mesh (Đường 2): mesh AI rig đầy đủ tay thay cho thân primitive ----
+# Đặt false để quay lại thân primitive cũ ngay (an toàn, không phá gì).
+const USE_MESH_BODY := true
+const MESH_PATH := "res://assets/models/minh_player_rigged.glb"
+const MESH_TARGET_HEIGHT := 1.72
+const MESH_YAW_OFFSET := PI          # xoay mesh khớp hướng nhìn (-Z) — tinh chỉnh khi xem
+# hạ tay từ A-pose xuống tự nhiên (radian, quanh trục Z ở vai)
+const ARM_REST_DROP := 0.95
+
 const COLOR_DEFS := {
 	"hoa": {"name": "Hỏa", "color": Color(1.0, 0.3, 0.1), "num": 1, "keys": [KEY_1, KEY_KP_1]},
 	"thuy": {"name": "Thủy", "color": Color(0.25, 0.55, 1.0), "num": 2, "keys": [KEY_2, KEY_KP_2]},
@@ -53,6 +62,13 @@ var _head: Node3D
 
 # chất liệu
 var _robe_mat: StandardMaterial3D
+
+# mesh body
+var _skel: Skeleton3D
+var _glb_root: Node3D
+var _bone: Dictionary = {}        # tên xương -> index
+var _bone_rest: Dictionary = {}   # index -> Quaternion nghỉ (sau khi hạ tay)
+var _use_mesh := false            # thật sự đang chạy thân mesh?
 
 
 func _ready() -> void:
@@ -234,12 +250,103 @@ func _ready() -> void:
 			_body_parts.append(c)
 	_disable_shadow_casting(self)
 
+	# Đường 2: thay thân primitive bằng mesh AI rig đầy đủ tay (nếu bật + load được)
+	if USE_MESH_BODY and _build_mesh_body():
+		_use_mesh = true
+
 
 func _disable_shadow_casting(node: Node) -> void:
 	if node is GeometryInstance3D:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():
 		_disable_shadow_casting(child)
+
+
+# ---- Đường 2: dựng thân từ mesh AI rig (minh_player_rigged.glb) ----
+func _build_mesh_body() -> bool:
+	var packed = load(MESH_PATH)
+	if packed == null:
+		push_warning("player: khong load duoc " + MESH_PATH + " — quay ve thân primitive")
+		return false
+	var inst: Node3D = packed.instantiate()
+	var skels := inst.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		push_warning("player: mesh khong co Skeleton3D — quay ve thân primitive")
+		inst.queue_free()
+		return false
+	_skel = skels[0]
+	_glb_root = inst
+	_visual.add_child(inst)
+	inst.rotation.y = MESH_YAW_OFFSET
+
+	# vật liệu: dùng vertex-color đã nướng từ Hunyuan làm albedo, đắp thêm da ấm
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = Color(0.9, 0.85, 0.8)
+	mat.roughness = 0.7
+	var meshes := inst.find_children("*", "MeshInstance3D", true, false)
+	var min_y := 1e9
+	var max_y := -1e9
+	for mi in meshes:
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var ab: AABB = mi.get_aabb()
+		min_y = minf(min_y, ab.position.y)
+		max_y = maxf(max_y, ab.position.y + ab.size.y)
+
+	# scale về chiều cao mong muốn + đặt chân chạm y=0
+	var h := maxf(max_y - min_y, 0.01)
+	var s := MESH_TARGET_HEIGHT / h
+	inst.scale = Vector3(s, s, s)
+	inst.position.y = -min_y * s
+
+	# tra index xương
+	for n in ["hips", "spine", "chest", "head", "thighL", "shinL", "thighR", "shinR",
+			"upperarmL", "forearmL", "upperarmR", "forearmR"]:
+		_bone[n] = _skel.find_bone(n)
+
+	# tư thế nghỉ: hạ hai tay từ A-pose xuống sát thân
+	_set_rest("upperarmL", Quaternion(Vector3.FORWARD, ARM_REST_DROP))
+	_set_rest("upperarmR", Quaternion(Vector3.FORWARD, -ARM_REST_DROP))
+	_set_rest("forearmL", Quaternion(Vector3.RIGHT, 0.25))
+	_set_rest("forearmR", Quaternion(Vector3.RIGHT, 0.25))
+
+	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
+	for c in _body_parts:
+		c.visible = false
+	_body_parts = [inst]
+	return true
+
+
+func _set_rest(name: String, q: Quaternion) -> void:
+	var b: int = _bone.get(name, -1)
+	if b < 0:
+		return
+	var base := _skel.get_bone_rest(b).basis.get_rotation_quaternion()
+	var r := base * q
+	_bone_rest[b] = r
+	_skel.set_bone_pose_rotation(b, r)
+
+
+func _pose(name: String, q: Quaternion) -> void:
+	var b: int = _bone.get(name, -1)
+	if b < 0:
+		return
+	var rest: Quaternion = _bone_rest.get(b, _skel.get_bone_rest(b).basis.get_rotation_quaternion())
+	_skel.set_bone_pose_rotation(b, rest * q)
+
+
+# dáng đi cho thân mesh: chân vung, gối gập, tay trái vung, thân/đầu nhún nhẹ
+func _animate_mesh(sw: float) -> void:
+	_pose("thighL", Quaternion(Vector3.RIGHT, sw))
+	_pose("thighR", Quaternion(Vector3.RIGHT, -sw))
+	_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_anim_t - 0.7)) * 0.9 * _gait))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.9 * _gait))
+	_pose("spine", Quaternion(Vector3.UP, sin(_anim_t) * 0.04 * _gait))
+	_pose("head", Quaternion(Vector3.UP, sin(_anim_t * 0.5) * 0.05))
+	# tay trái vung theo nhịp (cộng vào tư thế nghỉ đã hạ)
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.7))
+	_pose("forearmL", Quaternion(Vector3.RIGHT, maxf(0.0, sw) * 0.4))
 
 
 func set_near_house(v: bool) -> void:
@@ -354,25 +461,30 @@ func _process(delta: float) -> void:
 	# nhún người theo nhịp (2 nhịp mỗi chu kỳ chân)
 	_visual.position.y = absf(sin(_anim_t)) * 0.045 * _gait + sin(_anim_t * 0.35) * 0.006 * (1.0 - _gait)
 
-	# chân: đùi vung, gối gập lúc chân vung tới
+	# nhịp sải chân chung cho cả hai chế độ
 	var sw := sin(_anim_t) * 0.55 * _gait
-	_leg_l.rotation.x = sw
-	_leg_r.rotation.x = -sw
-	_knee_l.rotation.x = maxf(0.0, sin(_anim_t - 0.7)) * 0.85 * _gait
-	_knee_r.rotation.x = maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.85 * _gait
 
-	# tay trái vung ngược chân trái
-	_arm_swing.rotation.x = -sw * 0.75
-	_elbow_swing.rotation.x = -0.25 - maxf(0.0, -sw) * 0.5
+	if _use_mesh:
+		_animate_mesh(sw)
+	else:
+		# chân: đùi vung, gối gập lúc chân vung tới
+		_leg_l.rotation.x = sw
+		_leg_r.rotation.x = -sw
+		_knee_l.rotation.x = maxf(0.0, sin(_anim_t - 0.7)) * 0.85 * _gait
+		_knee_r.rotation.x = maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.85 * _gait
 
-	# tà áo bay: phất ra sau khi bước + rung nhẹ
-	var trail := 0.32 * _gait
-	_flap_f.rotation.x = trail + sin(_anim_t * 2.0 + 0.6) * 0.07 * _gait + sin(_anim_t * 0.35) * 0.015
-	_flap_b.rotation.x = -trail - sin(_anim_t * 2.0) * 0.07 * _gait - sin(_anim_t * 0.35) * 0.015
+		# tay trái vung ngược chân trái
+		_arm_swing.rotation.x = -sw * 0.75
+		_elbow_swing.rotation.x = -0.25 - maxf(0.0, -sw) * 0.5
 
-	# đầu giữ thăng bằng (nghiêng ngược thân một chút)
-	_head.rotation.x = -_visual.rotation.x * 0.6
-	_head.rotation.z = -_visual.rotation.z * 0.5
+		# tà áo bay: phất ra sau khi bước + rung nhẹ
+		var trail := 0.32 * _gait
+		_flap_f.rotation.x = trail + sin(_anim_t * 2.0 + 0.6) * 0.07 * _gait + sin(_anim_t * 0.35) * 0.015
+		_flap_b.rotation.x = -trail - sin(_anim_t * 2.0) * 0.07 * _gait - sin(_anim_t * 0.35) * 0.015
+
+		# đầu giữ thăng bằng (nghiêng ngược thân một chút)
+		_head.rotation.x = -_visual.rotation.x * 0.6
+		_head.rotation.z = -_visual.rotation.z * 0.5
 
 	# đèn lồng đong đưa theo quán tính
 	_hang.rotation.x = sin(_anim_t * (1.0 if walking else 0.55)) * (0.13 * _gait + 0.045)
