@@ -314,7 +314,7 @@ func _build_mesh_body() -> bool:
 	var _fr: int = _bone.get("forearmR", -1)
 	if _fr >= 0:
 		var _rr := _skel.get_bone_rest(_fr).basis.get_rotation_quaternion()
-		_skel.set_bone_pose_rotation(_fr, _rr * Quaternion(Vector3.RIGHT, -1.0))
+		_skel.set_bone_pose_rotation(_fr, _rr * Quaternion(Vector3.RIGHT, -0.5))
 
 	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
 	for c in _body_parts:

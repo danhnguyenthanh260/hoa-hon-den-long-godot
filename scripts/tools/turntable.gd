@@ -77,7 +77,7 @@ func _ready() -> void:
 	var fr: int = _bone.get("forearmR", -1)
 	if fr >= 0:
 		var rr := _skel.get_bone_rest(fr).basis.get_rotation_quaternion()
-		_skel.set_bone_pose_rotation(fr, rr * Quaternion(Vector3.RIGHT, -1.0))
+		_skel.set_bone_pose_rotation(fr, rr * Quaternion(Vector3.RIGHT, -0.5))
 	# đèn lồng (vật phẩm riêng) cầm tay phải
 	_hand_bone = _bone.get("handR", -1)
 	_lantern = preload("res://scripts/lantern.gd").new()
