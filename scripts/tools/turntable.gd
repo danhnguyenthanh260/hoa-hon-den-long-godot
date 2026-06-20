@@ -70,7 +70,7 @@ func _ready() -> void:
 	_model.scale = Vector3(s, s, s)
 	_model.position.y = -min_y * s
 
-	for n in ["thighL", "shinL", "thighR", "shinR", "spine", "head",
+	for n in ["thighL", "shinL", "footL", "thighR", "shinR", "footR", "spine", "head",
 			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
 	# tay-buông: không hạ tay; co nhẹ khuỷu phải đưa đèn ra trước
@@ -121,6 +121,22 @@ func _pose(n: String, q: Quaternion) -> void:
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
+func _walk_pose(p: float) -> void:
+	var legL := sin(p)
+	var legR := sin(p + PI)
+	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.5))
+	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.5))
+	var liftL := clampf(sin(p + 1.4), 0.0, 1.0)
+	var liftR := clampf(sin(p + PI + 1.4), 0.0, 1.0)
+	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 1.1))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 1.1))
+	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.4))
+	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.4))
+	_pose("spine", Quaternion(Vector3.UP, legL * 0.05))
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.5))
+	# tay phải giữ đèn — không vung
+
+
 func _capture_360() -> void:
 	_capturing = true
 	# folder debug riêng, dọn ảnh cũ trước
@@ -161,13 +177,7 @@ func _process(delta: float) -> void:
 		_lantern.rotation.y = _yaw
 	if _walking:
 		_walk_t += delta * 7.0 * _walk_speed
-		var sw := sin(_walk_t) * 0.5
-		_pose("thighL", Quaternion(Vector3.RIGHT, sw))
-		_pose("thighR", Quaternion(Vector3.RIGHT, -sw))
-		_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7)) * 0.9))
-		_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7 + PI)) * 0.9))
-		_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.6))
-		# tay phải giữ đèn — không vung
+		_walk_pose(_walk_t)
 	_lbl.text = "GÓC NHÌN QA — Minh\nxoay: %s (%.1f rad/s)   đi bộ: %s (x%.1f)\n◄►: xoay tay  ▲▼: tốc độ xoay  Space: dừng xoay\nW: đi bộ  [ ]: tốc độ đi  C: CHỤP 360°  S: chụp 1  Esc: thoát" % [
 		"CHẠY" if _spinning else "DỪNG", _spin,
 		"BẬT" if _walking else "TẮT", _walk_speed]

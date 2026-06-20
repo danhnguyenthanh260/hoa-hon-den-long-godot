@@ -361,17 +361,31 @@ func _pose(name: String, q: Quaternion) -> void:
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
-# dáng đi cho thân mesh: chân vung, gối gập, tay trái vung, thân/đầu nhún nhẹ
-func _animate_mesh(sw: float) -> void:
-	_pose("thighL", Quaternion(Vector3.RIGHT, sw))
-	_pose("thighR", Quaternion(Vector3.RIGHT, -sw))
-	_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_anim_t - 0.7)) * 0.9 * _gait))
-	_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.9 * _gait))
-	_pose("spine", Quaternion(Vector3.UP, sin(_anim_t) * 0.04 * _gait))
-	_pose("head", Quaternion(Vector3.UP, sin(_anim_t * 0.5) * 0.05))
-	# tay trái vung theo nhịp (cộng vào tư thế nghỉ đã hạ)
-	_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.7))
-	_pose("forearmL", Quaternion(Vector3.RIGHT, maxf(0.0, sw) * 0.4))
+# dáng đi cho thân mesh: chân vung + NHẤC bàn chân (hết trượt "đi lùi"), tay trái vung.
+# WALK_DIR đảo chiều sải nếu vẫn thấy bước lùi (1.0 hoặc -1.0).
+const WALK_DIR := 1.0
+func _animate_mesh(_sw: float) -> void:
+	var p := _anim_t
+	var g := _gait
+	var legL := sin(p) * WALK_DIR
+	var legR := sin(p + PI) * WALK_DIR
+	# đùi vung đối xứng (trái/phải ngược pha)
+	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.5 * g))
+	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.5 * g))
+	# gối gập NHẤC bàn chân khi chân đưa tới — hết cảm giác trượt/đi lùi
+	var liftL := clampf(sin(p + 1.4) * WALK_DIR, 0.0, 1.0)
+	var liftR := clampf(sin(p + PI + 1.4) * WALK_DIR, 0.0, 1.0)
+	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 1.1 * g))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 1.1 * g))
+	# bàn chân hất mũi khi nhấc
+	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.4 * g))
+	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.4 * g))
+	# thân + đầu đảo nhẹ
+	_pose("spine", Quaternion(Vector3.UP, legL * 0.05 * g))
+	_pose("head", Quaternion(Vector3.UP, sin(p * 0.5) * 0.04))
+	# tay trái vung ngược chân trái (tay phải giữ đèn — không đụng)
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.5 * g))
+	_pose("forearmL", Quaternion(Vector3.RIGHT, (0.3 + maxf(0.0, legL) * 0.3) * g))
 
 
 func set_near_house(v: bool) -> void:
