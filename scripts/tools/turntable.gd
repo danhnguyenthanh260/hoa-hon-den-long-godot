@@ -81,6 +81,12 @@ func _ready() -> void:
 	_lbl.add_theme_color_override("font_color", Color(1, 0.86, 0.5))
 	cl.add_child(_lbl)
 
+	# tự chụp trọn 360 rồi thoát khi chạy với "-- cap360"
+	if "cap360" in OS.get_cmdline_user_args():
+		await get_tree().process_frame
+		await _capture_360()
+		get_tree().quit()
+
 
 func _drop_arm(up_name: String, hand_name: String) -> void:
 	var bu: int = _bone.get(up_name, -1)
@@ -108,8 +114,14 @@ func _pose(n: String, q: Quaternion) -> void:
 
 func _capture_360() -> void:
 	_capturing = true
-	var dir := ProjectSettings.globalize_path("res://shots/qa")
+	# folder debug riêng, dọn ảnh cũ trước
+	var dir := ProjectSettings.globalize_path("res://shots/qa/debug360")
 	DirAccess.make_dir_recursive_absolute(dir)
+	var d := DirAccess.open(dir)
+	if d:
+		for f in d.get_files():
+			if f.ends_with(".png"):
+				d.remove(f)
 	# tư thế đứng yên cho turntable sạch (dễ soi rig/skin)
 	for n in ["thighL", "thighR", "shinL", "shinR"]:
 		_pose(n, Quaternion.IDENTITY)
