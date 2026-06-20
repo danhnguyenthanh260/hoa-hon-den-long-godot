@@ -1,7 +1,9 @@
-# Auto-rig mesh người A-pose (AI sinh) thành glb player có khung xương ĐẦY ĐỦ TAY.
-# Khác rig_glb.py (rig ghost 10 xương không tay): bản này thêm vai/cánh/cẳng tay L-R
-# và skin theo "đoạn-xương gần nhất" (2 ảnh hưởng / đỉnh, trọng số theo nghịch đảo
-# khoảng cách) — bền hơn band-y thủ công cho mesh tùy ý.
+# R1 — Auto-rig GIẢI PHẪU cho player từ mesh A-pose (AI sinh).
+# Khác bản heuristic cũ: khớp đặt theo MỐC giải phẫu (Loomis/Unity Humanoid),
+# thêm Neck + Toe, khuỷu/cổ tay theo tỉ lệ đúng dọc trục tay A-pose. Skin theo
+# "đoạn-xương gần nhất" (2 ảnh hưởng/đỉnh) tự bám theo vị trí khớp mới.
+# Mốc %H (từ chân lên): vai 0.81 · ngực 0.72 · cổ 0.82 · đầu 0.88 · hông 0.52
+#   gối 0.27 · cổ chân 0.05 ; khuỷu = 0.45 dọc vai→ngón, cổ tay = 0.82.
 # Dùng: python scripts/rig_glb_player.py <vao.glb> <ra.glb>
 import sys
 
@@ -32,67 +34,70 @@ cx = (lo[0] + hi[0]) / 2.0
 mid_z = float(V[:, 2].mean())
 
 
-def P(x, t, z=None):
-    return np.array([x, lo[1] + t * H, mid_z if z is None else z], dtype=np.float32)
+def P(t, x=None, z=None):  # mốc theo tỉ lệ cao t; mặc định ở tim người
+    return np.array([cx if x is None else x, lo[1] + t * H, mid_z if z is None else z],
+                    dtype=np.float32)
 
 
-# tâm hai chân: trung bình x của đỉnh thấp theo phía
+# tâm hai chân từ đỉnh thấp
 low = V[(y01 > 0.05) & (y01 < 0.35)]
 left_x = float(low[low[:, 0] < cx][:, 0].mean())
 right_x = float(low[low[:, 0] >= cx][:, 0].mean())
+# mũi chân: z trước nhất của khối bàn chân
+footv = V[y01 < 0.10]
+front_z = float(np.percentile(footv[:, 2], 90)) if len(footv) else mid_z
 
-# vai + tay (A-pose: tay dang xuống-ngoài). Lấy cụm đỉnh trên-ngoài mỗi phía.
-upper = y01 > 0.55
-torso_half = 0.16 * W            # nửa bề ngang thân (ước lượng)
-armL_mask = upper & (V[:, 0] < cx - torso_half)
-armR_mask = upper & (V[:, 0] > cx + torso_half)
-
-
-def arm_points(mask, sign):
-    pts = V[mask]
-    if len(pts) < 10:                       # không tách được tay -> đặt mặc định
-        sx = cx + sign * torso_half
-        return (P(sx, 0.80), P(cx + sign * 0.32 * W, 0.68),
-                P(cx + sign * 0.42 * W, 0.55))
-    # bàn tay = đỉnh xa tâm nhất; vai = gần thân & cao
-    tip = pts[np.argmax(np.abs(pts[:, 0] - cx))]
-    sh_y = lo[1] + 0.80 * H
-    shoulder = np.array([cx + sign * torso_half, sh_y, mid_z], dtype=np.float32)
-    hand = np.array([tip[0], tip[1], mid_z], dtype=np.float32)
-    elbow = (shoulder + hand) / 2.0
-    return shoulder, elbow, hand
+# tay A-pose: ngón = đỉnh xa tâm nhất mỗi phía; vai theo bề ngang chuẩn;
+# khuỷu/cổ tay theo tỉ lệ dọc trục vai→ngón.
+upper = V[y01 > 0.45]
 
 
-shL, elL, haL = arm_points(armL_mask, -1.0)
-shR, elR, haR = arm_points(armR_mask, +1.0)
+def arm(sign):
+    side = upper[(upper[:, 0] * sign) > (cx * sign)]
+    if len(side) < 10:
+        tip = np.array([cx + sign * 0.42 * W, lo[1] + 0.55 * H, mid_z], dtype=np.float32)
+    else:
+        tip = side[np.argmax(np.abs(side[:, 0] - cx))].astype(np.float32)
+        tip[2] = mid_z
+    shoulder = np.array([cx + sign * 0.18 * W, lo[1] + 0.81 * H, mid_z], dtype=np.float32)
+    elbow = shoulder + 0.45 * (tip - shoulder)
+    wrist = shoulder + 0.82 * (tip - shoulder)
+    return shoulder, elbow, wrist
+
+
+shL, elL, wrL = arm(-1.0)
+shR, elR, wrR = arm(+1.0)
 print("vai L/R:", np.round(shL, 3), np.round(shR, 3))
-print("tay L/R verts:", int(armL_mask.sum()), int(armR_mask.sum()))
+print("co tay L/R:", np.round(wrL, 3), np.round(wrR, 3))
 
-# (ten, cha, vi tri goc xuong)
+# (ten, cha, vi tri goc xuong) — thu tu cha luon dung truoc con
 BONES = [
-    ("hips",   -1, P(cx, 0.52)),         # 0
-    ("spine",   0, P(cx, 0.62)),         # 1
-    ("chest",   1, P(cx, 0.74)),         # 2
-    ("head",    2, P(cx, 0.88)),         # 3
-    ("thighL",  0, P(left_x, 0.50)),     # 4
-    ("shinL",   4, P(left_x, 0.27)),     # 5
-    ("footL",   5, P(left_x, 0.05)),     # 6
-    ("thighR",  0, P(right_x, 0.50)),    # 7
-    ("shinR",   7, P(right_x, 0.27)),    # 8
-    ("footR",   8, P(right_x, 0.05)),    # 9
-    ("clavL",   2, P(cx - 0.06 * W, 0.82)),  # 10
-    ("upperarmL", 10, shL),              # 11
-    ("forearmL", 11, elL),               # 12
-    ("handL",   12, haL),                # 13
-    ("clavR",   2, P(cx + 0.06 * W, 0.82)),  # 14
-    ("upperarmR", 14, shR),              # 15
-    ("forearmR", 15, elR),               # 16
-    ("handR",   16, haR),                # 17
+    ("hips",     -1, P(0.52)),                       # 0
+    ("spine",     0, P(0.60)),                       # 1
+    ("chest",     1, P(0.72)),                       # 2
+    ("neck",      2, P(0.82)),                       # 3  (MOI)
+    ("head",      3, P(0.88)),                       # 4
+    ("clavicleL", 2, P(0.82, cx - 0.06 * W)),        # 5
+    ("upperarmL", 5, shL),                           # 6
+    ("forearmL",  6, elL),                           # 7
+    ("handL",     7, wrL),                           # 8
+    ("clavicleR", 2, P(0.82, cx + 0.06 * W)),        # 9
+    ("upperarmR", 9, shR),                           # 10
+    ("forearmR", 10, elR),                           # 11
+    ("handR",    11, wrR),                           # 12
+    ("thighL",    0, P(0.50, left_x)),               # 13
+    ("shinL",    13, P(0.27, left_x)),               # 14
+    ("footL",    14, P(0.05, left_x)),               # 15
+    ("toeL",     15, P(0.02, left_x, front_z)),      # 16 (MOI)
+    ("thighR",    0, P(0.50, right_x)),              # 17
+    ("shinR",    17, P(0.27, right_x)),              # 18
+    ("footR",    18, P(0.05, right_x)),              # 19
+    ("toeR",     19, P(0.02, right_x, front_z)),     # 20 (MOI)
 ]
 NB = len(BONES)
 heads = np.stack([b[2] for b in BONES]).astype(np.float32)
 
-# doan xuong = tu goc xuong -> goc xuong con (la xuong: keo dai theo huong cha->no)
+# doan xuong = goc xuong -> trung binh goc cac xuong con (la xuong: noi dai)
 child_of = {}
 for bi, (_, p, _) in enumerate(BONES):
     if p >= 0:
@@ -104,7 +109,7 @@ for bi, (_, p, h) in enumerate(BONES):
     kids = child_of.get(bi, [])
     if kids:
         seg_b[bi] = np.mean([heads[k] for k in kids], axis=0)
-    elif p >= 0:                              # la xuong: noi dai theo huong cha->no
+    elif p >= 0:
         seg_b[bi] = h + (h - heads[p]) * 0.8
     else:
         seg_b[bi] = h + np.array([0, 0.1 * H, 0], dtype=np.float32)
@@ -118,7 +123,6 @@ def pt_seg_dist(pts, a, b):
     return np.linalg.norm(pts - proj, axis=1)
 
 
-# khoang cach den moi doan xuong -> chon 2 gan nhat, trong so nghich dao kc
 D = np.stack([pt_seg_dist(V, seg_a[bi], seg_b[bi]) for bi in range(NB)], axis=1)
 order = np.argsort(D, axis=1)
 joints = np.zeros((len(V), 4), dtype=np.uint8)
@@ -127,42 +131,29 @@ j0 = order[:, 0]
 j1 = order[:, 1]
 d0 = np.take_along_axis(D, order[:, :1], axis=1)[:, 0] + 1e-5
 d1 = np.take_along_axis(D, order[:, 1:2], axis=1)[:, 0] + 1e-5
-w0 = (1.0 / d0)
-w1 = (1.0 / d1)
-# lam mem: neu xuong thu 2 xa hon nhieu thi gan nhu 100% xuong 1
-ratio = (d0 / d1)
-w1 = w1 * (ratio ** 2)
+w0 = 1.0 / d0
+w1 = (1.0 / d1) * ((d0 / d1) ** 2)     # mềm: xương 2 xa hơn nhiều -> gần như 100% xương 1
 s = w0 + w1
 joints[:, 0] = j0.astype(np.uint8)
 joints[:, 1] = j1.astype(np.uint8)
 weights[:, 0] = w0 / s
 weights[:, 1] = w1 / s
-print("verts gan vao tay (bone>=11):",
-      int(((joints[:, 0] >= 11) & (weights[:, 0] > 0.5)).sum()))
+print("xuong:", NB, "| verts gan tay (>=upperarm):",
+      int(((joints[:, 0] >= 6) & (joints[:, 0] <= 12) & (weights[:, 0] > 0.5)).sum()))
 
-# vertex colors neu co (ColorVisuals)
+# vertex colors neu co
 COL = None
-vis = mesh.visual
-vc = getattr(vis, "vertex_colors", None)
+vc = getattr(mesh.visual, "vertex_colors", None)
 if vc is not None and len(vc) == len(V):
     COL = (np.asarray(vc, dtype=np.float32) / 255.0).astype(np.float32)
     print("giu vertex colors:", COL.shape)
 
-
-# ---- ghi glb co skin ----
-pos_b = V.tobytes()
-nor_b = N.tobytes()
-idx_b = F.reshape(-1).tobytes()
-joi_b = joints.tobytes()
-wei_b = weights.tobytes()
-col_b = COL.tobytes() if COL is not None else None
-
+# ---- ghi glb ----
 ibms = []
-for name, parent, head in BONES:
+for _, _, head in BONES:
     m = np.identity(4, dtype=np.float32)
     m[3, 0:3] = -head
     ibms.append(m)
-ibm_b = np.stack(ibms).tobytes()
 
 bin_data = b""
 views = []
@@ -176,13 +167,13 @@ def add_view(data, target=None):
     return len(views) - 1
 
 
-v_pos = add_view(pos_b, ARRAY_BUFFER)
-v_nor = add_view(nor_b, ARRAY_BUFFER)
-v_joi = add_view(joi_b, ARRAY_BUFFER)
-v_wei = add_view(wei_b, ARRAY_BUFFER)
-v_idx = add_view(idx_b, ELEMENT_ARRAY_BUFFER)
-v_ibm = add_view(ibm_b)
-v_col = add_view(col_b, ARRAY_BUFFER) if col_b is not None else None
+v_pos = add_view(V.tobytes(), ARRAY_BUFFER)
+v_nor = add_view(N.tobytes(), ARRAY_BUFFER)
+v_joi = add_view(joints.tobytes(), ARRAY_BUFFER)
+v_wei = add_view(weights.tobytes(), ARRAY_BUFFER)
+v_idx = add_view(F.reshape(-1).tobytes(), ELEMENT_ARRAY_BUFFER)
+v_ibm = add_view(np.stack(ibms).tobytes())
+v_col = add_view(COL.tobytes(), ARRAY_BUFFER) if COL is not None else None
 
 acc = [
     Accessor(bufferView=v_pos, componentType=FLOAT, count=len(V), type=VEC3,
