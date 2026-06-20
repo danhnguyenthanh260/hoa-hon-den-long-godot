@@ -73,7 +73,11 @@ func _ready() -> void:
 	for n in ["thighL", "shinL", "thighR", "shinR", "spine", "head",
 			"upperarmL", "forearmL", "handL", "upperarmR", "forearmR", "handR"]:
 		_bone[n] = _skel.find_bone(n)
-	# tay-buông: không hạ tay
+	# tay-buông: không hạ tay; co nhẹ khuỷu phải đưa đèn ra trước
+	var fr: int = _bone.get("forearmR", -1)
+	if fr >= 0:
+		var rr := _skel.get_bone_rest(fr).basis.get_rotation_quaternion()
+		_skel.set_bone_pose_rotation(fr, rr * Quaternion(Vector3.RIGHT, -1.0))
 	# đèn lồng (vật phẩm riêng) cầm tay phải
 	_hand_bone = _bone.get("handR", -1)
 	_lantern = preload("res://scripts/lantern.gd").new()
@@ -163,7 +167,7 @@ func _process(delta: float) -> void:
 		_pose("shinL", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7)) * 0.9))
 		_pose("shinR", Quaternion(Vector3.RIGHT, -maxf(0.0, sin(_walk_t - 0.7 + PI)) * 0.9))
 		_pose("upperarmL", Quaternion(Vector3.RIGHT, -sw * 0.6))
-		_pose("upperarmR", Quaternion(Vector3.RIGHT, sw * 0.6))
+		# tay phải giữ đèn — không vung
 	_lbl.text = "GÓC NHÌN QA — Minh\nxoay: %s (%.1f rad/s)   đi bộ: %s (x%.1f)\n◄►: xoay tay  ▲▼: tốc độ xoay  Space: dừng xoay\nW: đi bộ  [ ]: tốc độ đi  C: CHỤP 360°  S: chụp 1  Esc: thoát" % [
 		"CHẠY" if _spinning else "DỪNG", _spin,
 		"BẬT" if _walking else "TẮT", _walk_speed]

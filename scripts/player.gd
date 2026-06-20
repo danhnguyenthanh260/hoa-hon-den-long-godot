@@ -310,6 +310,11 @@ func _build_mesh_body() -> bool:
 
 	# Mesh nguồn là tay-buông (minh_shape_0): tay đã xuống sẵn ở rest → KHÔNG hạ tay.
 	_hand_bone = _bone.get("handR", -1)   # sào đèn sẽ bám bàn tay phải
+	# co nhẹ khuỷu phải đưa đèn ra trước (tay phải giữ đèn, không vung)
+	var _fr: int = _bone.get("forearmR", -1)
+	if _fr >= 0:
+		var _rr := _skel.get_bone_rest(_fr).basis.get_rotation_quaternion()
+		_skel.set_bone_pose_rotation(_fr, _rr * Quaternion(Vector3.RIGHT, -1.0))
 
 	# ẩn thân primitive, chỉ còn mesh + sào đèn; mesh nhận vai trò ẩn khi first-person
 	for c in _body_parts:

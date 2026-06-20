@@ -1,48 +1,39 @@
 # Đèn giữ hồn — vật phẩm RIÊNG theo chủ đề "Họa Hồn Đèn Lồng".
-# Kéo quân hóa: lụa Hội An dáng củ tỏi bọc ngoài + LÕI QUAY chiếu bóng hồn
-# (chim Lạc / sen) hắt lên lụa + lụa phát Sắc ngũ hành (set_color).
-# Gốc (origin) = chỗ bàn tay nắm sào. Dùng: preload(...).new() rồi add_child.
+# Đèn XÁCH TAY: tay nắm quai ở đỉnh (gốc/origin), bầu đèn treo NGAY DƯỚI nắm tay.
+# Kéo quân hóa: lụa Hội An dáng củ tỏi + LÕI QUAY chiếu bóng hồn (chim Lạc/sen)
+# + phát Sắc ngũ hành (set_color). Dùng: preload(...).new() rồi add_child.
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 
-var _silk: Array = []          # vật liệu lụa (đổi Sắc)
+var _silk: Array = []
 var _light: OmniLight3D
-var _drum: Node3D              # lõi kéo quân — quay
-var spin := 0.7               # tốc độ quay lõi (rad/s)
-var _cy := 1.06               # tâm bầu đèn trên sào
+var _drum: Node3D
+var spin := 0.7
+var _cy := -0.34          # tâm bầu đèn — treo DƯỚI bàn tay (origin)
 
 
 func _ready() -> void:
 	var wood := Build.mat(Color(0.5, 0.38, 0.2), 0.8)
 	var bamboo := Build.mat(Color(0.30, 0.20, 0.10), 0.7)
+	var dark := Build.mat(Color(0.12, 0.08, 0.05), 0.85)
 
-	# sào tre dựng đứng, tay nắm ở gốc
-	var pole := CylinderMesh.new()
-	pole.top_radius = 0.012
-	pole.bottom_radius = 0.016
-	pole.height = 1.0
-	var pmi := MeshInstance3D.new()
-	pmi.mesh = pole
-	pmi.material_override = wood
-	pmi.position.y = 0.5
-	pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(pmi)
-	for ky in [0.1, 0.45, 0.8]:
-		Build.cyl(self, 0.018, 0.018, 0.013, Vector3(0, ky, 0), bamboo, 8)
+	# quai cầm: nắm tay ôm ở gốc (origin), một móc gỗ ngắn
+	Build.cyl(self, 0.014, 0.016, 0.09, Vector3(0, -0.01, 0), wood, 8)
+	# dây treo từ quai xuống nắp đèn
+	Build.cyl(self, 0.005, 0.005, 0.16, Vector3(0, -0.13, 0), dark)
 
-	# nắp gỗ trên/dưới + cổ củ tỏi
-	Build.cyl(self, 0.055, 0.085, 0.04, Vector3(0, _cy + 0.22, 0), wood, 12)
-	Build.cyl(self, 0.085, 0.055, 0.04, Vector3(0, _cy - 0.22, 0), wood, 12)
-	Build.cyl(self, 0.013, 0.013, 0.07, Vector3(0, _cy + 0.29, 0), wood, 8)   # cổ/núm
-	# tua đỏ dưới
-	Build.cyl(self, 0.006, 0.006, 0.1, Vector3(0, _cy - 0.3, 0), Build.mat(Color(0.7, 0.12, 0.1), 0.7), 4)
+	# nắp gỗ trên/dưới + núm + tua
+	Build.cyl(self, 0.05, 0.08, 0.035, Vector3(0, _cy + 0.2, 0), wood, 12)
+	Build.cyl(self, 0.08, 0.05, 0.035, Vector3(0, _cy - 0.2, 0), wood, 12)
+	Build.cyl(self, 0.012, 0.012, 0.05, Vector3(0, _cy - 0.26, 0), wood, 8)
+	Build.cyl(self, 0.006, 0.006, 0.09, Vector3(0, _cy - 0.33, 0), Build.mat(Color(0.7, 0.12, 0.1), 0.7), 4)
 
-	# bầu lụa dáng củ tỏi (ovoid) — trong suốt + phát sáng
+	# bầu lụa dáng củ tỏi (trong suốt + phát sáng)
 	var silk := _silk_mat(Color(1.0, 0.42, 0.15))
 	var sph := SphereMesh.new()
-	sph.radius = 0.16
-	sph.height = 0.44
+	sph.radius = 0.13
+	sph.height = 0.36
 	var smi := MeshInstance3D.new()
 	smi.mesh = sph
 	smi.material_override = silk
@@ -54,7 +45,7 @@ func _ready() -> void:
 	# nan tre dọc quanh bầu
 	for i in range(6):
 		var a := TAU * i / 6.0
-		Build.cyl(self, 0.005, 0.005, 0.42, Vector3(cos(a) * 0.15, _cy, sin(a) * 0.15), bamboo, 4)
+		Build.cyl(self, 0.004, 0.004, 0.34, Vector3(cos(a) * 0.122, _cy, sin(a) * 0.122), bamboo, 4)
 
 	# ngọn lửa giữa đèn (Sắc ngũ hành)
 	_light = OmniLight3D.new()
@@ -87,27 +78,25 @@ func _silk_mat(c: Color) -> StandardMaterial3D:
 	return m
 
 
-# bóng chim Lạc (thân + 2 cánh xòe), dán quanh lõi, hướng ra ngoài
 func _bird(ang: float, mat: Material) -> void:
 	var f := Node3D.new()
-	f.position = Vector3(cos(ang) * 0.085, 0, sin(ang) * 0.085)
+	f.position = Vector3(cos(ang) * 0.07, 0, sin(ang) * 0.07)
 	f.rotation.y = -ang
 	_drum.add_child(f)
-	Build.box(f, Vector3(0.012, 0.05, 0.012), Vector3.ZERO, mat)        # thân
-	var wl := Build.box(f, Vector3(0.012, 0.05, 0.012), Vector3(-0.03, 0.01, 0), mat)
+	Build.box(f, Vector3(0.01, 0.045, 0.01), Vector3.ZERO, mat)
+	var wl := Build.box(f, Vector3(0.01, 0.045, 0.01), Vector3(-0.026, 0.008, 0), mat)
 	wl.rotation.z = 0.7
-	var wr := Build.box(f, Vector3(0.012, 0.05, 0.012), Vector3(0.03, 0.01, 0), mat)
+	var wr := Build.box(f, Vector3(0.01, 0.045, 0.01), Vector3(0.026, 0.008, 0), mat)
 	wr.rotation.z = -0.7
 
 
-# bóng hoa sen (vài cánh xòe)
 func _lotus(ang: float, mat: Material) -> void:
 	var f := Node3D.new()
-	f.position = Vector3(cos(ang) * 0.085, -0.02, sin(ang) * 0.085)
+	f.position = Vector3(cos(ang) * 0.07, -0.02, sin(ang) * 0.07)
 	f.rotation.y = -ang
 	_drum.add_child(f)
 	for k in [-0.5, 0.0, 0.5]:
-		var p := Build.box(f, Vector3(0.01, 0.06, 0.01), Vector3(0, 0.02, 0), mat)
+		var p := Build.box(f, Vector3(0.009, 0.05, 0.009), Vector3(0, 0.02, 0), mat)
 		p.rotation.z = k
 
 
