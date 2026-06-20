@@ -38,20 +38,36 @@ var _cat_state := 0.0     # >0: đang ngồi đếm ngược; <=0: đang đi
 var _cat_interact: Dictionary
 var _cat_t := 0.0
 var _cat_tail: Node3D
+# vật liệu PBR dùng chung — cùng bộ texture/tint với world.gd để C1 khớp tông phố
+var _m_plaster: StandardMaterial3D
+var _m_wood: StandardMaterial3D
+var _m_darkwood: StandardMaterial3D
+var _m_stone: StandardMaterial3D
+var _m_tile: StandardMaterial3D
+
+
+func _init_materials() -> void:
+	# ochre Hội An, hơi xỉn lại cho căn nhà khóa lâu năm
+	_m_plaster = Build.pbr("res://assets/textures/Plaster001", 0.5, Color(0.78, 0.62, 0.38), 1.4)
+	_m_wood = Build.pbr("res://assets/textures/WoodFloor043", 0.85, Color(0.46, 0.33, 0.22), 1.2)
+	_m_darkwood = Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.26, 0.17, 0.10), 1.3)
+	_m_stone = Build.pbr("res://assets/textures/PavingStones138", 0.6, Color(0.5, 0.46, 0.43), 0.35)
+	_m_tile = Build.pbr("res://assets/textures/RoofingTiles013A", 0.55, Color(0.42, 0.22, 0.12), 0.7)
 
 
 func build(main) -> void:
 	m = main
+	_init_materials()
 	# quán nước xiêu vẹo + bà hàng nước
 	var stall := Node3D.new()
 	stall.position = Vector3(-4.4, 0, -6)
 	add_child(stall)
-	Build.box(stall, Vector3(1.6, 0.08, 0.8), Vector3(0, 0.5, 0), Build.mat(Color(0.2, 0.14, 0.09)))
+	Build.box(stall, Vector3(1.6, 0.08, 0.8), Vector3(0, 0.5, 0), _m_wood)
 	for dx in [-0.7, 0.7]:
-		Build.box(stall, Vector3(0.08, 0.5, 0.08), Vector3(dx, 0.25, 0), Build.mat(Color(0.13, 0.09, 0.06)))
-	Build.box(stall, Vector3(2.0, 0.05, 1.4), Vector3(0, 1.9, 0), Build.mat(Color(0.25, 0.2, 0.12)))
+		Build.box(stall, Vector3(0.08, 0.5, 0.08), Vector3(dx, 0.25, 0), _m_darkwood)
+	Build.box(stall, Vector3(2.0, 0.05, 1.4), Vector3(0, 1.9, 0), _m_darkwood)
 	for p in [Vector3(-0.9, 0.95, -0.6), Vector3(0.9, 0.95, -0.6), Vector3(-0.9, 0.95, 0.6), Vector3(0.9, 0.95, 0.6)]:
-		Build.box(stall, Vector3(0.06, 1.9, 0.06), p, Build.mat(Color(0.3, 0.25, 0.14)))
+		Build.box(stall, Vector3(0.06, 1.9, 0.06), p, _m_wood)
 	# lò than còn đỏ — hai mươi năm sau khi quán đóng
 	Build.cyl(stall, 0.18, 0.22, 0.25, Vector3(0.5, 0.13, 0.45), Build.mat(Color(0.15, 0.12, 0.1)))
 	Build.ball(stall, 0.1, 0.14, Vector3(0.5, 0.28, 0.45), Build.emis(Color(0.6, 0.1, 0.02), Color(1.0, 0.25, 0.05), 1.8))
@@ -102,10 +118,10 @@ func _build_locked_house() -> void:
 	_house_root = Node3D.new()
 	_house_root.name = "C1_Locked_HoiAn_House"
 	add_child(_house_root)
-	var wood := Build.mat(Color(0.23, 0.13, 0.06), 0.85)
-	var plaster := Build.mat(Color(0.45, 0.34, 0.20), 0.96)
-	var tile := Build.mat(Color(0.12, 0.07, 0.04), 0.75)
-	var stone := Build.mat(Color(0.19, 0.18, 0.16), 0.95)
+	var wood := _m_wood
+	var plaster := _m_plaster
+	var tile := _m_tile
+	var stone := _m_stone
 	# footprint: sau quầy, lệch trái khỏi tim phố để không còn là cổng giữa đường
 	Build.box(_house_root, Vector3(5.4, 0.10, 8.4), Vector3(-8.2, 0.05, -15.0), stone)
 	Build.box(_house_root, Vector3(5.6, 2.3, 0.12), Vector3(-8.2, 1.15, -10.7), plaster)
@@ -184,14 +200,14 @@ func _build_street_life() -> void:
 	# chợ sau sương Đông
 	m.add_interact(Vector3(36.5, 0, 11.0), 2.5, "Lắng nghe phía chợ", Callable(self, "_seal_market"), false)
 	# gánh hoa đăng bỏ không
-	Build.box(self, Vector3(0.9, 0.06, 0.5), Vector3(8.0, 0.25, 12.8), Build.mat(Color(0.3, 0.22, 0.12)))
+	Build.box(self, Vector3(0.9, 0.06, 0.5), Vector3(8.0, 0.25, 12.8), _m_darkwood)
 	for hk in range(3):
 		Build.cyl(self, 0.08, 0.1, 0.07, Vector3(7.7 + hk * 0.3, 0.32, 12.8), Build.mat(Color(0.75, 0.4, 0.45), 0.7), 8)
 	m.add_interact(Vector3(8.0, 0, 12.8), 1.8, "Gánh hoa đăng bỏ không", Callable(self, "_hoa_dang_stall"), false)
 	# sáu trụ đèn phố thắp được bằng Sắc Hỏa
 	for i in range(6):
 		var lx := -30.0 + i * 12.0
-		Build.cyl(self, 0.05, 0.07, 2.3, Vector3(lx, 1.15, 10.2), Build.mat(Color(0.13, 0.09, 0.06)), 8)
+		Build.cyl(self, 0.05, 0.07, 2.3, Vector3(lx, 1.15, 10.2), _m_darkwood, 8)
 		var lan := Build.lantern(self, 0.15, 0.28, Vector3(lx, 2.5, 10.2))
 		_street_lamps.append(lan)
 		m.add_interact(Vector3(lx, 0, 10.2), 1.7, "Trụ đèn phố nguội lạnh", Callable(self, "_light_lamp").bind(_street_lamps.size() - 1), false)
