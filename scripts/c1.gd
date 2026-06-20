@@ -1,10 +1,10 @@
 # CHƯƠNG MỘT — NGÕ KHÔNG TÊN (Hỏa)
-# Ngõ xám → bà hàng nước không mặt → đố bóng Chim Lạc → Sắc Hỏa → đốt rào tơ nhện.
+# Ngõ xám → bà hàng nước không mặt → quầy ký ức → nhà khóa → Chim Lạc ba lớp → Sắc Hỏa → giếng khô xuống C2.
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 const Shapes := preload("res://scripts/shapes.gd")
-const ShadowPuzzle := preload("res://scripts/shadow_puzzle.gd")
+const BirdStencilPuzzle := preload("res://scripts/bird_stencil_puzzle.gd")
 
 var m  # main
 var puzzle
@@ -12,6 +12,20 @@ var web_burned := false
 var _web: Node3D
 var _brazier_pos := Vector3(-4.2, 0.5, -6.0)
 var _orb: Node3D
+var stall_inspected := false
+var has_house_key := false
+var house_unlocked := false
+var entered_locked_house := false
+var bird_puzzle_solved := false
+var hoa_unlocked := false
+var basement_open := false
+var descended_to_c2 := false
+var stencil_parts_collected := {}
+var _house_door_pos := Vector3(-6.8, 0, -10.8)
+var _front_room_pos := Vector3(-8.2, 0, -13.8)
+var _basement_pos := Vector3(-8.2, 0, -19.0)
+var _house_root: Node3D
+var _part_markers := {}
 var _cat: Node3D
 var _cat_met := false
 var _knocked := false
@@ -50,9 +64,11 @@ func build(main) -> void:
 	var ba := Build.faceless_npc(stall, Vector3(-0.3, 0, 0.5), Color(0.22, 0.18, 0.16))
 	ba.rotation.y = 2.6
 
-	# rào tơ nhện sau cổng
+	_build_locked_house()
+
+	# ấn tơ nhện dưới cửa hầm trong nhà, không còn là trigger giữa phố
 	_web = Node3D.new()
-	_web.position = Vector3(0, 1.4, -21.4)
+	_web.position = _basement_pos + Vector3(0, 1.1, -0.15)
 	add_child(_web)
 	var web_mat := StandardMaterial3D.new()
 	web_mat.albedo_color = Color(0.55, 0.6, 0.68, 0.16)
@@ -65,16 +81,63 @@ func build(main) -> void:
 		var ring := Build.cyl(_web, 0.45 + i * 0.45, 0.45 + i * 0.45, 0.015, Vector3.ZERO, web_mat, 10)
 		ring.rotation.x = PI / 2.0
 
-	# đố bóng Chim Lạc
-	puzzle = ShadowPuzzle.new()
+	# đố Chim Lạc ba mảnh nằm trong nhà khóa
+	puzzle = BirdStencilPuzzle.new()
 	add_child(puzzle)
-	puzzle.setup(Vector3(3.2, 1.6, -17), -20.0, Shapes.bird_polygon(), 0.5, 1.4)
+	puzzle.setup(Vector3(-8.2, 1.3, -16.6), -18.45)
 	puzzle.solved_callback = Callable(self, "_on_puzzle_solved")
 
-	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Nói chuyện với bà hàng nước", Callable(self, "_talk_ba"), false)
-	m.add_interact(puzzle.stand_pos(), 2.6, "Thắp sáng ký ức (đèn lồng phong ấn)", Callable(self, "_enter_puzzle"), false)
-	m.add_interact(Vector3(0, 0, -21.2), 2.4, "Rào tơ nhện chắn lối — cần một ngọn lửa", Callable(self, "_try_burn"), false)
+	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Bà hàng nước / mở quầy ký ức", Callable(self, "_talk_ba"), false)
+	m.add_interact(_house_door_pos, 2.0, "Cửa nhà sau quán bị khóa", Callable(self, "_try_unlock_house"), false)
+	m.add_interact(Vector3(-9.7, 0, -13.2), 1.8, "Mảnh giấy dó: đầu chim", Callable(self, "_collect_stencil_part").bind("head"), true)
+	m.add_interact(Vector3(-6.7, 0, -15.0), 1.8, "Mảnh giấy dó: thân và cánh", Callable(self, "_collect_stencil_part").bind("wing_body"), true)
+	m.add_interact(Vector3(-8.9, 0, -17.1), 1.8, "Mảnh giấy dó: đuôi và chân", Callable(self, "_collect_stencil_part").bind("tail_leg"), true)
+	m.add_interact(puzzle.stand_pos(), 2.6, "Khung đèn Chim Lạc trong nhà", Callable(self, "_enter_puzzle"), false)
+	m.add_interact(_basement_pos, 2.2, "Ấn Hỏa trên cửa hầm / giếng khô", Callable(self, "_try_burn"), false)
+	m.add_interact(_basement_pos + Vector3(0, 0, -0.8), 2.0, "Đi xuống giếng khô", Callable(self, "_try_descend"), false)
 	_build_street_life()
+
+
+func _build_locked_house() -> void:
+	_house_root = Node3D.new()
+	_house_root.name = "C1_Locked_HoiAn_House"
+	add_child(_house_root)
+	var wood := Build.mat(Color(0.23, 0.13, 0.06), 0.85)
+	var plaster := Build.mat(Color(0.45, 0.34, 0.20), 0.96)
+	var tile := Build.mat(Color(0.12, 0.07, 0.04), 0.75)
+	var stone := Build.mat(Color(0.19, 0.18, 0.16), 0.95)
+	# footprint: sau quầy, lệch trái khỏi tim phố để không còn là cổng giữa đường
+	Build.box(_house_root, Vector3(5.4, 0.10, 8.4), Vector3(-8.2, 0.05, -15.0), stone)
+	Build.box(_house_root, Vector3(5.6, 2.3, 0.12), Vector3(-8.2, 1.15, -10.7), plaster)
+	Build.box(_house_root, Vector3(5.6, 2.3, 0.12), Vector3(-8.2, 1.15, -19.3), plaster)
+	Build.box(_house_root, Vector3(0.12, 2.3, 8.5), Vector3(-11.0, 1.15, -15.0), plaster)
+	Build.box(_house_root, Vector3(0.12, 2.3, 8.5), Vector3(-5.4, 1.15, -15.0), plaster)
+	Build.box(_house_root, Vector3(6.0, 0.22, 8.9), Vector3(-8.2, 2.45, -15.0), tile)
+	# cửa trước có mắt cửa, nằm ngay sau quầy nước
+	Build.box(_house_root, Vector3(1.15, 1.85, 0.10), _house_door_pos + Vector3(0, 0.93, 0.04), wood)
+	Build.door_eye(_house_root, _house_door_pos + Vector3(-0.22, 1.45, 0.10), 1.0)
+	Build.door_eye(_house_root, _house_door_pos + Vector3(0.22, 1.45, 0.10), 1.0)
+	# phòng trước / sân trong / bàn thờ / ngấn lũ
+	Build.box(_house_root, Vector3(3.8, 0.04, 0.75), _front_room_pos + Vector3(0, 0.55, 1.3), wood)
+	for x in [-9.6, -6.8]:
+		Build.cyl(_house_root, 0.07, 0.09, 2.2, Vector3(x, 1.1, -15.5), wood, 8)
+	var altar := Build.box(_house_root, Vector3(1.5, 0.12, 0.55), Vector3(-8.2, 0.85, -18.35), wood)
+	altar.set_meta("role", "altar")
+	Build.cyl(_house_root, 0.04, 0.05, 0.38, Vector3(-8.2, 1.1, -18.36), Build.mat(Color(0.55, 0.45, 0.32)), 8)
+	Build.box(_house_root, Vector3(5.1, 0.04, 0.035), Vector3(-8.2, 1.85, -10.62), Build.mat(Color(0.12, 0.18, 0.22)))
+	var well := Build.cyl(_house_root, 0.65, 0.65, 0.46, _basement_pos + Vector3(0, 0.23, -0.75), stone, 18)
+	well.set_meta("role", "dry_well_c2_entrance")
+	# mốc thu nhặt mảnh ghép, dùng placeholder giấy dó chứ không import Meshy nặng
+	_make_part_marker("head", Vector3(-9.7, 0.52, -13.2), Color(0.9, 0.48, 0.22))
+	_make_part_marker("wing_body", Vector3(-6.7, 0.52, -15.0), Color(0.95, 0.74, 0.25))
+	_make_part_marker("tail_leg", Vector3(-8.9, 0.52, -17.1), Color(0.78, 0.38, 0.14))
+	m.add_interact(Vector3(-8.2, 0, -18.2), 1.8, "Bàn thờ trong căn nhà khóa", Callable(self, "_altar_clue"), false)
+
+
+func _make_part_marker(id: String, pos: Vector3, color: Color) -> void:
+	var node := Build.box(_house_root, Vector3(0.38, 0.03, 0.24), pos, Build.emis(color * 0.55, color, 0.65))
+	node.rotation.y = 0.35
+	_part_markers[id] = node
 
 
 # ---- phố Trần Phú: những thứ chạm vào được (và vài thứ không nên chạm) ----
@@ -135,20 +198,21 @@ func _build_street_life() -> void:
 
 
 func intro_beat() -> void:
-	m.ui.set_objective("Đi sâu vào ngõ. Tìm nguồn sáng cuối phố.")
+	m.ui.set_objective("Đi sâu vào ngõ. Tìm quán nước còn sáng.")
 	m.say([
 		["Minh (nghĩ)", "Tiếng rao chè trôi qua đầu ngõ... nhưng đã mười năm rồi không ai gánh chè qua đây."],
 		["Minh (nghĩ)", "Sương đêm nay có mùi tro. Như ai vừa đốt một chồng thư cũ."],
 	], func(): m.remote_voice(
 		"c1_first_radio",
-		0.10,
+		0.12,
 		[
-			"Nghe được không? Nếu đèn còn sáng thì cứ đi sâu vào ngõ.",
-			"Đừng trả lời nếu có ai gọi đúng tên. Ở phố này, tên là thứ dễ bị mượn nhất.",
+			"Trạm Bốn gọi người giữ đèn. Nếu nghe được thì đừng đứng giữa phố.",
+			"Quán nước còn sáng là mốc đầu tiên. Người ngồi đó có thể đã quên mình chờ ai.",
+			"Không xuống giếng khi chưa có lửa. Nhắc lại: không xuống giếng khi chưa có lửa.",
 			["Minh (nghĩ)", "Giọng phát ra từ trong lồng đèn, rè như máy bộ đàm ngấm nước. Nhưng nó biết tôi đang đứng ở đầu ngõ."],
 		],
 		Callable(),
-		8
+		7
 	))
 
 
@@ -163,58 +227,153 @@ func _talk_ba() -> void:
 			["Bà Hàng Nước", "Trà còn nóng đó, cậu nhỏ. Ngồi xuống đi. Bà chờ khách... lâu lắm rồi."],
 			["Minh", "Bà ơi... quán này đóng cửa từ khi cháu còn bé mà?"],
 			["Bà Hàng Nước", "Đóng? À... phải. Bà cũng nhớ là có đóng. Nhưng cậu nhỏ này, NHỚ với CÒN — hai chữ đó ở phố này bây giờ là một đấy."],
-			["Bà Hàng Nước", "Cái đèn cuối ngõ ấy. Họa tiết bay mất rồi. Con chim không có bóng thì không đậu lại được đâu."],
-			["Bà Hàng Nước", "Lửa trong đèn không phải là lửa, cậu nhỏ ạ. Là điều cậu còn nhớ."],
-		], func(): m.ui.set_objective("Sửa chiếc đèn lồng phong ấn ở cuối ngõ (E để tương tác)"))
+			["Bà Hàng Nước", "Đừng hỏi bà cửa nào mở. Đồ trên quầy nhớ rõ hơn bà."],
+		], func(): m.open_memory_stall(self))
+	elif not stall_inspected:
+		m.open_memory_stall(self)
 	elif puzzle.solved and _orb != null:
 		m.say([["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."]])
 	else:
-		m.say([["Bà Hàng Nước", "Bóng đổ trên tường ấy, cậu nhỏ. Xoay cho con chim về đúng chỗ nó từng đậu."]])
+		m.say([["Bà Hàng Nước", "Nhà sau quán không tự mở. Chim trong nhà cũng không tự bay."]])
+
+
+func on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
+	stall_inspected = true
+	if key_taken:
+		has_house_key = true
+		m.ui.set_objective("Dùng chìa khóa mở căn nhà sau quán nước.")
+	else:
+		m.ui.set_objective("Đọc đủ đồ trên quầy ký ức để hiểu chìa khóa nhà sau quán.")
+
+
+func _try_unlock_house() -> void:
+	if house_unlocked:
+		entered_locked_house = true
+		m.ui.set_objective("Tìm ba mảnh giấy dó trong nhà để phục dựng Chim Lạc.")
+		return
+	if not has_house_key:
+		m.say([
+			["Minh (nghĩ)", "Cửa gỗ cài then từ bên trong. Hai mắt cửa nhìn tôi như nhận ra một người khác."],
+			["Trạm Bốn", "Không có chìa thì đừng ép cửa. Nhà ở phố này nhớ lực tay rất lâu."],
+		])
+		return
+	house_unlocked = true
+	entered_locked_house = true
+	m.say([
+		["Minh (nghĩ)", "Chìa xoay đúng một nửa vòng rồi tự kéo tay tôi vào trong."],
+		["Minh (nghĩ)", "Phòng trước, sân trong, bàn thờ. Và một miệng giếng khô nằm ở chỗ đáng lẽ phải là nền nhà."],
+	], func(): m.ui.set_objective("Tìm ba mảnh giấy dó trong căn nhà. Con mèo đã đi trước."))
+
+
+func _collect_stencil_part(id: String) -> void:
+	if not house_unlocked:
+		m.say([["Minh (nghĩ)", "Mảnh giấy nằm bên trong nhà. Tôi cần mở cửa trước đã."]])
+		return
+	if stencil_parts_collected.has(id):
+		return
+	stencil_parts_collected[id] = true
+	puzzle.collect_and_place_part(id)
+	if _part_markers.has(id) and _part_markers[id] != null:
+		_part_markers[id].visible = false
+	var names := {"head": "đầu chim", "wing_body": "thân và cánh", "tail_leg": "đuôi và chân"}
+	m.ui.toast("Đã đặt mảnh %s vào khung đèn" % names.get(id, id))
+	if puzzle.has_all_parts():
+		m.ui.set_objective("Ba mảnh đã vào khung. Xoay 3 lớp bóng cho Chim Lạc rõ hình.")
+	else:
+		m.ui.set_objective("Tìm đủ ba mảnh giấy dó trong nhà khóa.")
+
+
+func _altar_clue() -> void:
+	if not house_unlocked:
+		m.say([["Minh (nghĩ)", "Bàn thờ nằm sau lớp cửa khóa. Tôi chỉ thấy một vệt đỏ qua khe gỗ."]])
+		return
+	m.say([
+		["Minh (nghĩ)", "Trên bàn thờ không có ảnh. Chỉ có một ô trống hình đèn lồng."],
+		["Minh (nghĩ)", "Dưới chân bàn, dòng chữ khắc vội: 'Đừng để người giữ đèn tự nhớ một mình.'"],
+	])
 
 
 func _enter_puzzle() -> void:
+	if not house_unlocked:
+		m.say([["Minh (nghĩ)", "Khung đèn nằm trong nhà sau quán. Cửa vẫn khóa."]])
+		return
+	if not puzzle.has_all_parts():
+		m.say([["Minh (nghĩ)", "Khung đèn còn khuyết. Cần đủ ba mảnh: đầu, thân/cánh, đuôi/chân."]])
+		return
 	if not puzzle.solved:
-		m.enter_puzzle(puzzle, "A / D — xoay đèn cho bóng Chim Lạc khớp với hình mờ trên tường")
+		m.enter_puzzle(puzzle, "1/2/3 — chọn lớp giấy dó · A/D — xoay cho ba lớp Chim Lạc khớp hình mờ")
 
 
 func _on_puzzle_solved() -> void:
+	bird_puzzle_solved = true
 	m.ui.play_chime()
-	m.world.open_gate()
 	m.world.light_up()
 	m.exit_puzzle_after(1.8)
-	m.ui.toast("Ký ức đã được thắp sáng. Cánh cổng đang mở...")
-	# Sắc Hỏa hiện trên lò than
-	_orb = Build.color_orb(self, Vector3(-3.9, 1.1, -5.55), Color(1.0, 0.3, 0.1))
-	m.add_interact(Vector3(-3.9, 0, -5.55), 1.8, "Nhận SẮC HỎA", Callable(self, "_take_hoa"), true)
-	m.ui.set_objective("Quay lại quán nước — có gì đó vừa hiện trên lò than")
+	m.ui.toast("Chim Lạc đã rõ hình. Ấn Hỏa dưới nền nhà nứt ra.")
+	_orb = Build.color_orb(self, _basement_pos + Vector3(0.8, 1.1, -0.35), Color(1.0, 0.3, 0.1))
+	m.add_interact(_basement_pos + Vector3(0.8, 0, -0.35), 1.8, "Nhận SẮC HỎA từ ấn nứt", Callable(self, "_take_hoa"), true)
+	m.ui.set_objective("Nhận SẮC HỎA cạnh giếng khô trong căn nhà.")
 
 
 func _take_hoa() -> void:
-	_orb.queue_free()
-	_orb = null
+	if _orb != null:
+		_orb.queue_free()
+		_orb = null
+	hoa_unlocked = true
 	m.player.unlock_color("hoa")
 	m.ui.update_colors()
+	m._save_checkpoint()
 	m.say([
 		["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."],
 		["Bà Hàng Nước", "...Mà cậu nhỏ. Lúc nãy cậu gọi bà là gì nhỉ? Bà... không nhớ tên mình từ lúc nào rồi."],
 		["Minh (nghĩ)", "Tôi cũng không nhớ. Cả phố gọi bà là 'bà hàng nước'. Hình như... chưa ai từng gọi bằng tên."],
-	], func(): m.ui.set_objective("SẮC HỎA (phím 1): đốt rào tơ nhện sau cổng"))
+	], func(): m.ui.set_objective("SẮC HỎA (phím 1): mở ấn cửa hầm / giếng khô trong nhà."))
 
 
 func _try_burn() -> void:
-	if web_burned:
+	if basement_open:
+		return
+	if not house_unlocked:
+		m.say([["Minh (nghĩ)", "Cửa hầm ở trong căn nhà sau quán. Không thể mở từ ngoài phố."]])
+		return
+	if not bird_puzzle_solved:
+		m.say([["Minh (nghĩ)", "Ấn trên nền vẫn liền mạch. Con chim trên tường còn chưa thành hình."]])
+		return
+	if not hoa_unlocked:
+		m.say([["Minh (nghĩ)", "Ấn nứt ra, nhưng bên trong lạnh như nước giếng. Cần lửa lấy từ chính căn nhà này."]])
 		return
 	if m.player.current_color != "hoa":
-		m.say([["Minh (nghĩ)", "Tơ nhện dày như vải liệm. Tay không thì không xé nổi... Lửa. Cần lửa. (Phím 1 — Sắc Hỏa)"]])
+		m.say([["Minh (nghĩ)", "Tơ phủ cửa hầm co lại khi đèn đổi màu. Cần Sắc Hỏa. (Phím 1)"]])
 		return
 	web_burned = true
-	_web.queue_free()
+	basement_open = true
+	if _web != null:
+		_web.queue_free()
+		_web = null
 	m.world.blackout_beat()
+	m._save_checkpoint()
 	m.say([
-		["Minh (nghĩ)", "Tơ cháy không khói. Cháy như chưa từng có ở đó."],
-		["Minh (nghĩ)", "...Đèn vừa tắt một nhịp. Cả phố. Cùng một nhịp."],
-		["Minh (nghĩ)", "Có thứ gì vừa đi qua. Không phải đi qua ngõ. Đi qua TÔI."],
-	], func(): m.ui.set_objective("Đi qua cổng — sân giếng đôi ở phía sau"))
+		["Minh (nghĩ)", "Tơ trên cửa hầm cháy không khói. Cháy như giấy bị xóa khỏi trí nhớ."],
+		["Trạm Bốn", "Đường xuống đã mở. Đừng nhìn lên nếu nghe tiếng nước phía trên đầu."],
+		["Minh (nghĩ)", "Miệng giếng khô thở ra mùi đất ướt. Dưới đó có tiếng trẻ con đếm nhịp."],
+	], func(): m.ui.set_objective("Đi xuống giếng khô trong nhà để sang Giếng Đôi."))
+
+
+func can_descend_to_c2() -> bool:
+	return stall_inspected and has_house_key and house_unlocked and bird_puzzle_solved and hoa_unlocked and basement_open
+
+
+func _try_descend() -> void:
+	if not can_descend_to_c2():
+		if not house_unlocked:
+			m.say([["Minh (nghĩ)", "Lối xuống không nằm ngoài phố. Nó ở sau cánh cửa nhà khóa."]])
+		elif not bird_puzzle_solved:
+			m.say([["Minh (nghĩ)", "Miệng giếng chưa mở. Chim Lạc trên tường vẫn thiếu bóng."]])
+		elif not basement_open:
+			m.say([["Minh (nghĩ)", "Cửa hầm còn bị ấn Hỏa giữ lại."]])
+		return
+	descended_to_c2 = true
+	m.goto_chapter(2)
 
 
 func _pet_cat() -> void:
@@ -324,9 +483,7 @@ func _light_lamp(i: int) -> void:
 
 func update(delta: float) -> void:
 	_update_cat(delta)
-	# chỉ kích hoạt khi đi sâu TRONG NGÕ — phố mở (Phase 8) cũng có z<-23 ở Lê Lợi/NTH
-	if web_burned and m.player.position.z < -23.0 and absf(m.player.position.x) < 5.5:
-		m.goto_chapter(2)
+	# C2 chỉ được mở bằng tương tác giếng khô trong nhà khóa; không còn street trigger.
 
 
 # mèo đi dạo giữa các bậu cửa; người lại gần là nó lảng — đúng kiểu mèo
@@ -365,6 +522,6 @@ func _update_cat(delta: float) -> void:
 
 func clamp_player(pos: Vector3) -> Vector3:
 	pos = m.world.clamp_alley(pos)
-	if not web_burned and pos.z < -21.0:
+	if not basement_open and pos.z < -21.0:
 		pos.z = -21.0
 	return pos

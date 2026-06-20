@@ -6,6 +6,7 @@ const GameWorld := preload("res://scripts/world.gd")
 const PlayerCharacter := preload("res://scripts/player.gd")
 const GameUI := preload("res://scripts/game_ui.gd")
 const DialogueUI := preload("res://scripts/dialogue_ui.gd")
+const MemoryStallInspectUI := preload("res://scripts/memory_stall_inspect_ui.gd")
 const C1 := preload("res://scripts/c1.gd")
 const C2 := preload("res://scripts/c2.gd")
 const C3 := preload("res://scripts/c3.gd")
@@ -36,6 +37,7 @@ var world: Node3D
 var player: Node3D
 var ui: CanvasLayer
 var dialogue: CanvasLayer
+var memory_stall: CanvasLayer
 var narrative: NarrativeState
 var checkpoints: CheckpointService
 var voice: VoiceDirector
@@ -55,6 +57,7 @@ var map_mode := false
 var _pre_map_fp := false
 var _interacts: Array = []
 var _say_then: Callable = Callable()
+var _memory_stall_owner = null
 var _dust: GPUParticles3D
 var _debug_dir := ""
 var _debug_shot_n := 0
@@ -84,6 +87,9 @@ func _ready() -> void:
 	add_child(dialogue)
 	dialogue.finished.connect(_on_dialogue_finished)
 	dialogue.choice_selected.connect(_on_dialogue_choice_selected)
+	memory_stall = MemoryStallInspectUI.new()
+	add_child(memory_stall)
+	memory_stall.closed.connect(_on_memory_stall_closed)
 	camera = Camera3D.new()
 	camera.fov = 60
 	add_child(camera)
@@ -298,6 +304,22 @@ func _on_dialogue_choice_selected(choice_id: String, index: int, label: String) 
 	_save_checkpoint()
 
 
+func open_memory_stall(owner) -> void:
+	_memory_stall_owner = owner
+	state = State.DIALOGUE
+	ui.show_prompt("")
+	memory_stall.open_panel()
+
+
+func _on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
+	if state == State.DIALOGUE:
+		state = State.PLAY
+	if _memory_stall_owner != null and _memory_stall_owner.has_method("on_memory_stall_closed"):
+		_memory_stall_owner.on_memory_stall_closed(inspected_ids, key_taken)
+	_memory_stall_owner = null
+	_save_checkpoint()
+
+
 func _save_checkpoint() -> void:
 	if player == null:
 		return
@@ -442,6 +464,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		fp_yaw -= event.relative.x * 0.0028
 		fp_pitch = clampf(fp_pitch - event.relative.y * 0.0028, -1.15, 0.65)
 		player.fp_yaw = fp_yaw
+		return
+	if memory_stall != null and memory_stall.active:
 		return
 	if dialogue.active:
 		return
@@ -1228,9 +1252,26 @@ func _flow_test() -> void:
 	c1.intro_beat()
 	await _wait_dialogue()
 	c1._talk_ba()
+	await _wait_dialogue_only()
+	for id in MemoryStallInspectUI.REQUIRED_FOR_KEY:
+		memory_stall.inspect_item(id)
+	memory_stall._take_key()
+	memory_stall.close_panel()
 	await _wait_dialogue()
+	assert(c1.has_house_key)
+	c1._try_descend()
+	await _wait_dialogue()
+	assert(chapter_no == 1)
+	c1._try_unlock_house()
+	await _wait_dialogue()
+	assert(c1.house_unlocked)
+	c1._try_descend()
+	await _wait_dialogue()
+	assert(chapter_no == 1)
+	for id in ["head", "wing_body", "tail_leg"]:
+		c1._collect_stencil_part(id)
 	enter_puzzle(c1.puzzle, "")
-	c1.puzzle.angle = 0.05
+	c1.puzzle.debug_solve()
 	await _until(func(): return c1.puzzle.solved, "c1 puzzle")
 	await _until(func(): return state == State.PLAY, "c1 exit puzzle")
 	c1._take_hoa()
@@ -1238,8 +1279,12 @@ func _flow_test() -> void:
 	player.set_color("hoa")
 	c1._try_burn()
 	await _wait_dialogue()
-	assert(c1.web_burned)
+	assert(c1.basement_open)
 	player.position = Vector3(0, 0, -23.5)
+	await get_tree().create_timer(0.5).timeout
+	assert(chapter_no == 1)
+	player.position = c1._basement_pos
+	c1._try_descend()
 	await _until(func(): return chapter_no == 2 and state == State.PLAY, "vào c2", 30.0)
 	var c2 = chapters[2]
 	for i in range(2):
@@ -1330,6 +1375,12 @@ func _flow_test() -> void:
 
 
 func _wait_dialogue() -> void:
+	await get_tree().create_timer(0.4).timeout
+	while dialogue.active or (memory_stall != null and memory_stall.active):
+		await get_tree().create_timer(0.1).timeout
+
+
+func _wait_dialogue_only() -> void:
 	await get_tree().create_timer(0.4).timeout
 	while dialogue.active:
 		await get_tree().create_timer(0.1).timeout

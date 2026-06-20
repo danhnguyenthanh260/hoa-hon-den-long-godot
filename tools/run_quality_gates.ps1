@@ -41,6 +41,18 @@ Run-Gate 'voice director' {
     & $GodotPath --headless --path . --script res://scripts/tests/test_voice_director.gd
 }
 
+Run-Gate 'memory stall inspect UI' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_memory_stall_inspect_ui.gd
+}
+
+Run-Gate 'bird stencil puzzle' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_bird_stencil_puzzle.gd
+}
+
+Run-Gate 'chapter 1 progression locks' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_c1_progression.gd
+}
+
 Run-Gate 'player shadow policy' {
     & $GodotPath --headless --path . --script res://scripts/tests/test_player_shadow_policy.gd
 }
