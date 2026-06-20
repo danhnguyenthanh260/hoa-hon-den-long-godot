@@ -362,13 +362,18 @@ static func motorbike(parent: Node3D, pos: Vector3, yrot: float) -> Node3D:
 # sàn chìa ra trước mặt tiền tại cao độ y_floor, lan can bông gió trắng + chậu cây
 static func balcony_breeze(a: Node3D, w: float, y_floor: float, m: Dictionary) -> void:
 	var depth := 0.85
-	Build.box(a, Vector3(depth, 0.1, w), Vector3(-depth / 2.0, y_floor, 0), m["trim"])
-	Build.box(a, Vector3(depth - 0.08, 0.07, w - 0.1), Vector3(-depth / 2.0, y_floor - 0.08, 0), m["wood"])
+	# sàn dày 0.18m — đọc ra khối vươn ra từ xa
+	Build.box(a, Vector3(depth, 0.18, w), Vector3(-depth / 2.0, y_floor, 0), m["trim"])
+	# apron bên dưới sàn — cho thấy trọng lượng kết cấu nhìn từ đường
+	Build.box(a, Vector3(depth - 0.08, 0.08, w - 0.24), Vector3(-depth / 2.0, y_floor - 0.17, 0), m["trim"])
+	Build.box(a, Vector3(depth - 0.14, 0.07, w - 0.1), Vector3(-depth / 2.0, y_floor - 0.11, 0), m["wood"])
+	# kèo đỡ lớn hơn — đọc rõ hơn từ mắt người chơi
 	for bz in [-w / 2.0 + 0.35, 0.0, w / 2.0 - 0.35]:
-		var bracket := Build.box(a, Vector3(0.3, 0.3, 0.12), Vector3(-0.4, y_floor - 0.26, bz), m["frame"])
+		var bracket := Build.box(a, Vector3(0.38, 0.38, 0.14), Vector3(-0.42, y_floor - 0.22, bz), m["frame"])
 		bracket.rotation.z = 0.78
 	var rail_h := 0.78
-	Build.breeze_panel(a, Vector3(-depth + 0.04, y_floor + 0.42, 0), int((w - 0.5) / 0.36), 2, 0.36)
+	# panel ngồi sát mặt trên sàn (y_floor + 0.09 + 0.36 = y_floor + 0.45)
+	Build.breeze_panel(a, Vector3(-depth + 0.04, y_floor + 0.45, 0), int((w - 0.5) / 0.36), 2, 0.36)
 	Build.box(a, Vector3(0.12, 0.07, w), Vector3(-depth + 0.04, y_floor + rail_h + 0.1, 0), m["trim"])
 	for pz in [-1.0, 1.0]:
 		Build.box(a, Vector3(0.14, rail_h + 0.2, 0.14), Vector3(-depth + 0.04, y_floor + (rail_h + 0.2) / 2.0, pz * (w / 2.0 - 0.07)), m["trim"])

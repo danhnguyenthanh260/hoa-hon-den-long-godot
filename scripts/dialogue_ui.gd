@@ -3,6 +3,8 @@
 # Lựa chọn: {"choice": [["nhãn 1", [dòng...]], ["nhãn 2", [dòng...]]]}
 extends CanvasLayer
 
+signal choice_selected(choice_id: String, index: int, label: String)
+
 signal finished
 
 const CHAR_RATE := 38.0
@@ -17,6 +19,7 @@ var _lines: Array = []
 var _index := 0
 var _shown := 0.0
 var _waiting_choice := false
+var player_name_revealed := false
 var _auto_timer := 0.0
 var active := false
 var auto_advance := false   # chế độ test: tự tua thoại, tự chọn đáp án 1
@@ -104,7 +107,7 @@ func _show_current() -> void:
 	if line is Dictionary and line.has("choice"):
 		_present_choice(line["choice"])
 		return
-	var speaker: String = line[0]
+	var speaker: String = _visible_speaker(str(line[0]))
 	var is_thought := speaker.contains("(nghĩ)")
 	_name_label.text = speaker
 	_name_label.add_theme_color_override("font_color",
@@ -115,6 +118,16 @@ func _show_current() -> void:
 		_text_label.text = "[color=#f2e8d0]" + line[1] + "[/color]"
 	_shown = 0.0
 	_text_label.visible_characters = 0
+
+
+func _visible_speaker(speaker: String) -> String:
+	if player_name_revealed or not speaker.begins_with("Minh"):
+		return speaker
+	return speaker.replace("Minh", "NGƯỜI GIỮ ĐÈN")
+
+
+func reveal_player_name() -> void:
+	player_name_revealed = true
 
 
 func _present_choice(options: Array) -> void:
@@ -150,8 +163,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif event.keycode == KEY_2:
 				pick = 1
 			if pick >= 0:
-				var options: Array = _lines[_index]["choice"]
+				var choice_line: Dictionary = _lines[_index]
+				var options: Array = choice_line["choice"]
 				if pick < options.size():
+					choice_selected.emit(str(choice_line.get("choice_id", "")), pick, str(options[pick][0]))
 					var branch: Array = options[pick][1]
 					var rest := _lines.slice(_index + 1)
 					_lines = branch + rest
@@ -173,7 +188,9 @@ func _process(delta: float) -> void:
 		return
 	if _waiting_choice:
 		if auto_advance:
-			var options: Array = _lines[_index]["choice"]
+			var choice_line: Dictionary = _lines[_index]
+			var options: Array = choice_line["choice"]
+			choice_selected.emit(str(choice_line.get("choice_id", "")), 0, str(options[0][0]))
 			var branch: Array = options[0][1]
 			_lines = branch + _lines.slice(_index + 1)
 			_index = 0

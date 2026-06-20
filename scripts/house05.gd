@@ -87,5 +87,9 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.5, o
 		lans.append(Build.lantern(a, 0.13, 0.25, Vector3(-0.85, Y1 - 1.0, lz)))
 	out["lanterns"] = lans
 
-	Parts.roof_amduong(a, W, D, Y1 + 0.05, m)
+	var ridge_y := Parts.roof_amduong(a, W, D, Y1 + 0.05, m)
+	var gable_h := ridge_y - Y1 - 0.05
+	for gz_v in [-W / 2.0 + 0.06, W / 2.0 - 0.06]:
+		var gz: float = gz_v
+		Build.box(a, Vector3(D + 0.12, gable_h, 0.14), Vector3(D / 2.0, Y1 + 0.05 + gable_h / 2.0, gz), m["plaster"])
 	return a

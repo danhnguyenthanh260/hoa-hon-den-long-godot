@@ -1,5 +1,8 @@
 .godot/
-tools/
-shots/
+tools/*
+!tools/*.ps1
+shots/*
+!shots/.gdignore
 .agent-profiles/
 *.tmp
+Screenshots/ref-*.png.import

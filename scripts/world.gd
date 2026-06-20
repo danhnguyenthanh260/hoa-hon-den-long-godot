@@ -189,6 +189,8 @@ func _build_houses() -> void:
 	Parts.pot_plant(self, Vector3(-4.6, 0, -3.8), 0, 0.85)
 	Parts.bicycle(self, Vector3(4.6, 0, -8.0), PI / 2.0, -0.12)
 	Parts.banana_clump(self, Vector3(-3.5, 0, -18.8), 1.2, Vector3(-0.55, 0, -0.83))
+	# sương chặn cuối ngõ — đừng để nhân vật nhìn thấy vùng phía Nam chưa mở
+	_mist(Vector3(0, 3.5, -14.5), Vector3(13.0, 7.0, 0.5))
 	_build_main_street()
 	_build_phase2_streets()
 	_build_phase3_river()
@@ -315,8 +317,8 @@ func _build_main_street() -> void:
 	for pp2 in [[-11.2, 3], [11.2, 0], [25.2, 2], [-29.2, 1]]:
 		Parts.pot_plant(self, Vector3(pp2[0], 0.14, 8.2), int(pp2[1]), 0.9)
 	# bụi chuối nép góc trụ giữa hai nhà, tàu lá phía tường tự ngắn (ref-10)
-	Parts.banana_clump(self, Vector3(-30.1, 0, 13.3), 1.3, Vector3(0, 0, 1))
-	Parts.banana_clump(self, Vector3(17.9, 0, 13.3), 1.5, Vector3(0, 0, 1))
+	Parts.banana_clump(self, Vector3(-30.1, 0, 14.05), 1.3, Vector3(0, 0, 1))
+	Parts.banana_clump(self, Vector3(17.9, 0, 14.05), 1.5, Vector3(0, 0, 1))
 	# dây đèn giăng ngang phố
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(0.95, 0.25, 0.4)]
 	var idx := 0
@@ -349,12 +351,13 @@ func _build_main_street() -> void:
 		var hv := 0.88 + 0.24 * fposmod(tp.x * 0.737 + tp.z * 0.311, 1.0)
 		var lm := Build.leaf_mat("ForestLeaves03", Color(0.5, 0.7, 0.4) * hv, 0.05, 1.0, 0.55)
 		var cm := Build.leaf_mat("ForestLeaves03", Color(0.55, 0.78, 0.42) * hv, 0.05, 1.0, 0.8, 0.5)
-		for fb in range(7):
-			var off := Vector3(sin(fb * 1.9) * 0.75, 3.4 + 0.45 * sin(fb * 2.7), cos(fb * 1.9) * 0.7)
-			Build.ball(self, 0.45 + 0.08 * (fb % 3), 0.8, tp + off, lm)
-		for cb in range(8):
-			var coff := Vector3(sin(cb * 2.4) * 0.85, 3.45 + 0.5 * sin(cb * 1.7), cos(cb * 2.4) * 0.8)
-			var card := Build.leaf_card(self, Vector2(1.5, 1.15), tp + coff, cm)
+		# tán lá: phân bố theo tỷ lệ vàng — tránh hình cầu, tạo dạng oval đứng tự nhiên
+		for fb in range(11):
+			var off := Vector3(sin(fb * 2.4) * 0.62, 3.1 + 1.7 * fposmod(fb * 0.618, 1.0), cos(fb * 2.4) * 0.58)
+			Build.ball(self, 0.38 + 0.11 * (fb % 3), 0.8, tp + off, lm)
+		for cb in range(14):
+			var coff := Vector3(sin(cb * 2.1) * 0.88, 3.0 + 1.8 * fposmod(cb * 0.618, 1.0), cos(cb * 2.1) * 0.82)
+			var card := Build.leaf_card(self, Vector2(1.55 + 0.28 * (cb % 2), 1.2), tp + coff, cm)
 			card.rotation = Vector3(fposmod(cb * 0.97, 1.0) - 0.5, cb * 0.79, fposmod(cb * 0.61, 0.8) - 0.4)
 	# màn sương phong ấn hai đầu phố
 	for mx in [-39.0, 39.0]:
@@ -1040,7 +1043,7 @@ func _house(pos: Vector3, yrot: float, idx: int) -> void:
 			var fx := -absf(sin(fi * 2.39 + idx)) * 0.2
 			var fy := -absf(sin(fi * 1.7)) * 0.85
 			var fz := cos(fi * 2.39 + idx) * 0.26
-			var fc := Color(1.9, 0.3, 1.0) if fi % 4 != 0 else Color(0.4, 0.65, 0.3)
+			var fc := Color(0.82, 0.20, 0.55) if fi % 4 != 0 else Color(0.32, 0.52, 0.25)
 			Build.ball(a, 0.055 + 0.03 * (fi % 2), 0.1, base_p + Vector3(fx, fy, fz), Build.leaf_mat("ForestLeaves03", fc, 0.035, 1.6, 1.4))
 	# bụi cỏ chen chân đế — phố ẩm, cỏ mọc kẽ đá (một nửa số nhà, vị trí lệch theo idx)
 	if (idx * 7) % 2 == 0:

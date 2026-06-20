@@ -4,7 +4,10 @@ Game phiêu lưu giải đố cốt truyện (~60 phút) bối cảnh phố cổ
 bóng tối nuốt ký ức. Kinh dị tâm linh nhẹ, logic giấc mơ. Toàn bộ scene dựng bằng
 GDScript thuần — texture sinh procedural, không asset ngoài.
 
-**Kịch bản đầy đủ:** [docs/SCRIPT.md](docs/SCRIPT.md) — 5 chương, thoại + độc thoại + twist.
+**Kịch bản sản xuất:** [docs/SCRIPT-v3.md](docs/SCRIPT-v3.md) — 5 chương, nghi lễ,
+dramatic irony và các kết. Kế hoạch nâng cấp end-to-end nằm tại
+[docs/PRODUCTION-PLAN-V3.md](docs/PRODUCTION-PLAN-V3.md); pipeline ảnh thực/3D tại
+[docs/REAL-ASSET-PIPELINE.md](docs/REAL-ASSET-PIPELINE.md).
 
 ## Chạy game
 

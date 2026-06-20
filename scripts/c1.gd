@@ -84,13 +84,28 @@ func _build_street_life() -> void:
 	_cat.position = Vector3(14.5, 0.45, 8.6)
 	add_child(_cat)
 	var fur := Build.mat(Color(0.04, 0.04, 0.05), 0.9)
-	Build.ball(_cat, 0.13, 0.2, Vector3(0, 0.1, 0), fur)
-	Build.ball(_cat, 0.085, 0.16, Vector3(0, 0.26, 0.06), fur)
+	# thân — hình cầu dẹt nằm ngang (scale z > x)
+	var body := Build.ball(_cat, 0.13, 0.22, Vector3(0, 0.13, 0), fur)
+	body.scale = Vector3(0.85, 0.72, 1.22)
+	# đầu
+	var head := Build.ball(_cat, 0.088, 0.17, Vector3(0, 0.27, 0.13), fur)
+	head.scale = Vector3(1.0, 0.92, 0.88)
+	# tai — 2 hình nón nhọn
 	for ex in [-0.045, 0.045]:
-		Build.cyl(_cat, 0.005, 0.028, 0.06, Vector3(ex, 0.36, 0.05), fur, 4)
-		Build.ball(_cat, 0.009, 0.018, Vector3(ex, 0.27, 0.13), Build.emis(Color(0.9, 0.75, 0.2), Color(0.9, 0.7, 0.1), 1.4))
-	_cat_tail = Build.cyl(_cat, 0.018, 0.025, 0.3, Vector3(-0.1, 0.18, -0.12), fur, 6)
-	_cat_tail.rotation.z = 0.9
+		var ear := Build.cyl(_cat, 0.003, 0.024, 0.055, Vector3(ex, 0.36, 0.10), fur, 4)
+		ear.rotation.z = ex * 8.0
+	# mắt phát sáng vàng
+	for ex in [-0.032, 0.032]:
+		Build.ball(_cat, 0.010, 0.019, Vector3(ex, 0.275, 0.20), Build.emis(Color(0.9, 0.75, 0.2), Color(0.9, 0.7, 0.1), 1.4))
+	# 4 chân — hình trụ ngắn thẳng đứng
+	for lx in [-0.07, 0.07]:
+		for lz_v in [-0.07, 0.06]:
+			var lz: float = lz_v
+			Build.cyl(_cat, 0.022, 0.026, 0.12, Vector3(lx, 0.06, lz), fur, 6)
+	# đuôi — cong lên và ra sau
+	_cat_tail = Build.cyl(_cat, 0.014, 0.022, 0.28, Vector3(-0.09, 0.17, -0.15), fur, 6)
+	_cat_tail.rotation.z = 0.85
+	_cat_tail.rotation.x = -0.3
 	_cat_interact = m.add_interact(Vector3(14.5, 0, 8.6), 1.8, "Con mèo đen", Callable(self, "_pet_cat"), false)
 	_cat_state = 4.0
 	# cửa nhà gõ được — đừng gõ lần hai
@@ -124,7 +139,17 @@ func intro_beat() -> void:
 	m.say([
 		["Minh (nghĩ)", "Tiếng rao chè trôi qua đầu ngõ... nhưng đã mười năm rồi không ai gánh chè qua đây."],
 		["Minh (nghĩ)", "Sương đêm nay có mùi tro. Như ai vừa đốt một chồng thư cũ."],
-	])
+	], func(): m.remote_voice(
+		"c1_first_radio",
+		0.10,
+		[
+			"Nghe được không? Nếu đèn còn sáng thì cứ đi sâu vào ngõ.",
+			"Đừng trả lời nếu có ai gọi đúng tên. Ở phố này, tên là thứ dễ bị mượn nhất.",
+			["Minh (nghĩ)", "Giọng phát ra từ trong lồng đèn, rè như máy bộ đàm ngấm nước. Nhưng nó biết tôi đang đứng ở đầu ngõ."],
+		],
+		Callable(),
+		8
+	))
 
 
 var _ba_talked := false

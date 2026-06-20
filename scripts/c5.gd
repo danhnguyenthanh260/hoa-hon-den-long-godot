@@ -1,14 +1,48 @@
 # CHƯƠNG NĂM — CHÙA CẦU TREO GIỮA KHÔNG
-# Boss: Bóng Tối Thủ Cựu — 3 pha theo vòng TƯƠNG KHẮC (Thủy khắc Hỏa, Hỏa khắc Kim, Thổ khắc Thủy).
+# Climax: Bóng Tối Thủ Cựu gây áp lực bằng giọng nói và hình dạng.
+# Tiến trình C5 đến từ xác minh mâu thuẫn bằng đúng Sắc, không phải đua DPS.
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 
 const C := Vector3(0, 40, -120)
+const HOLD_TO_VERIFY := 2.4
 const PHASES := [
 	{"form": "HỎA", "weak": "thuy", "tint": Color(1.0, 0.25, 0.08), "taunt": "Nó bùng lên như đám cháy chợ đêm. Lửa thì sợ gì lửa... Nước. NƯỚC."},
 	{"form": "KIM", "weak": "hoa", "tint": Color(0.9, 0.92, 1.0), "taunt": "Nó rít lên như ngàn lưỡi gươm mài vào nhau. Kim loại — phải nung cho nó mềm ra."},
 	{"form": "THỦY", "weak": "tho", "tint": Color(0.2, 0.5, 1.0), "taunt": "Nó dâng lên như lũ tháng Mười. Nước lớn cỡ nào... đất cũng đắp được đê."},
+]
+const PROOFS := [
+	{
+		"form": "HỎA",
+		"weak": "thuy",
+		"tint": Color(1.0, 0.25, 0.08),
+		"evidence": "c5_water_refuses_body",
+		"bond": "ba",
+		"objective": "Sắc THỦY: giữ đèn xanh trong vòng sáng để nghe lớp tiếng thật dưới lửa",
+		"voice": "Nếu đúng là cứu người, vì sao nước không chịu nhận bóng của người giữ đèn?",
+		"truth": "Nước tách ra quanh chân Minh. Không phải vì phép — vì nó đang tránh một cái xác đã được tiễn nhiều lần.",
+	},
+	{
+		"form": "KIM",
+		"weak": "hoa",
+		"tint": Color(0.9, 0.92, 1.0),
+		"evidence": "c5_blank_tablet_accepts_ash",
+		"bond": "child",
+		"objective": "Sắc HỎA: nung lớp kim loại để chữ trên bài vị hiện ra",
+		"voice": "Tên nào bị giữ lại thì bài vị nào cũng trống. Thử đốt phần nói dối đi.",
+		"truth": "Tro vàng rơi lên bài vị trống. Nét chữ không ghi tên người chết — nó ghi 'người kể chuyện'.",
+	},
+	{
+		"form": "THỦY",
+		"weak": "tho",
+		"tint": Color(0.2, 0.5, 1.0),
+		"evidence": "c5_lantern_is_anchor",
+		"bond": "",
+		"objective": "Sắc THỔ: neo cây đèn xuống đất, đừng đuổi theo giọng gọi nữa",
+		"voice": "Nếu chiếc đèn là đường về, đặt nó xuống. Nếu không đặt được, nó là xiềng.",
+		"truth": "Đất giữ lấy chân đèn. Lần đầu tiên, cây đèn không kéo Minh đi tiếp vòng phố cũ.",
+	},
 ]
 
 var m
@@ -147,7 +181,7 @@ func enter_beat() -> void:
 		["Minh (nghĩ)", "Chùa Cầu... treo giữa hư không. Quanh nó, từng mảnh phố trôi như đảo vỡ sau cơn lụt."],
 		["Bóng Tối Thủ Cựu", "Người giữ đèn. LẠI là ngươi. Lần nào ngươi cũng tới đây."],
 		["Minh", "Trả ánh sáng lại cho phố. Trả ký ức lại cho người."],
-		["Bóng Tối Thủ Cựu", "Ký ức của AI, hở Minh? Ngươi thắp lại quán nước — bà lão vẫn không nhớ tên mình. Ngươi soi sáng nhà thờ tổ — ảnh trên án là ảnh của ai?"],
+		["Bóng Tối Thủ Cựu", "Ký ức của ai, người giữ đèn? Ngươi thắp lại quán nước — bà lão vẫn không nhớ tên mình. Ngươi soi sáng nhà thờ tổ — ảnh trên án là ảnh của ai?"],
 		["Bóng Tối Thủ Cựu", "Ngươi chưa từng hỏi: vì sao cả phố quên... mà MỘT MÌNH NGƯƠI nhớ?"],
 		["Minh (nghĩ)", "Nó nói bằng nhiều giọng chồng lên nhau. Giọng bà hàng nước. Giọng đứa trẻ. Giọng người chèo đò."],
 	], func(): _start_fight())
@@ -155,25 +189,40 @@ func enter_beat() -> void:
 
 func _start_fight() -> void:
 	fight_active = true
+	phase = 0
+	burn = 0.0
+	_boss.scale = Vector3.ONE
+	_boss.position = C + Vector3(0, 0, -5.0)
 	_announce_phase()
 
 
 func _announce_phase() -> void:
-	var ph: Dictionary = PHASES[phase]
+	var ph: Dictionary = PROOFS[phase]
 	_core.material_override = Build.emis(ph["tint"], ph["tint"], 3.5)
-	m.ui.set_objective("Nó khoác hình %s — chiếu màu KHẮC nó (giữ nó trong vùng sáng của đèn)" % ph["form"])
-	m.say([["Minh (nghĩ)", ph["taunt"]]])
+	m.ui.set_objective(ph["objective"])
+	m.say([
+		["Giọng radio bị nhiễu", ph["voice"]],
+		["Minh (nghĩ)", "Không đánh nó. Phải kiểm chứng lời nó nói — giữ đúng Sắc cho tới khi lớp tiếng thật hiện ra."],
+	])
 
 
 func _phase_break() -> void:
+	var proof: Dictionary = PROOFS[phase]
 	burn = 0.0
+	_boss.scale = Vector3.ONE
+	if m.narrative.add_evidence(proof["evidence"], proof["truth"]):
+		m.ui.toast("Đã xác minh: %s" % proof["evidence"])
+	var bond := str(proof.get("bond", ""))
+	if bond != "":
+		m.narrative.set_bond(bond, 1)
+	m._save_checkpoint()
 	phase += 1
 	m.ui.play_chime()
 	_boss.position = C + Vector3(0, 0, -5.0)
-	if phase >= PHASES.size():
+	if phase >= PROOFS.size():
 		_defeat()
 	else:
-		m.ui.toast("Lớp bóng bong ra như tro giấy...")
+		m.ui.toast("Một lớp giọng giả rơi xuống như tro giấy...")
 		_announce_phase()
 
 
@@ -198,10 +247,10 @@ func _defeat() -> void:
 		["Minh (nghĩ)", "Pha cuối vỡ ra. Nó không gầm. Nó NHỎ LẠI — thành một bóng người gầy, đội nón, gánh sào đèn."],
 		["Minh (nghĩ)", "Là tôi."],
 		["Bóng Tối Thủ Cựu", "Phố không quên chuyện xưa đâu. Phố chỉ quên... người kể."],
-		["Bóng Tối Thủ Cựu", "Ngươi chết lâu rồi, người giữ đèn ạ. Đêm nào ngươi cũng đi lại con đường này, thắp lại từng ấy đèn, gặp lại từng ấy người dở dang như ngươi. Rồi đến sáng, tất cả lại xám."],
-		["Minh", "...Tôi biết."],
-		["Minh", "Biết từ lúc nhìn cái ảnh trên bàn thờ. Nhưng mà này — BIẾT với THÔI là hai chuyện khác nhau."],
-		["Minh", "Chừng nào lòng người còn mong cầu cái đẹp, ánh sáng không bao giờ tắt. Sư phụ tôi dạy thế. Ông ấy không nói gì về việc người thắp phải còn sống."],
+		["Bóng Tối Thủ Cựu", "Đêm nào ngươi cũng đi lại con đường này, thắp lại từng ấy đèn, gặp lại từng ấy người. Rồi đến sáng, tất cả lại xám."],
+		["Minh", "...Tôi đã đi con đường này bao nhiêu lần?"],
+		["Bóng Tối Thủ Cựu", "Đủ nhiều để nhớ từng nghi lễ. Chưa lần nào đủ lâu để đặt chiếc đèn xuống."],
+		["Minh (nghĩ)", "Mặt nước không theo tôi. Bài vị không nhận tên. Cái bóng trước mặt lại mang đúng dáng gánh trên vai tôi."],
 	], func(): m.ending_sequence())
 
 
@@ -214,7 +263,7 @@ func update(delta: float) -> void:
 		node.rotation.y = ang
 	if not fight_active or defeated:
 		return
-	var ph: Dictionary = PHASES[phase]
+	var ph: Dictionary = PROOFS[phase]
 	var p: Vector3 = m.player.position
 	var to_p: Vector3 = p - _boss.position
 	to_p.y = 0
@@ -222,22 +271,20 @@ func update(delta: float) -> void:
 	var correct: bool = m.player.current_color == ph["weak"] and d < 8.0
 	if correct:
 		burn += delta
-		_boss.position -= to_p.normalized() * 0.5 * delta
-		var s := 1.0 - burn / 8.0
-		_boss.scale = Vector3(s, s, s)
-		if burn > 3.2:
+		var focus := clampf(burn / HOLD_TO_VERIFY, 0.0, 1.0)
+		_boss.scale = Vector3.ONE * (1.0 + 0.18 * focus)
+		_core.scale = Vector3.ONE * (1.0 + 0.45 * focus)
+		if burn >= HOLD_TO_VERIFY:
 			_phase_break()
 			return
 	else:
 		burn = maxf(0.0, burn - delta * 0.5)
-		if d > 0.01:
-			_boss.position += to_p.normalized() * (0.9 if d > 3.0 else 1.3) * delta
+		var fade := clampf(burn / HOLD_TO_VERIFY, 0.0, 1.0)
+		_boss.scale = Vector3.ONE * (1.0 + 0.08 * fade)
+		_core.scale = Vector3.ONE * (1.0 + 0.2 * fade)
 	for i in range(_blobs.size()):
 		_blobs[i].scale = Vector3.ONE * (1.0 + 0.22 * sin(_time * 2.6 + i * 1.3))
 	_neg.light_energy = 2.2 + sin(_time * 3.4) * 0.5
-	if d < 1.3:
-		m.respawn(C + Vector3(0, 0, 6.5), "Nó chạm vào tôi — và trong một giây tôi không nhớ nổi MẶT MẸ TÔI. Không. Không được chạm vào nó.")
-		_boss.position = C + Vector3(0, 0, -5.0)
 
 
 func clamp_player(pos: Vector3) -> Vector3:

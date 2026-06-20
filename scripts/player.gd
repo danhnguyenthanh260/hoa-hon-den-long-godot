@@ -232,6 +232,14 @@ func _ready() -> void:
 	for c in _visual.get_children():
 		if c != _pole_holder:
 			_body_parts.append(c)
+	_disable_shadow_casting(self)
+
+
+func _disable_shadow_casting(node: Node) -> void:
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for child in node.get_children():
+		_disable_shadow_casting(child)
 
 
 func set_near_house(v: bool) -> void:

@@ -157,15 +157,16 @@ func _talk_boatman() -> void:
 		m.say([
 			["Người Chèo Đò", "Hai chuông cùng tỉnh. Nước thuận rồi đó, cậu giữ đèn."],
 			["Người Chèo Đò", "Khách qua sông thì trả tiền đò. Nhưng tiền của cậu, ta không tiêu được. Cậu trả ta một ký ức nhé."],
-			["Người Chèo Đò", "Chọn đi. Gương mặt của mẹ cậu — hay là tên của chính cậu?"],
-			{"choice": [
-				["Gương mặt của mẹ", [
+			["Người Chèo Đò", "Nếu trả gương mặt mẹ, cậu còn tên để người khác gọi về. Nếu trả tên mình, cậu giữ được mặt mẹ — nhưng có thể chẳng còn đường về."],
+			["Người Chèo Đò", "Ta nói trước giá rồi. Chọn thứ cậu chấp nhận để lại bên sông."],
+			{"choice_id": "c4_crossing_price", "choice": [
+				["Trả gương mặt của mẹ — giữ tên", [
 					["Người Chèo Đò", "Cậu giữ cái tên. Người giữ tên là người còn muốn được gọi."],
 					["Người Chèo Đò", "...Mà cậu giữ đèn này. Lần trước qua sông, cậu cũng chọn y như vậy đấy."],
 					["Minh", "...Lần trước?"],
 					["Người Chèo Đò", "Lên đò đi."],
 				]],
-				["Tên của chính mình", [
+				["Trả tên của chính mình — giữ mặt mẹ", [
 					["Người Chèo Đò", "Cậu giữ gương mặt mẹ. Người bỏ tên là người không định quay về."],
 					["Người Chèo Đò", "Lạ thật. Khách bỏ tên... thường là khách đã bỏ từ lâu rồi. Chỉ chưa biết thôi."],
 					["Người Chèo Đò", "Lên đò đi."],

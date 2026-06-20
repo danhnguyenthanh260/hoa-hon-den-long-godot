@@ -223,12 +223,12 @@ func title_card(title: String, subtitle: String) -> void:
 	await tw2.finished
 
 
-func roll_credits() -> void:
+func roll_credits(player_credit_name: String = "Người giữ đèn") -> void:
 	var lines := [
 		["HỌA HỒN ĐÈN LỒNG", 40, GOLD],
 		["", 10, CREAM],
 		["Kịch bản · Thiết kế · Lập trình", 16, Color(0.7, 0.62, 0.48)],
-		["Minh — người giữ đèn cuối cùng", 18, CREAM],
+		["%s — người giữ đèn cuối cùng" % player_credit_name, 18, CREAM],
 		["", 10, CREAM],
 		["Cảm ơn bạn đã thắp lại phố hội.", 18, Color(0.85, 0.75, 0.54)],
 	]

@@ -1,0 +1,25 @@
+{
+  "_defaults": {
+    "identifiable_people": true,
+    "personality_rights_review": "pending",
+    "public_redistribution_decision": "pending",
+    "use_scope": "reference_only_not_runtime",
+    "used_by_assets": ["chua-cau-hero-rebuild"]
+  },
+  "01": { "coverage": ["canal_elevation", "daylight", "context"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "02": { "coverage": ["canal_elevation", "daylight", "vertical_crop"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "03": { "coverage": ["canal_elevation", "daylight", "context"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "04": { "coverage": ["canal_elevation", "daylight", "vertical_crop"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "05": { "coverage": ["canal_elevation", "daylight", "context"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "06": { "coverage": ["canal_elevation", "daylight", "context"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "07": { "coverage": ["canal_elevation", "daylight", "vertical_crop"], "coverage_role": "canal_elevation", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "08": { "coverage": ["canal_elevation", "blue_hour", "lighting_reference"], "coverage_role": "canal_elevation_lighting", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "09": { "coverage": ["canal_elevation", "blue_hour", "lighting_reference"], "coverage_role": "canal_elevation_lighting", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "10": { "coverage": ["canal_elevation", "blue_hour", "vertical_crop", "lighting_reference"], "coverage_role": "canal_elevation_lighting", "camera_facing": "mixed_context", "review_status": "reviewed_limited" },
+  "11": { "coverage": ["canal_elevation", "daylight", "processed_variant"], "coverage_role": "processed_variant", "camera_facing": "mixed_context", "review_status": "reviewed_limited", "source_processing": "Snapseed" },
+  "12": { "coverage": ["east_portal", "west_facing_camera", "roof_ornament", "portal_detail"], "coverage_role": "east_portal", "camera_facing": "west", "source_heading_degrees": 270.46, "review_status": "reviewed_limited", "orientation_evidence": "EXIF GPS east of bridge; heading 270.46 degrees true" },
+  "13": { "coverage": ["east_portal", "west_facing_camera", "roof_ornament", "portal_detail"], "coverage_role": "east_portal", "camera_facing": "west", "source_heading_degrees": 269.40, "review_status": "reviewed_limited", "orientation_evidence": "EXIF GPS east of bridge; heading 269.40 degrees true" },
+  "14": { "coverage": ["west_portal", "east_facing_camera", "street_context", "daylight"], "coverage_role": "west_portal", "camera_facing": "east", "source_heading_degrees": 94.82, "review_status": "reviewed_limited", "orientation_evidence": "EXIF GPS west of bridge; heading 94.82 degrees true" },
+  "15": { "coverage": ["west_portal", "east_facing_camera", "street_context", "daylight"], "coverage_role": "west_portal", "camera_facing": "east", "source_heading_degrees": 94.73, "review_status": "reviewed_limited", "orientation_evidence": "EXIF GPS west of bridge; heading 94.73 degrees true" },
+  "16": { "coverage": ["west_portal", "east_facing_camera", "vertical_crop", "daylight"], "coverage_role": "west_portal", "camera_facing": "east", "source_heading_degrees": null, "review_status": "reviewed_limited", "orientation_evidence": "EXIF GPS matches files 14-15; heading absent" }
+}

@@ -118,7 +118,16 @@ func enter_beat() -> void:
 	m.say([
 		["Minh (nghĩ)", "Sân giếng đôi. Hồi bé sư phụ cấm tôi ra đây sau giờ Dậu."],
 		["Minh (nghĩ)", "Giờ thì... giờ nào cũng là sau giờ Dậu."],
-	])
+	], func(): m.remote_voice(
+		"c2_radio_bad_shortcut",
+		0.24,
+		[
+			"Cứ đi thẳng qua cổng cuối sân. Đừng mất thời gian với đứa trẻ bên giếng.",
+			["Minh (nghĩ)", "Lần này giọng nói gấp hơn. Như có ai đang giữ nút phát, sợ tôi kịp hỏi lại."],
+		],
+		Callable(),
+		5
+	))
 
 
 var _child_talked := false
@@ -147,11 +156,22 @@ func _look_well() -> void:
 		return
 	_looked = true
 	m.say([
-		["Minh (nghĩ)", "Dưới nước không có mặt tôi."],
-		["Minh (nghĩ)", "Dưới nước là PHỐ. Phố hội còn sáng đèn, nguyên vẹn, đông người... lộn ngược."],
+		["Minh (nghĩ)", "Mặt nước theo chậm hơn một nhịp. Tôi nghiêng đầu — bóng dưới kia vẫn đứng yên."],
+		["Minh (nghĩ)", "Một gợn sóng chạy qua. Chỗ lẽ ra là mặt tôi lại mở ra PHỐ — còn sáng đèn, nguyên vẹn, đông người... lộn ngược."],
 		["Minh (nghĩ)", "Đáy giếng đang giữ cái phố mà tôi nhớ."],
 		["Đứa Trẻ Soi Giếng", "Anh thấy chưa. Anh lấy một ít về đi — nước ở đây nhớ dai lắm."],
-	], func(): _spawn_thuy())
+	], func(): m.remote_voice(
+		"c2_well_contradiction",
+		0.36,
+		[
+			"Rời giếng đi. Cái dưới nước chỉ nhại lại ký ức của cậu thôi.",
+			["Minh (nghĩ)", "Không. Nó không nhại. Nó chậm hơn tôi — và chỗ đáng lẽ là mặt tôi lại là một con phố nguyên vẹn."],
+		],
+		func(): _spawn_thuy(),
+		-12,
+		"well_reflection",
+		"Well reflection lags behind the player and shows the intact inverted town instead of Minh's face."
+	))
 
 
 func _spawn_thuy() -> void:

@@ -94,5 +94,9 @@ static func build(parent: Node3D, pos: Vector3, yrot: float, age: float = 0.6, o
 	var back := Node3D.new()
 	back.position = Vector3(D / 2.0, 0, 0)
 	a.add_child(back)
-	Parts.roof_amduong(back, W, D / 2.0, Y1 + 1.65, m)
+	var ridge_y := Parts.roof_amduong(back, W, D / 2.0, Y1 + 1.65, m)
+	var gable_h := ridge_y - (Y1 + 1.60) - 0.05
+	for gz_v in [-W / 2.0 + 0.06, W / 2.0 - 0.06]:
+		var gz: float = gz_v
+		Build.box(back, Vector3(D / 2.0 + 0.12, gable_h, 0.14), Vector3(D / 4.0, (Y1 + 1.60) + 0.05 + gable_h / 2.0, gz), m["plaster"])
 	return a
