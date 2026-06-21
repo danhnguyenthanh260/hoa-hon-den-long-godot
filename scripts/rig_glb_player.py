@@ -140,6 +140,35 @@ joints[:, 0] = j0.astype(np.uint8)
 joints[:, 1] = j1.astype(np.uint8)
 weights[:, 0] = w0 / s
 weights[:, 1] = w1 / s
+
+# --- NEO VẠT ÁO ("skirt anchor"): vải áo bám 'hips', ống chân vẫn bám đùi ---
+# Lý do xé: vạt áo quanh hông/đùi bị gán vào thighL/thighR (xương 13/17). Khi đùi
+# vung trước/sau, vải bị kéo theo từng đùi -> hai nửa vạt tách ra, lộ backface (cam).
+# Neo theo 2 tiêu chí (chuyển trọng số đùi sang hips theo hệ số sfac 0..1):
+#   (1) top_f  — vùng HÔNG TRÊN: neo toàn bộ (bụng/thắt lưng cử động theo pelvis).
+#   (2) vải xòe — trong dải đùi, chỉ neo đỉnh XA trục đùi (vạt áo); đỉnh SÁT trục
+#       (ống quần) giữ nguyên đùi để gối+ống chân+bàn chân vẫn vung => vẫn đi.
+HIPS = 0
+THIGHS = (13, 17)
+dthigh = np.minimum(D[:, 13], D[:, 17]).astype(np.float32)   # k/c tới trục đùi gần nhất
+top_f = np.clip((y01 - 0.45) / (0.52 - 0.45), 0.0, 1.0)      # hông trên -> neo hết
+band_f = np.clip((y01 - 0.16) / (0.46 - 0.16), 0.0, 1.0)     # có mặt suốt dải đùi
+radial = np.clip((dthigh - 0.05 * W) / (0.12 * W - 0.05 * W), 0.0, 1.0)  # xa trục = vải áo
+sfac = np.clip(np.maximum(top_f, band_f * radial), 0.0, 1.0).astype(np.float32)
+hips_w = np.zeros(len(V), dtype=np.float32)
+for slot in (0, 1):
+    is_thigh = np.isin(joints[:, slot], THIGHS)
+    moved = weights[:, slot] * sfac * is_thigh
+    weights[:, slot] -= moved
+    hips_w += moved
+joints[:, 2] = HIPS                    # khe 3: dồn phần đã neo về hông
+weights[:, 2] = hips_w
+ws = weights[:, 0] + weights[:, 1] + weights[:, 2] + 1e-8
+weights[:, 0] /= ws
+weights[:, 1] /= ws
+weights[:, 2] /= ws
+print("neo vat ao -> hips:", int((hips_w > 0.01).sum()), "dinh")
+
 print("xuong:", NB, "| verts gan tay (>=upperarm):",
       int(((joints[:, 0] >= 6) & (joints[:, 0] <= 12) & (weights[:, 0] > 0.5)).sum()))
 
