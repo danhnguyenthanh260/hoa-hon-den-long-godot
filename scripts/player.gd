@@ -361,31 +361,36 @@ func _pose(name: String, q: Quaternion) -> void:
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
-# dáng đi cho thân mesh: chân vung + NHẤC bàn chân (hết trượt "đi lùi"), tay trái vung.
-# WALK_DIR đảo chiều sải nếu vẫn thấy bước lùi (1.0 hoặc -1.0).
-const WALK_DIR := 1.0
+# Dáng đi TỚI đúng cơ sinh học (dấu đã kiểm chứng bằng legtest, xem turntable.gd):
+#   +xoay đùi quanh RIGHT = chân ra SAU  => ra trước dùng dấu ÂM.
+# Chu kỳ (mốc chân TRÁI): p=0 gót trái chạm (chân trái TRƯỚC) -> đạp về sau ->
+#   p=PI mũi rời đất (chân trái SAU) -> VUNG tới (gối CO) -> p=2PI gót lại chạm.
+# Sửa lỗi "đi lùi": trước đây gối co nhầm vào pha ĐẠP (chân duỗi vung tới) = đảo
+#   ngược chuyển động người. Nay gối co đúng pha VUNG (chân sau->trước).
+const WALK_A := 0.28      # biên đùi (~16°)
+const WALK_KNEE0 := 0.13  # sàn gối: chân trụ không khóa thẳng (thực hơn, bớt xé áo)
+const WALK_KNEE := 0.82   # gối gập THÊM lúc vung
+const WALK_FOOT := 0.20   # biên gót-chạm / mũi-đạp
 func _animate_mesh(_sw: float) -> void:
 	var p := _anim_t
 	var g := _gait
-	var legL := sin(p) * WALK_DIR
-	var legR := sin(p + PI) * WALK_DIR
-	# đùi vung NHỎ — người mặc áo bước ngắn, tránh xé vạt áo ở hông
-	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.22 * g))
-	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.22 * g))
-	# gối gập nhấc bàn chân (vừa phải)
-	var liftL := clampf(sin(p + 1.4) * WALK_DIR, 0.0, 1.0)
-	var liftR := clampf(sin(p + PI + 1.4) * WALK_DIR, 0.0, 1.0)
-	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 0.55 * g))
-	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 0.55 * g))
-	# bàn chân hất mũi khi nhấc
-	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.25 * g))
-	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.25 * g))
-	# thân + đầu đảo rất nhẹ
-	_pose("spine", Quaternion(Vector3.UP, legL * 0.03 * g))
+	# đùi: -cos -> p=0 chân TRƯỚC, p=PI chân SAU (hai chân ngược pha)
+	_pose("thighL", Quaternion(Vector3.RIGHT, -WALK_A * cos(p) * g))
+	_pose("thighR", Quaternion(Vector3.RIGHT,  WALK_A * cos(p) * g))
+	# gối CO đúng pha VUNG (sau->trước): kL>0 trên (PI,2PI), đỉnh p=3PI/2; + sàn gối
+	var kL := clampf(-sin(p), 0.0, 1.0)
+	var kR := clampf(sin(p), 0.0, 1.0)
+	_pose("shinL", Quaternion(Vector3.RIGHT, -(WALK_KNEE0 + kL * WALK_KNEE) * g))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -(WALK_KNEE0 + kR * WALK_KNEE) * g))
+	# bàn chân: lăn gót->mũi theo cos + hất nhẹ khi vung để mũi không quệt đất
+	_pose("footL", Quaternion(Vector3.RIGHT, (WALK_FOOT * cos(p) + kL * 0.10) * g))
+	_pose("footR", Quaternion(Vector3.RIGHT, (-WALK_FOOT * cos(p) + kR * 0.10) * g))
+	# thân hơi NGẢ TỚI (pitch âm) + đảo hông rất nhẹ; đầu đảo nhẹ
+	_pose("spine", Quaternion(Vector3.RIGHT, -0.06 * g) * Quaternion(Vector3.UP, -cos(p) * 0.03 * g))
 	_pose("head", Quaternion(Vector3.UP, sin(p * 0.5) * 0.03))
-	# tay trái vung ngược chân trái (tay phải giữ đèn — không đụng)
-	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.35 * g))
-	_pose("forearmL", Quaternion(Vector3.RIGHT, (0.3 + maxf(0.0, legL) * 0.2) * g))
+	# tay trái vung NGƯỢC chân trái (chân trái trước p=0 -> tay trái ra sau); tay phải giữ đèn
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -0.42 * cos(p) * g))
+	_pose("forearmL", Quaternion(Vector3.RIGHT, (0.30 + maxf(0.0, -cos(p)) * 0.15) * g))
 
 
 func set_near_house(v: bool) -> void:

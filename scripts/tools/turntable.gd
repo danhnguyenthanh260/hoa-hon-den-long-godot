@@ -126,19 +126,33 @@ func _pose(n: String, q: Quaternion) -> void:
 	_skel.set_bone_pose_rotation(b, rest * q)
 
 
+# Dáng đi TỚI đúng cơ sinh học. Dấu đã kiểm chứng (legtest):
+#   +xoay đùi quanh RIGHT = chân ra SAU  (nên ra trước = ÂM)
+#   +xoay bàn chân = hất mũi lên (gót chạm); +xoay vai = tay đưa ra trước.
+# Chu kỳ (chân TRÁI làm mốc): p=0 gót trái chạm (chân trái TRƯỚC) → đạp về sau →
+#   p=PI mũi rời đất (chân trái SAU) → vung tới (gối CO) → p=2PI gót lại chạm.
+const WALK_A := 0.28     # biên đùi (~16°) — sải rõ; sàn gối lo phần chống xé áo
+const WALK_KNEE0 := 0.13 # SÀN gối: luôn co nhẹ (chân trụ không khóa thẳng)
+const WALK_KNEE := 0.82  # gối gập THÊM lúc vung (đỉnh ~0.95)
+const WALK_FOOT := 0.20  # biên gót-chạm/mũi-đạp
 func _walk_pose(p: float) -> void:
-	var legL := sin(p)
-	var legR := sin(p + PI)
-	_pose("thighL", Quaternion(Vector3.RIGHT, legL * 0.22))
-	_pose("thighR", Quaternion(Vector3.RIGHT, legR * 0.22))
-	var liftL := clampf(sin(p + 1.4), 0.0, 1.0)
-	var liftR := clampf(sin(p + PI + 1.4), 0.0, 1.0)
-	_pose("shinL", Quaternion(Vector3.RIGHT, -liftL * 0.55))
-	_pose("shinR", Quaternion(Vector3.RIGHT, -liftR * 0.55))
-	_pose("footL", Quaternion(Vector3.RIGHT, liftL * 0.25))
-	_pose("footR", Quaternion(Vector3.RIGHT, liftR * 0.25))
-	_pose("spine", Quaternion(Vector3.UP, legL * 0.03))
-	_pose("upperarmL", Quaternion(Vector3.RIGHT, -legL * 0.35))
+	# đùi: -cos -> p=0 chân TRƯỚC, p=PI chân SAU (hai chân ngược pha)
+	_pose("thighL", Quaternion(Vector3.RIGHT, -WALK_A * cos(p)))
+	_pose("thighR", Quaternion(Vector3.RIGHT,  WALK_A * cos(p)))
+	# gối CO đúng pha VUNG (chân đi sau->trước): kL>0 trên (PI,2PI), đỉnh p=3PI/2
+	# + SÀN gối WALK_KNEE0: gối không bao giờ khóa thẳng (thực hơn + tránh pose
+	#   xoạc-thẳng căng vải tối đa ở contact -> bớt lộ mặt trong vạt áo)
+	var kL := clampf(-sin(p), 0.0, 1.0)
+	var kR := clampf(sin(p), 0.0, 1.0)
+	_pose("shinL", Quaternion(Vector3.RIGHT, -(WALK_KNEE0 + kL * WALK_KNEE)))
+	_pose("shinR", Quaternion(Vector3.RIGHT, -(WALK_KNEE0 + kR * WALK_KNEE)))
+	# bàn chân: lăn gót->mũi theo cos + hất nhẹ khi vung để mũi không quệt đất
+	_pose("footL", Quaternion(Vector3.RIGHT, WALK_FOOT * cos(p) + kL * 0.10))
+	_pose("footR", Quaternion(Vector3.RIGHT, -WALK_FOOT * cos(p) + kR * 0.10))
+	# thân hơi NGẢ TỚI (pitch âm = đổ về trước) + đảo hông rất nhẹ
+	_pose("spine", Quaternion(Vector3.RIGHT, -0.06) * Quaternion(Vector3.UP, -cos(p) * 0.03))
+	# tay trái vung NGƯỢC chân trái (chân trái trước p=0 -> tay trái ra sau)
+	_pose("upperarmL", Quaternion(Vector3.RIGHT, -0.42 * cos(p)))
 	# tay phải giữ đèn — không vung
 
 
