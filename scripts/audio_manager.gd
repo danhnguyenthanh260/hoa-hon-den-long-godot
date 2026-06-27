@@ -1,7 +1,7 @@
 # Toàn bộ âm thanh sinh bằng code lúc khởi động — không file ngoài.
 # Gió: brown noise lặp 8s. Đàn tranh: tổng hợp dây gảy Karplus-Strong, ngũ cung,
 # gảy thưa ngẫu nhiên. Bước chân: xung nhiễu lọc thấp theo nhịp đi.
-# Tim đập: gần Hồn Ma / boss. Nước vỗ: chương 4.
+# Tim đập: gần Hồn Ma (c3). Nước vỗ: chương 4.
 extends Node
 
 const RATE := 22050
@@ -154,6 +154,12 @@ func _play_once(stream: AudioStreamWAV, db: float, pitch: float = 1.0, bus: Stri
 	p.finished.connect(p.queue_free)
 
 
+# sting trầm cho khoảnh khắc quyết định (C4): nốt thấp nhất hạ pitch + một cú tim đập
+func sting() -> void:
+	_play_once(_pluck_notes[0], -5.0, 0.5, "Tranh")
+	_play_once(_heart, -7.0, 0.8)
+
+
 # gọi mỗi frame từ main
 func update(delta: float, m) -> void:
 	# đàn tranh gảy thưa — im bặt trong nhà ký ức (c3) cho rợn
@@ -193,8 +199,6 @@ func update(delta: float, m) -> void:
 	var g = ch.get("ghost")
 	if g != null and g.visible:
 		threat = m.player.position.distance_to(g.position)
-	if m.chapter_no == 5 and not ch.defeated and ch.fight_active:
-		threat = minf(threat, m.player.position.distance_to(ch._boss.position))
 	if threat < 6.0 and _heart_timer <= 0.0:
 		var urgency := clampf(1.0 - threat / 6.0, 0.0, 1.0)
 		_heart_timer = lerpf(1.1, 0.45, urgency)

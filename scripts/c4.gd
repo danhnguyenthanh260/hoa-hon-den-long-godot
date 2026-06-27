@@ -22,6 +22,8 @@ var _hoa_dang: Array = []
 var _kim_orb: Node3D
 var _tho_orb: Node3D
 var _time := 0.0
+var _moon_l: OmniLight3D
+var _hoa_speed := 1.0
 
 
 func _take_tho() -> void:
@@ -54,12 +56,12 @@ func build(main) -> void:
 	# TRĂNG DƯỚI ĐÁY SÔNG
 	var moon := Build.cyl(self, 2.6, 2.6, 0.02, Vector3(0, 0.03, -66.0), Build.emis(Color(0.9, 0.93, 1.0), Color(0.85, 0.9, 1.0), 2.2))
 	moon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var moon_l := OmniLight3D.new()
-	moon_l.light_color = Color(0.7, 0.8, 1.0)
-	moon_l.light_energy = 1.2
-	moon_l.omni_range = 14.0
-	moon_l.position = Vector3(0, 1.0, -66.0)
-	add_child(moon_l)
+	_moon_l = OmniLight3D.new()
+	_moon_l.light_color = Color(0.7, 0.8, 1.0)
+	_moon_l.light_energy = 1.2
+	_moon_l.omni_range = 14.0
+	_moon_l.position = Vector3(0, 1.0, -66.0)
+	add_child(_moon_l)
 	# hoa đăng trôi NGƯỢC dòng
 	for i in range(10):
 		var hd := Node3D.new()
@@ -154,6 +156,7 @@ func _noop() -> void:
 var _boatman_met := false
 func _talk_boatman() -> void:
 	if bell1_rung and bell2_rung:
+		_begin_crossing_cinematic()
 		m.say([
 			["Người Chèo Đò", "Hai chuông cùng tỉnh. Nước thuận rồi đó, cậu giữ đèn."],
 			["Người Chèo Đò", "Khách qua sông thì trả tiền đò. Nhưng tiền của cậu, ta không tiêu được. Cậu trả ta một ký ức nhé."],
@@ -173,7 +176,7 @@ func _talk_boatman() -> void:
 				]],
 			]},
 			["Minh (nghĩ)", "Đò trôi vào sương. Hai bên bờ, phố trôi NGƯỢC qua như cuộn phim tua lui — đèn tắt dần, người thưa dần, rồi không còn gì."],
-		], func(): m.goto_chapter(5))
+		], Callable(self, "_on_c4_choice_done"))
 	elif not _boatman_met:
 		_boatman_met = true
 		m.say([
@@ -184,6 +187,40 @@ func _talk_boatman() -> void:
 		], func(): m.ui.set_objective("Thắp 2 chuông bến: dẫn tia trăng qua gương đồng · băng đầm bùn đánh chuông"))
 	else:
 		m.say([["Người Chèo Đò", "Chuông chưa tỉnh hết. Ta vẫn nghe sông chảy lên đấy, cậu giữ đèn."]])
+
+
+func _dolly_to_boatman(p: Vector3) -> void:
+	m.camera.global_position = p
+	m.camera.look_at(_boatman.global_position + Vector3(0, 1.0, 0))
+
+
+func _begin_crossing_cinematic() -> void:
+	m.free_cam = true
+	m.audio.sting()
+	var start := _boatman.global_position + Vector3(1.6, 1.9, 4.0)
+	var dst := _boatman.global_position + Vector3(0.6, 1.4, 2.0)
+	_dolly_to_boatman(start)
+	var tw := create_tween()
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 3.5)
+	create_tween().tween_property(_moon_l, "light_energy", 0.25, 3.0)
+	_hoa_speed = 2.4
+
+
+func _on_c4_choice_done() -> void:
+	_hoa_speed = 5.0
+	if m.narrative.name_kept == true:
+		m.ui.toast("Bóng hình thân thuộc mờ dần trong tâm trí...")
+	else:
+		m.ui.toast("Một phần ký ức bị lấy đi... Nhẹ bẫng.")
+	var tw = create_tween()
+	tw.tween_interval(1.0)
+	tw.tween_callback(func(): m.audio.sting())
+	tw.tween_interval(1.4)
+	tw.tween_callback(func():
+		m.free_cam = false
+		m.goto_chapter(5)
+	)
 
 
 func _ring_bell2() -> void:
@@ -204,7 +241,7 @@ func update(delta: float) -> void:
 	_time += delta
 	# hoa đăng trôi ngược (+z là ngược về thượng nguồn ở đây)
 	for hd in _hoa_dang:
-		hd.position.z += delta * 0.35
+		hd.position.z += delta * 0.35 * _hoa_speed
 		hd.position.y = 0.06 + sin(_time * 1.2 + hd.position.x) * 0.02
 		if hd.position.z > -59.0:
 			hd.position.z = -76.0

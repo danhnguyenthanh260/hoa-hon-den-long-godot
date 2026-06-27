@@ -46,6 +46,7 @@ var camera: Camera3D
 var cam_look := Vector3(0, 1.3, 7)
 var checkpoint := Vector3(0, 0, 7)
 var chapter_no := 1
+var _start_chapter := 1     # chương bắt đầu khi rời intro (debug: --start=N hoặc phím 1–5)
 var chapters := {}
 var active_puzzle = null
 var first_person := true
@@ -123,8 +124,11 @@ func _ready() -> void:
 		add_child(chapters[n])
 		chapters[n].build(self)
 
-	var args := OS.get_cmdline_user_args()
-	bot_mode = args.size() > 0
+	var args := OS.get_cmdline_args()
+	bot_mode = args.has("--autoplay") or args.has("--flow")
+	for a in args:
+		if a.begins_with("--start="):
+			_start_chapter = clampi(int(a.trim_prefix("--start=")), 1, 5)
 	if bot_mode:
 		first_person = false
 	if args.has("--autoplay"):
@@ -482,13 +486,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if state == State.INTRO:
 		if (event is InputEventKey and event.is_pressed()) or (event is InputEventMouseButton and event.is_pressed()):
+			var start_ch := _start_chapter
+			# Debug: phím số 1–5 ở intro để vào thẳng chương đó (test nhanh)
+			if event is InputEventKey and event.keycode >= KEY_1 and event.keycode <= KEY_5:
+				start_ch = event.keycode - KEY_1 + 1
 			state = State.PLAY
 			ui.hide_intro()
 			if first_person:
 				player.set_first_person(true)
 				player.fp_yaw = fp_yaw
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-			current_chapter().intro_beat()
+			goto_chapter(start_ch)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var cid: String = player.color_for_key(event)
@@ -552,6 +560,8 @@ func _apply_view_mode() -> void:
 
 # ---------- vòng lặp ----------
 func _process(delta: float) -> void:
+	if _debug_pos_lbl:
+		_debug_pos_lbl.text = "State: %d | Pos: %.1f, %.1f" % [state, player.position.x, player.position.z]
 	if _debug_mode:
 		if _debug_toast_timer > 0.0:
 			_debug_toast_timer -= delta
@@ -789,9 +799,9 @@ func _autoplay() -> void:
 	player.set_color("thuy")
 	player.position = Vector3(0, 40, -114)
 	camera.position = player.position + Vector3(0, 3.2, 5.6)
-	chapters[5].fight_active = true
+
 	await get_tree().create_timer(1.5).timeout
-	await _shot(dir + "/c5-boss.png")
+	await _shot(dir + "/c5-bridge.png")
 	# hộp thoại
 	say([["Bóng Tối Thủ Cựu", "Người giữ đèn. LẠI là ngươi. Lần nào ngươi cũng tới đây."]])
 	await get_tree().create_timer(1.0).timeout
@@ -1382,21 +1392,22 @@ func _flow_test() -> void:
 		get_tree().quit(1)
 		return
 	var c5 = chapters[5]
-	await _until(func(): return c5.fight_active, "xác minh cuối bắt đầu", 30.0)
 	await _wait_dialogue()
-	for ph in range(c5.PROOFS.size()):
-		player.set_color(c5.PROOFS[ph]["weak"])
-		var t := 0.0
-		while c5.phase == ph and not c5.defeated and t < 25.0:
-			player.position = c5._boss.position + Vector3(3.0, 0, 0)
-			player.position.y = 40
-			await get_tree().create_timer(0.1).timeout
-			t += 0.1
-		if c5.phase == ph and not c5.defeated:
-			push_error("FLOW TIMEOUT: c5 proof %d" % ph)
-			get_tree().quit(1)
-			return
-		await _wait_dialogue()
+	
+	player.set_color("thuy")
+	player.position = c5.C + Vector3(3.0, 0, -5.0)
+	c5._verify_water()
+	await _wait_dialogue()
+	
+	player.set_color("hoa")
+	player.position = c5.C + Vector3(0, 0, -6.5)
+	c5._verify_altar()
+	await _wait_dialogue()
+	
+	player.set_color("tho")
+	player.position = c5.C + Vector3(-4.5, 0, -6.5)
+	c5._verify_ground()
+	await _wait_dialogue()
 	if narrative.ending_key() != "release":
 		push_error("FLOW FAILED: verified C5 should unlock release ending, got %s" % narrative.ending_key())
 		get_tree().quit(1)
