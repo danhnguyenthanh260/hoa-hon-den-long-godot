@@ -156,27 +156,12 @@ func _noop() -> void:
 var _boatman_met := false
 func _talk_boatman() -> void:
 	if bell1_rung and bell2_rung:
-		_begin_crossing_cinematic()
 		m.say([
 			["Người Chèo Đò", "Hai chuông cùng tỉnh. Nước thuận rồi đó, cậu giữ đèn."],
 			["Người Chèo Đò", "Khách qua sông thì trả tiền đò. Nhưng tiền của cậu, ta không tiêu được. Cậu trả ta một ký ức nhé."],
 			["Người Chèo Đò", "Nếu trả gương mặt mẹ, cậu còn tên để người khác gọi về. Nếu trả tên mình, cậu giữ được mặt mẹ — nhưng có thể chẳng còn đường về."],
 			["Người Chèo Đò", "Ta nói trước giá rồi. Chọn thứ cậu chấp nhận để lại bên sông."],
-			{"choice_id": "c4_crossing_price", "choice": [
-				["Trả gương mặt của mẹ — giữ tên", [
-					["Người Chèo Đò", "Cậu giữ cái tên. Người giữ tên là người còn muốn được gọi."],
-					["Người Chèo Đò", "...Mà cậu giữ đèn này. Lần trước qua sông, cậu cũng chọn y như vậy đấy."],
-					["Minh", "...Lần trước?"],
-					["Người Chèo Đò", "Lên đò đi."],
-				]],
-				["Trả tên của chính mình — giữ mặt mẹ", [
-					["Người Chèo Đò", "Cậu giữ gương mặt mẹ. Người bỏ tên là người không định quay về."],
-					["Người Chèo Đò", "Lạ thật. Khách bỏ tên... thường là khách đã bỏ từ lâu rồi. Chỉ chưa biết thôi."],
-					["Người Chèo Đò", "Lên đò đi."],
-				]],
-			]},
-			["Minh (nghĩ)", "Đò trôi vào sương. Hai bên bờ, phố trôi NGƯỢC qua như cuộn phim tua lui — đèn tắt dần, người thưa dần, rồi không còn gì."],
-		], Callable(self, "_on_c4_choice_done"))
+		], Callable(self, "_prepare_choice_cinematic"))
 	elif not _boatman_met:
 		_boatman_met = true
 		m.say([
@@ -194,7 +179,7 @@ func _dolly_to_boatman(p: Vector3) -> void:
 	m.camera.look_at(_boatman.global_position + Vector3(0, 1.0, 0))
 
 
-func _begin_crossing_cinematic() -> void:
+func _prepare_choice_cinematic() -> void:
 	m.free_cam = true
 	m.audio.sting()
 	var start := _boatman.global_position + Vector3(1.6, 1.9, 4.0)
@@ -202,9 +187,39 @@ func _begin_crossing_cinematic() -> void:
 	_dolly_to_boatman(start)
 	var tw := create_tween()
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 3.5)
-	create_tween().tween_property(_moon_l, "light_energy", 0.25, 3.0)
+	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 2.5)
+	tw.tween_interval(0.5)
+	tw.tween_callback(Callable(self, "_show_crossing_choice"))
+
+
+func _show_crossing_choice() -> void:
+	m.say([
+		{"choice_id": "c4_crossing_price", "choice": [
+			["Trả gương mặt của mẹ — giữ tên", [
+				["Người Chèo Đò", "Cậu giữ cái tên. Người giữ tên là người còn muốn được gọi."],
+				["Người Chèo Đò", "...Mà cậu giữ đèn này. Lần trước qua sông, cậu cũng chọn y như vậy đấy."],
+				["Minh", "...Lần trước?"],
+				["Người Chèo Đò", "Lên đò đi."],
+			]],
+			["Trả tên của chính mình — giữ mặt mẹ", [
+				["Người Chèo Đò", "Cậu giữ gương mặt mẹ. Người bỏ tên là người không định quay về."],
+				["Người Chèo Đò", "Lạ thật. Khách bỏ tên... thường là khách đã bỏ từ lâu rồi. Chỉ chưa biết thôi."],
+				["Người Chèo Đò", "Lên đò đi."],
+			]],
+		]},
+	], Callable(self, "_begin_crossing_cinematic"))
+
+
+func _begin_crossing_cinematic() -> void:
+	m.say([
+		["Minh (nghĩ)", "Đò trôi vào sương. Hai bên bờ, phố trôi NGƯỢC qua như cuộn phim tua lui — đèn tắt dần, người thưa dần, rồi không còn gì."],
+	], Callable(self, "_on_c4_choice_done"))
+	create_tween().tween_property(_moon_l, "light_energy", 0.05, 4.0)
 	_hoa_speed = 2.4
+	var start := m.camera.global_position
+	var dst := start + Vector3(1.0, 0.5, 3.0)
+	var tw := create_tween()
+	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 5.0)
 
 
 func _on_c4_choice_done() -> void:
