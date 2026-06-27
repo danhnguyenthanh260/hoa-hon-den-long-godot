@@ -213,7 +213,7 @@ func _build_street_life() -> void:
 		m.add_interact(Vector3(lx, 0, 10.2), 1.7, "Trụ đèn phố nguội lạnh", Callable(self, "_light_lamp").bind(_street_lamps.size() - 1), false)
 
 
-func intro_beat() -> void:
+func enter_beat() -> void:
 	m.ui.set_objective("Đi sâu vào ngõ. Tìm quán nước còn sáng.")
 	m.say([
 		["Minh (nghĩ)", "Tiếng rao chè trôi qua đầu ngõ... nhưng đã mười năm rồi không ai gánh chè qua đây."],
