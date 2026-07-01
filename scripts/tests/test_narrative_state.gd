@@ -10,6 +10,7 @@ func _init() -> void:
 	_test_choice_and_endings()
 	_test_round_trip()
 	_test_invalid_load_is_atomic()
+	_test_contradiction_ledger()
 	if failures.is_empty():
 		print("NARRATIVE STATE OK")
 		quit(0)
@@ -75,3 +76,18 @@ func _test_invalid_load_is_atomic() -> void:
 	corrupt["name_kept"] = "invalid"
 	_check(not state.load_dict(corrupt), "corrupt narrative state was accepted")
 	_check(state.to_dict() == before, "failed load mutated the live narrative state")
+
+
+func _test_contradiction_ledger() -> void:
+	var state := NarrativeState.new()
+	state.adjust_trust(50)
+	var before_trust := state.trust_voice
+	_check(state.record_contradiction("c2_well_vs_radio_shortcut", "radio bao bo qua nhung gieng cho bang chung"), "first contradiction insert failed")
+	_check(not state.record_contradiction("c2_well_vs_radio_shortcut", "duplicate"), "duplicate contradiction was accepted")
+	_check(state.contradictions.size() == 1, "contradiction ledger size is wrong")
+	_check(state.trust_voice < before_trust, "recording a contradiction did not reduce voice trust")
+
+	var restored := NarrativeState.new()
+	_check(restored.load_dict(state.to_dict()), "narrative state with contradictions did not round-trip")
+	_check(restored.contradictions.size() == 1, "contradictions did not survive save/load round-trip")
+	_check(restored.contradictions.has("c2_well_vs_radio_shortcut"), "restored contradiction id changed")

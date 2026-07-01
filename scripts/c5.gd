@@ -3,6 +3,7 @@
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
+const ReflectionPool := preload("res://scripts/reflection_pool.gd")
 
 const C := Vector3(0, 40, -120)
 
@@ -13,6 +14,7 @@ var _time := 0.0
 var _water_done := false
 var _altar_done := false
 var _ground_done := false
+var _puddle_reflection: ReflectionPool
 
 
 func build(main) -> void:
@@ -97,10 +99,34 @@ func build(main) -> void:
 		al.position = C + Vector3(cos(ang) * 7.0, 3.0, sin(ang) * 7.0)
 		add_child(al)
 
+	# 3 điểm chứng cứ (vật lý)
+	# 1. Vũng nước đen (Water)
+	var puddle = Build.cyl(self, 0.7, 0.7, 0.02, C + Vector3(3.0, -0.38, -5.0), null, 12)
+	var pmat = StandardMaterial3D.new()
+	pmat.albedo_color = Color(0.01, 0.02, 0.03)
+	pmat.metallic = 0.9
+	pmat.roughness = 0.05
+	_puddle_reflection = ReflectionPool.new()
+	add_child(_puddle_reflection)
+	_puddle_reflection.setup(m.camera, C.y - 0.38, Vector2i(384, 384), 0)
+	pmat.albedo_texture = _puddle_reflection.texture()
+	pmat.emission_enabled = true
+	pmat.emission_texture = _puddle_reflection.texture()
+	pmat.emission_energy_multiplier = 0.5
+	puddle.material_override = pmat
+	
+	# 2. Vết nứt trên ván cầu (Ground)
+	var crack = Build.box(bridge, Vector3(0.6, 0.02, 0.3), Vector3(-4.5, 0.62, 0), Build.mat(Color(0.05, 0.03, 0.02)))
+	crack.rotation.y = 0.5
+	
+	# 3. Bài vị trống trên miếu (Altar)
+	var tablet = Build.box(bridge, Vector3(0.25, 0.4, 0.04), Vector3(0, 2.1, -1.8), Build.mat(Color(0.18, 0.14, 0.1)))
+	tablet.rotation.x = -0.15
+
 	# 3 điểm chứng cứ (m.add_interact)
 	m.add_interact(C + Vector3(3.0, 0, -5.0), 2.0, "Soi bóng dưới mặt nước đen", Callable(self, "_verify_water"), false)
 	m.add_interact(C + Vector3(0, 0, -6.5), 2.5, "Kiểm tra bài vị tại miếu", Callable(self, "_verify_altar"), false)
-	m.add_interact(C + Vector3(-4.5, 0, -6.5), 2.0, "Neo cây đèn xuống đất", Callable(self, "_verify_ground"), false)
+	m.add_interact(C + Vector3(-4.5, 0, -6.5), 2.0, "Neo cây đèn xuống vết nứt", Callable(self, "_verify_ground"), false)
 	# Lối tin-giọng-nói: đặt đèn xuống sớm (thiếu chứng cứ) → ending loop/costly
 	m.add_interact(C + Vector3(0, 0, 5.0), 2.2, "Nghe radio — đặt đèn xuống, kết thúc đêm nay", Callable(self, "_place_lantern"), false)
 
@@ -112,11 +138,11 @@ func enter_beat() -> void:
 	m.ui.set_objective("Chùa Cầu — nơi mọi con đường của phố gặp nhau")
 	m.say([
 		["Minh (nghĩ)", "Chùa Cầu... treo giữa hư không. Quanh nó, từng mảnh phố trôi như đảo vỡ sau cơn lụt."],
-		["Bóng Tối Thủ Cựu", "Người giữ đèn. Lại là ngươi."],
-		["Bóng Tối Thủ Cựu", "Ngươi chắc chứ — rằng đêm nay khác những đêm trước?"],
-		["Minh (nghĩ)", "Nó nói bằng nhiều giọng chồng lên nhau: bà hàng nước, đứa trẻ, người chèo đò. Tôi không tin giọng nào trong số đó nữa."],
+		["Giọng vọng lên từ gầm cầu", "Người giữ đèn. Lại là ngươi."],
+		["Giọng vọng lên từ gầm cầu", "Ngươi chắc chứ — rằng đêm nay khác những đêm trước?"],
+		["Minh (nghĩ)", "Có rất nhiều giọng nói đang hòa vào nhau: bà hàng nước, đứa trẻ, người chèo đò... Tôi không thể tin bất cứ giọng nào nữa."],
 		["Minh (nghĩ)", "Có ba điểm trên cây cầu này khiến tôi gai người. Tự soi bằng Đèn Ngũ Hành — rồi hẵng kết luận."],
-	], func(): m.ui.set_objective("Thu thập 3 chứng cứ trên cầu bằng Sắc phù hợp: mép nước, bài vị, mặt đất."))
+	], func(): m.ui.set_objective("Thu thập 3 chứng cứ trên cầu bằng Sắc phù hợp: vũng nước, bài vị, vết nứt."))
 
 
 func _verify_water() -> void:
@@ -182,7 +208,7 @@ func _check_ending() -> void:
 		m.say([
 			["Minh (nghĩ)", "Nước không nhận bóng tôi. Bài vị ghi 'người kể chuyện'. Đất giữ được chân đèn."],
 			["Minh (nghĩ)", "Ba điều ấy chỉ khớp với một người. Không phải tôi đi tìm ký ức cho phố — tôi là ký ức phố không thể quên."],
-			["Bóng Tối Thủ Cựu", "...Ngươi tự nói ra rồi đấy. Ta chẳng cần nói gì."],
+			["Minh (nghĩ)", "...Mọi âm thanh xung quanh bỗng im bặt. Khoảng không cuối cùng cũng chịu im lặng."],
 			["Minh", "Vậy thì tôi đặt đèn xuống đây."],
 		], func():
 			_show_statue_and_end()
@@ -207,6 +233,8 @@ func _show_statue_and_end() -> void:
 
 
 func update(delta: float) -> void:
+	if _puddle_reflection != null:
+		_puddle_reflection.update(delta)
 	_time += delta
 	for trio in _debris:
 		var node: MeshInstance3D = trio[0]

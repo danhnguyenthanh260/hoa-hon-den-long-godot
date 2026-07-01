@@ -16,6 +16,7 @@ var name_kept: Variant = null
 var refusal_count := 0
 var evidence: Dictionary = {}
 var choices: Dictionary = {}
+var contradictions: Dictionary = {}
 
 
 func set_beat(beat_id: String, authored_pressure: float) -> void:
@@ -51,6 +52,14 @@ func record_refusal() -> void:
 	adjust_trust(-10)
 
 
+func record_contradiction(contradiction_id: String, description: String) -> bool:
+	if contradiction_id.is_empty() or contradictions.has(contradiction_id):
+		return false
+	contradictions[contradiction_id] = {"description": description}
+	adjust_trust(-15)
+	return true
+
+
 func record_choice(choice_id: String, index: int, label: String) -> void:
 	if choice_id.is_empty():
 		return
@@ -84,6 +93,7 @@ func to_dict() -> Dictionary:
 		"refusal_count": refusal_count,
 		"evidence": evidence.duplicate(true),
 		"choices": choices.duplicate(true),
+		"contradictions": contradictions.duplicate(true),
 	}
 
 
@@ -110,6 +120,7 @@ func _apply_dict_unchecked(data: Dictionary) -> void:
 	refusal_count = maxi(int(data.get("refusal_count", refusal_count)), 0)
 	evidence = Dictionary(data.get("evidence", {})).duplicate(true)
 	choices = Dictionary(data.get("choices", {})).duplicate(true)
+	contradictions = Dictionary(data.get("contradictions", {})).duplicate(true)
 	verify_count = evidence.size()
 
 

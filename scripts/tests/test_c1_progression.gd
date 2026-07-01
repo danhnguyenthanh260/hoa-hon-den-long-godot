@@ -19,6 +19,18 @@ func _run() -> void:
 	game.ui.hide_intro()
 	var c1 = game.chapters[1]
 
+	_check(not c1._tea_offered, "tea ritual should not start pre-offered")
+	c1._offer_tea()
+	await _settle(game)
+	_check(not c1._tea_offered, "tea ritual should require talking to Ba first")
+
+	c1._talk_ba()
+	await _settle(game)
+	c1._offer_tea()
+	await _settle(game)
+	_check(c1._tea_offered, "tea ritual was not recorded after offering tea")
+	_check(game.narrative.evidence.has("c1_tea_ritual"), "tea ritual did not record evidence")
+
 	c1._try_descend()
 	await _settle(game)
 	_check(game.chapter_no == 1, "entered C2 without key/house/puzzle")
@@ -49,6 +61,7 @@ func _run() -> void:
 	c1.puzzle.complete_if_ready()
 	await _settle(game)
 	_check(c1.bird_puzzle_solved, "C1 bird puzzle solved state missing")
+	_check(game.narrative.evidence.has("c1_bird_stencil_memory_repaired"), "bird stencil puzzle did not record memory-repair evidence")
 
 	c1._take_hoa()
 	await _settle(game)

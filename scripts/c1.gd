@@ -104,6 +104,7 @@ func build(main) -> void:
 	puzzle.solved_callback = Callable(self, "_on_puzzle_solved")
 
 	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Bà hàng nước / mở quầy ký ức", Callable(self, "_talk_ba"), false)
+	m.add_interact(Vector3(-4.4, 0, -6.3), 1.8, "Rót trà mời bà — nghi lễ đầu tiên", Callable(self, "_offer_tea"), false)
 	m.add_interact(_house_door_pos, 2.0, "Cửa nhà sau quán bị khóa", Callable(self, "_try_unlock_house"), false)
 	m.add_interact(Vector3(-9.7, 0, -13.2), 1.8, "Mảnh giấy dó: đầu chim", Callable(self, "_collect_stencil_part").bind("head"), true)
 	m.add_interact(Vector3(-6.7, 0, -15.0), 1.8, "Mảnh giấy dó: thân và cánh", Callable(self, "_collect_stencil_part").bind("wing_body"), true)
@@ -213,7 +214,7 @@ func _build_street_life() -> void:
 		m.add_interact(Vector3(lx, 0, 10.2), 1.7, "Trụ đèn phố nguội lạnh", Callable(self, "_light_lamp").bind(_street_lamps.size() - 1), false)
 
 
-func intro_beat() -> void:
+func enter_beat() -> void:
 	m.ui.set_objective("Đi sâu vào ngõ. Tìm quán nước còn sáng.")
 	m.say([
 		["Minh (nghĩ)", "Tiếng rao chè trôi qua đầu ngõ... nhưng đã mười năm rồi không ai gánh chè qua đây."],
@@ -233,6 +234,7 @@ func intro_beat() -> void:
 
 
 var _ba_talked := false
+var _tea_offered := false
 func _talk_ba() -> void:
 	if m.chapters[2].quest_stage == 1:
 		m.chapters[2].ba_lore()
@@ -243,14 +245,31 @@ func _talk_ba() -> void:
 			["Bà Hàng Nước", "Trà còn nóng đó, cậu nhỏ. Ngồi xuống đi. Bà chờ khách... lâu lắm rồi."],
 			["Minh", "Bà ơi... quán này đóng cửa từ khi cháu còn bé mà?"],
 			["Bà Hàng Nước", "Đóng? À... phải. Bà cũng nhớ là có đóng. Nhưng cậu nhỏ này, NHỚ với CÒN — hai chữ đó ở phố này bây giờ là một đấy."],
-			["Bà Hàng Nước", "Đừng hỏi bà cửa nào mở. Đồ trên quầy nhớ rõ hơn bà."],
-		], func(): m.open_memory_stall(self))
+			["Bà Hàng Nước", "Rót cho bà một chén đi. Khách tới quán, phải tự tay rót trước — bà không còn sức bưng ấm nữa."],
+		], func(): m.ui.set_objective("Rót trà mời bà hàng nước"))
+	elif not _tea_offered:
+		m.say([["Bà Hàng Nước", "Ấm trà vẫn chờ đó, cậu nhỏ."]])
 	elif not stall_inspected:
 		m.open_memory_stall(self)
 	elif puzzle.solved and _orb != null:
 		m.say([["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."]])
 	else:
 		m.say([["Bà Hàng Nước", "Nhà sau quán không tự mở. Chim trong nhà cũng không tự bay."]])
+
+
+func _offer_tea() -> void:
+	if not _ba_talked:
+		m.say([["Minh (nghĩ)", "Ấm trà không phải của tôi để tự ý rót."]])
+		return
+	if _tea_offered:
+		m.open_memory_stall(self)
+		return
+	_tea_offered = true
+	m.narrative.add_evidence("c1_tea_ritual", "Minh nghiêng ấm, rót một chén đầy mời bà hàng nước — nghi lễ đầu tiên của đêm.")
+	m.say([
+		["Minh (nghĩ)", "Tôi nghiêng ấm. Trà rót ra vẫn nóng, vẫn thơm — như chưa từng nguội suốt hai mươi năm."],
+		["Bà Hàng Nước", "...Cảm ơn cậu nhỏ. Lâu lắm rồi mới có người rót trước, không đợi bà mời."],
+	], func(): m.open_memory_stall(self))
 
 
 func on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
@@ -322,6 +341,7 @@ func _enter_puzzle() -> void:
 
 func _on_puzzle_solved() -> void:
 	bird_puzzle_solved = true
+	m.narrative.add_evidence("c1_bird_stencil_memory_repaired", "Ba mảnh giấy dó ghép đúng hình Chim Lạc — một ký ức bị xé lẻ của phố được ghép lại.")
 	m.ui.play_chime()
 	m.world.light_up()
 	m.exit_puzzle_after(1.8)
