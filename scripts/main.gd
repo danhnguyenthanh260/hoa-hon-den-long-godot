@@ -803,7 +803,7 @@ func _autoplay() -> void:
 	await get_tree().create_timer(1.5).timeout
 	await _shot(dir + "/c5-bridge.png")
 	# hộp thoại
-	say([["Bóng Tối Thủ Cựu", "Người giữ đèn. LẠI là ngươi. Lần nào ngươi cũng tới đây."]])
+	say([["Giọng vọng lên từ gầm cầu", "Người giữ đèn. LẠI là ngươi. Lần nào ngươi cũng tới đây."]])
 	await get_tree().create_timer(1.0).timeout
 	await _shot(dir + "/c5-dialogue.png")
 	print("AUTOPLAY DONE")
@@ -1381,7 +1381,10 @@ func _flow_test() -> void:
 	player.position = Vector3(c4._bell2_pos.x, 0, c4._bell2_pos.z)
 	c4._ring_bell2()
 	assert(c4.bell2_rung)
-	c4._talk_boatman()
+	c4._talk_boatman()          # giai oan beat
+	await _wait_dialogue()
+	assert(c4._giai_oan_done, "FLOW: giai_oan_done phải true sau giai oan beat")
+	c4._talk_boatman()          # price + choice
 	await _until(func(): return chapter_no == 5 and state == State.PLAY, "vào c5", 40.0)
 	if narrative.name_kept != true:
 		push_error("FLOW FAILED: auto dialogue choice did not persist c4_crossing_price")

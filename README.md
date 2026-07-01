@@ -34,7 +34,7 @@ dramatic irony và các kết. Kế hoạch nâng cấp end-to-end nằm tại
 2. **Giếng Đôi** — sân lặp như giấc mơ · đứa trẻ không bóng · Sắc Thủy hiện đường đá ẩn · thoát bằng đi lùi
 3. **Nhà Ký Ức** — nhà trong to hơn ngoài · Hồn Ma Phai Nhạt (khắc bằng Hỏa) · Sắc Mộc mọc thang dây leo · đố bóng Hoa Sen · ảnh thờ
 4. **Bến Sông Ngược** — trăng dưới đáy sông · gương đồng dẫn tia trăng (Kim) · đầm bùn cứng hóa (Thổ) · người chèo đò đòi một ký ức (lựa chọn)
-5. **Chùa Cầu Treo Giữa Không** — boss Bóng Tối Thủ Cựu, 3 pha theo vòng tương khắc · reveal · ending + credits
+5. **Chùa Cầu Treo Giữa Không** — 3 chứng cứ vật lý bằng Sắc phù hợp · reveal (Minh là ai) · ending + credits
 
 ## Kiến trúc & đồ họa
 
