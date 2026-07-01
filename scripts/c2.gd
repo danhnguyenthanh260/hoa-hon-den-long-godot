@@ -5,6 +5,7 @@ extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 const GhostWalker := preload("res://scripts/ghost_walker.gd")
+const ReflectionPool := preload("res://scripts/reflection_pool.gd")
 
 const Z0 := -20.6
 const Z1 := -43.6
@@ -22,6 +23,8 @@ var _child: Node3D
 var _plank: MeshInstance3D
 var _tiles: Array = []   # [mesh, Vector3]
 var _well_orb: Node3D
+var _well_reflection: ReflectionPool
+var _right_well_water: MeshInstance3D
 var _gate_cooldown := 0.0
 var _time := 0.0
 var passed := false
@@ -60,10 +63,22 @@ func build(main) -> void:
 		wmat.metallic = 0.9
 		wmat.roughness = 0.06
 		water.material_override = wmat
+		if sx > 0:
+			_right_well_water = water
 		# khung gỗ + đòn ngang treo gàu
 		for px in [-0.8, 0.8]:
 			Build.cyl(self, 0.05, 0.06, 2.1, Vector3(sx + px, 1.05, -27.0), Build.mat(Color(0.16, 0.11, 0.07)), 8)
 		Build.cyl(self, 0.04, 0.04, 1.8, Vector3(sx, 2.05, -27.0), Build.mat(Color(0.16, 0.11, 0.07)), 8).rotation.z = PI / 2.0
+	_well_reflection = ReflectionPool.new()
+	add_child(_well_reflection)
+	_well_reflection.setup(m.camera, 0.5, Vector2i(384, 384), 8)
+	var refl_mat := StandardMaterial3D.new()
+	refl_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	refl_mat.albedo_texture = _well_reflection.texture()
+	refl_mat.emission_enabled = true
+	refl_mat.emission_texture = _well_reflection.texture()
+	refl_mat.emission_energy_multiplier = 0.9
+	_right_well_water.material_override = refl_mat
 	# ánh sáng dưới giếng phải — phố-còn-sáng-đèn lộn ngược
 	var glow := Build.cyl(self, 0.66, 0.66, 0.02, Vector3(2.2, 0.56, -27.0), Build.emis(Color(1, 0.7, 0.4), Color(1.0, 0.55, 0.2), 0.7))
 	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -167,11 +182,19 @@ func _look_well() -> void:
 			"Rời giếng đi. Cái dưới nước chỉ nhại lại ký ức của cậu thôi.",
 			["Minh (nghĩ)", "Không. Nó không nhại. Nó chậm hơn tôi — và chỗ đáng lẽ là mặt tôi lại là một con phố nguyên vẹn."],
 		],
-		func(): _spawn_thuy(),
+		Callable(self, "_confirm_well_contradiction"),
 		-12,
 		"well_reflection",
 		"Well reflection lags behind the player and shows the intact inverted town instead of Minh's face."
 	))
+
+
+func _confirm_well_contradiction() -> void:
+	m.narrative.record_contradiction(
+		"c2_well_vs_radio_shortcut",
+		"Trạm Bốn bảo bỏ qua giếng vì nó 'chỉ nhại ký ức', nhưng giếng cho thấy phố nguyên vẹn lộn ngược — chi tiết mà radio không thể biết nếu nó chỉ đang nhại lại trí nhớ của Minh."
+	)
+	_spawn_thuy()
 
 
 func _spawn_thuy() -> void:
@@ -267,6 +290,8 @@ func _offer_lotus() -> void:
 
 
 func update(delta: float) -> void:
+	if _well_reflection != null:
+		_well_reflection.update(delta)
 	_time += delta
 	_gate_cooldown = maxf(0.0, _gate_cooldown - delta)
 	# phiến đá ẩn hiện dần dưới ánh Thủy

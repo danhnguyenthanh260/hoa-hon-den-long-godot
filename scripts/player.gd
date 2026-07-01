@@ -16,6 +16,7 @@ const MESH_TARGET_HEIGHT := 1.72
 const MESH_YAW_OFFSET := PI          # xoay mesh khớp hướng nhìn (-Z) — tinh chỉnh khi xem
 # hạ tay từ A-pose xuống tự nhiên (radian, quanh trục Z ở vai)
 const ARM_REST_DROP := 0.95
+const REFLECTION_EXCLUDE_LAYER_BIT := 2   # phải khớp reflection_pool.gd
 
 const COLOR_DEFS := {
 	"hoa": {"name": "Hỏa", "color": Color(1.0, 0.3, 0.1), "num": 1, "keys": [KEY_1, KEY_KP_1]},
@@ -256,6 +257,7 @@ func _ready() -> void:
 	# Đường 2: thay thân primitive bằng mesh AI rig đầy đủ tay (nếu bật + load được)
 	if USE_MESH_BODY and _build_mesh_body():
 		_use_mesh = true
+	_tag_reflection_exclude(self)
 
 
 func _disable_shadow_casting(node: Node) -> void:
@@ -263,6 +265,13 @@ func _disable_shadow_casting(node: Node) -> void:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():
 		_disable_shadow_casting(child)
+
+
+func _tag_reflection_exclude(node: Node) -> void:
+	if node is VisualInstance3D:
+		node.layers = node.layers | (1 << (REFLECTION_EXCLUDE_LAYER_BIT - 1))
+	for child in node.get_children():
+		_tag_reflection_exclude(child)
 
 
 # ---- Đường 2: dựng thân từ mesh AI rig (minh_player_rigged.glb) ----

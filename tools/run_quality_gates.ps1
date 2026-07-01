@@ -49,6 +49,18 @@ Run-Gate 'bird stencil puzzle' {
     & $GodotPath --headless --path . --script res://scripts/tests/test_bird_stencil_puzzle.gd
 }
 
+Run-Gate 'memorial tablet UI' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_memorial_tablet_ui.gd
+}
+
+Run-Gate 'reflection pool' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_reflection_pool.gd
+}
+
+Run-Gate 'C2 well contradiction' {
+    & $GodotPath --headless --path . --script res://scripts/tests/test_c2_well_contradiction.gd
+}
+
 Run-Gate 'chapter 1 progression locks' {
     & $GodotPath --headless --path . --script res://scripts/tests/test_c1_progression.gd
 }

@@ -7,6 +7,7 @@ const PlayerCharacter := preload("res://scripts/player.gd")
 const GameUI := preload("res://scripts/game_ui.gd")
 const DialogueUI := preload("res://scripts/dialogue_ui.gd")
 const MemoryStallInspectUI := preload("res://scripts/memory_stall_inspect_ui.gd")
+const MemorialTabletUI := preload("res://scripts/memorial_tablet_ui.gd")
 const C1 := preload("res://scripts/c1.gd")
 const C2 := preload("res://scripts/c2.gd")
 const C3 := preload("res://scripts/c3.gd")
@@ -38,6 +39,7 @@ var player: Node3D
 var ui: CanvasLayer
 var dialogue: CanvasLayer
 var memory_stall: CanvasLayer
+var memorial_tablet: CanvasLayer
 var narrative: NarrativeState
 var checkpoints: CheckpointService
 var voice: VoiceDirector
@@ -66,6 +68,7 @@ var _pre_map_fp := false
 var _interacts: Array = []
 var _say_then: Callable = Callable()
 var _memory_stall_owner = null
+var _memorial_tablet_owner = null
 var _dust: GPUParticles3D
 var _debug_dir := ""
 var _debug_shot_n := 0
@@ -98,6 +101,9 @@ func _ready() -> void:
 	memory_stall = MemoryStallInspectUI.new()
 	add_child(memory_stall)
 	memory_stall.closed.connect(_on_memory_stall_closed)
+	memorial_tablet = MemorialTabletUI.new()
+	add_child(memorial_tablet)
+	memorial_tablet.closed.connect(_on_memorial_tablet_closed)
 	camera = Camera3D.new()
 	camera.fov = 60
 	add_child(camera)
@@ -331,6 +337,22 @@ func _on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
 	_save_checkpoint()
 
 
+func open_memorial_tablet(owner) -> void:
+	_memorial_tablet_owner = owner
+	state = State.DIALOGUE
+	ui.show_prompt("")
+	memorial_tablet.open_panel()
+
+
+func _on_memorial_tablet_closed(attempted_name: String, attempts: int) -> void:
+	if state == State.DIALOGUE:
+		state = State.PLAY
+	if _memorial_tablet_owner != null and _memorial_tablet_owner.has_method("on_memorial_tablet_closed"):
+		_memorial_tablet_owner.on_memorial_tablet_closed(attempted_name, attempts)
+	_memorial_tablet_owner = null
+	_save_checkpoint()
+
+
 func _save_checkpoint() -> void:
 	if player == null:
 		return
@@ -481,6 +503,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		tp_pitch = clampf(tp_pitch + event.relative.y * 0.0028, -0.25, 0.95)
 		return
 	if memory_stall != null and memory_stall.active:
+		return
+	if memorial_tablet != null and memorial_tablet.active:
 		return
 	if dialogue.active:
 		return
@@ -1291,9 +1315,11 @@ func _flow_test() -> void:
 	state = State.PLAY
 	ui.hide_intro()
 	var c1 = chapters[1]
-	c1.intro_beat()
+	c1.enter_beat()
 	await _wait_dialogue()
 	c1._talk_ba()
+	await _wait_dialogue()
+	c1._offer_tea()
 	await _wait_dialogue_only()
 	for id in MemoryStallInspectUI.REQUIRED_FOR_KEY:
 		memory_stall.inspect_item(id)
@@ -1354,6 +1380,19 @@ func _flow_test() -> void:
 	var c3 = chapters[3]
 	c3._take_moc()
 	await _wait_dialogue()
+	c3._try_inscribe_tablet()
+	memorial_tablet._name_edit.text = "Minh"
+	memorial_tablet._try_inscribe()
+	memorial_tablet.close_panel()
+	await _wait_dialogue()
+	if c3.tablet_attempts != 1:
+		push_error("FLOW FAILED: bai vi phai ghi nhan 1 lan thu khac ten, got %d" % c3.tablet_attempts)
+		get_tree().quit(1)
+		return
+	if not narrative.evidence.has("c3_tablet_refuses_name"):
+		push_error("FLOW FAILED: bai vi tu choi ten phai ghi evidence")
+		get_tree().quit(1)
+		return
 	player.set_color("moc")
 	c3._try_grow()
 	await _wait_dialogue()
@@ -1422,7 +1461,7 @@ func _flow_test() -> void:
 
 func _wait_dialogue() -> void:
 	await get_tree().create_timer(0.4).timeout
-	while dialogue.active or (memory_stall != null and memory_stall.active):
+	while dialogue.active or (memory_stall != null and memory_stall.active) or (memorial_tablet != null and memorial_tablet.active):
 		await get_tree().create_timer(0.1).timeout
 
 

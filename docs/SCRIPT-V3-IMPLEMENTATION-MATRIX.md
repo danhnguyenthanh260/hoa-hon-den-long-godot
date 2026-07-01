@@ -10,7 +10,7 @@ piece exists but the full player-visible behavior is unproven. `missing` and
 
 | ID | Requirement | Status | Current evidence / gap |
 |---|---|---|---|
-| CC1 | Minh has no reflection or shadow | partial | Player geometry now disables shadow casting and `test_player_shadow_policy.gd` gates it. Reflection is still text-only; water/mirror render exclusion is not implemented. |
+| CC1 | Minh has no reflection or shadow | partial | Player geometry disables shadow casting (`test_player_shadow_policy.gd`). C2's right well and C5's black puddle now render a real mirrored `SubViewport` reflection via `reflection_pool.gd`, with the player excluded through a dedicated render layer (`test_reflection_pool.gd`). C4's bronze mirror still uses a separate light-beam puzzle mechanic, not player-reflection, and is out of this slice's scope. Visual correctness (2026-07-01 change) is not yet confirmed on a GPU machine. |
 | CC2 | Lantern restores lost detail/truth | missing | Dynamic light exists; no face/text/detail reveal material contract. |
 | CC3 | Player performs rituals | missing | Current chapters complete rituals through dialogue callbacks; no three-direction call, effigy, grave, or tablet interaction. |
 | CC4 | NPC asks what player understands; Minh deflects | partial | `VoiceDirector` now records pressure/trust/evidence and C1/C2 have first remote-voice interventions. Full audio/radio mechanics and consistent contradiction beats are still incomplete. |
@@ -36,7 +36,7 @@ piece exists but the full player-visible behavior is unproven. `missing` and
 |---|---|---|---|---|
 | C1 | First remote-voice trust hook exists; opening still has early fear cues | Shadow puzzle works; ritual missing | Procedural street; no measured hero module | partial |
 | C2 | Remote voice now gives a questionable shortcut; well contradiction records evidence | Reverse movement/tiles work; effigy and call ritual missing | Wells/yard procedural; reflection still text-only, not rendered | partial |
-| C3 | Memory-house clues partial | Memorial-tablet typing failure missing | Interior procedural; workshop evidence incomplete | fail |
+| C3 | Memory-house clues partial | Memorial-tablet typing failure now implemented (`memorial_tablet_ui.gd`, always refuses any inscribed name, records `c3_tablet_refuses_name` evidence) | Interior procedural; workshop evidence incomplete | partial |
 | C4 | Crossing-price choice now records `name_kept` | Mirror/mud prototype works; evidence comparison missing | River/boat procedural | partial |
 | C5 | Direct death exposition reduced; proof dialogue now records evidence | Three held-color verification proofs replaced boss-DPS progression; final death-threshold cut still missing | Bridge/boss procedural; lawful reference dossier started | partial |
 | Endings | Eligibility model has release/costly-hope/loop | Runtime ending cards branch from state | Final scenes and coda missing | partial |

@@ -18,6 +18,8 @@ var vines_grown := false
 var photo_revealed := false
 var _steps: Array = []
 var _photo: MeshInstance3D
+var _tablet: MeshInstance3D
+var tablet_attempts := 0
 var _moc_orb: Node3D
 var _grow_t := -1.0
 
@@ -42,6 +44,7 @@ func build(main) -> void:
 	Build.box(self, Vector3(4.2, 0.08, 1.4), O + Vector3(0, 1.14, -8.8), Build.mat(Color(0.2, 0.13, 0.07), 0.7))
 	# ảnh thờ — úp mặt xuống
 	_photo = Build.box(self, Vector3(0.55, 0.04, 0.75), O + Vector3(0, 1.2, -8.7), Build.mat(Color(0.22, 0.18, 0.12), 0.6))
+	_tablet = Build.box(self, Vector3(0.22, 0.42, 0.04), O + Vector3(0.9, 1.15, -8.78), Build.mat(Color(0.16, 0.12, 0.08)))
 	# hoành phi sơn son thếp vàng trên án + câu đối hai cột trong
 	Build.box(self, Vector3(2.4, 0.7, 0.06), O + Vector3(0, 3.1, -9.6), Build.mat(Color(0.55, 0.42, 0.15), 0.45))
 	Build.box(self, Vector3(2.2, 0.55, 0.08), O + Vector3(0, 3.1, -9.58), Build.mat(Color(0.1, 0.04, 0.03), 0.6))
@@ -83,6 +86,7 @@ func build(main) -> void:
 	puzzle.solved_callback = Callable(self, "_on_lotus_solved")
 
 	m.add_interact(O + Vector3(-0.9, 0, -8.0), 2.0, "Nhận SẮC MỘC trên bàn thờ", Callable(self, "_take_moc"), true)
+	m.add_interact(O + Vector3(0.9, 0, -8.78), 1.8, "Bài vị trống trên bàn thờ", Callable(self, "_try_inscribe_tablet"), false)
 	m.add_interact(O + Vector3(-6.2, 0, -3.0), 2.4, "Chậu dây leo khô", Callable(self, "_try_grow"), false)
 	m.add_interact(Vector3(puzzle.light_pos.x, 3.2, puzzle.light_pos.z), 2.4, "Đèn sen của gian thờ", Callable(self, "_enter_puzzle"), false)
 	m.add_interact(O + Vector3(0, 0, 9.0), 2.2, "Cánh cửa ra", Callable(self, "_try_exit"), false)
@@ -154,6 +158,19 @@ func _try_exit() -> void:
 			func(): m.goto_chapter(4))
 	else:
 		m.say([["Minh (nghĩ)", "Cửa đóng chặt như nín thở. Ngôi nhà này chưa muốn cho tôi đi — nó còn giữ một thứ chưa ai thắp."]])
+
+
+func _try_inscribe_tablet() -> void:
+	m.open_memorial_tablet(self)
+
+
+func on_memorial_tablet_closed(_attempted_name: String, attempts: int) -> void:
+	tablet_attempts = attempts
+	if attempts > 0 and not m.narrative.evidence.has("c3_tablet_refuses_name"):
+		m.narrative.add_evidence(
+			"c3_tablet_refuses_name",
+			"Bài vị từ chối nhận bất cứ cái tên nào Minh khắc lên — kể cả tên của chính mình."
+		)
 
 
 func update(delta: float) -> void:

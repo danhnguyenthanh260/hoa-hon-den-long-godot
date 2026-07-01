@@ -3,6 +3,7 @@
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
+const ReflectionPool := preload("res://scripts/reflection_pool.gd")
 
 const C := Vector3(0, 40, -120)
 
@@ -13,6 +14,7 @@ var _time := 0.0
 var _water_done := false
 var _altar_done := false
 var _ground_done := false
+var _puddle_reflection: ReflectionPool
 
 
 func build(main) -> void:
@@ -104,6 +106,13 @@ func build(main) -> void:
 	pmat.albedo_color = Color(0.01, 0.02, 0.03)
 	pmat.metallic = 0.9
 	pmat.roughness = 0.05
+	_puddle_reflection = ReflectionPool.new()
+	add_child(_puddle_reflection)
+	_puddle_reflection.setup(m.camera, C.y - 0.38, Vector2i(384, 384), 0)
+	pmat.albedo_texture = _puddle_reflection.texture()
+	pmat.emission_enabled = true
+	pmat.emission_texture = _puddle_reflection.texture()
+	pmat.emission_energy_multiplier = 0.5
 	puddle.material_override = pmat
 	
 	# 2. Vết nứt trên ván cầu (Ground)
@@ -224,6 +233,8 @@ func _show_statue_and_end() -> void:
 
 
 func update(delta: float) -> void:
+	if _puddle_reflection != null:
+		_puddle_reflection.update(delta)
 	_time += delta
 	for trio in _debris:
 		var node: MeshInstance3D = trio[0]
