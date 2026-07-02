@@ -556,7 +556,20 @@ func _update_cat(delta: float) -> void:
 	_cat_interact["pos"] = Vector3(_cat.position.x, 0, _cat.position.z)
 
 
+const _HOUSE_X_MIN := -10.7
+const _HOUSE_X_MAX := 5.0
+const _HOUSE_Z_MIN := -20.5
+const _HOUSE_Z_MAX := -10.6
+
+
 func clamp_player(pos: Vector3) -> Vector3:
+	# nhà khóa nằm lệch tây (x tới -10.9), ngoài dải ngõ hẹp mà clamp_alley cho phép
+	# khi geo_zone_on chưa bật (chỉ bật sau khi giải xong Chim Lạc — đố cần ở trong nhà).
+	# Mở khóa nhà xong thì nới clamp theo đúng dải z của nội thất, tránh vòng lặp bất khả thi.
+	if house_unlocked and pos.z > _HOUSE_Z_MIN and pos.z < _HOUSE_Z_MAX:
+		pos.x = clampf(pos.x, _HOUSE_X_MIN, _HOUSE_X_MAX)
+		pos.y = m.world.ground_height(pos)
+		return pos
 	pos = m.world.clamp_alley(pos)
 	if not basement_open and pos.z < -21.0:
 		pos.z = -21.0
