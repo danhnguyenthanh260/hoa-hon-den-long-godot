@@ -333,6 +333,13 @@ func update(delta: float) -> void:
 
 
 func clamp_player(pos: Vector3) -> Vector3:
+	# nhiệm vụ "hỏi bà hàng nước" + "lấy sen ở gánh hoa đăng" đòi đi bộ thật ngược lên
+	# khu C1 (Bà ở z=-5.5, gánh hoa đăng ở z=12.8) — ngoài dải sân giếng của C2.
+	# Ra khỏi miệng sân thì dùng lại clamp phố của C1 cho đoạn đường quay lại đó.
+	if pos.z > Z0 + 0.4:
+		# dùng nguyên clamp của C1 (không chỉ world.clamp_alley) để còn quay lại
+		# ĐƯỢC vào trong nhà khóa qua cửa trước — chỗ có giếng khô xuống lại C2.
+		return m.chapters[1].clamp_player(pos)
 	pos.x = clampf(pos.x, -7.4, 7.4)
 	pos.z = clampf(pos.z, Z1 + 0.3, Z0 + 0.4)
 	return pos
