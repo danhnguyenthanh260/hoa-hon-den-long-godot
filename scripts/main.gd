@@ -15,6 +15,7 @@ const C5 := preload("res://scripts/c5.gd")
 const NarrativeState := preload("res://scripts/narrative_state.gd")
 const CheckpointService := preload("res://scripts/checkpoint_service.gd")
 const VoiceDirector := preload("res://scripts/voice_director.gd")
+const Pixel3DShader := preload("res://assets/shaders/pixel3d.gdshader")
 
 enum State { INTRO, PLAY, PUZZLE, DIALOGUE, CUTSCENE, WON }
 
@@ -76,6 +77,9 @@ var _debug_note_panel: CanvasItem
 var _debug_note_edit: LineEdit
 var _debug_note_idx := -1
 var _debug_session: Array = []
+var _pixel3d_layer: CanvasLayer
+var _pixel3d_rect: ColorRect
+var _pixel3d_mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -102,6 +106,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.position = Vector3(0, 3.4, 13)
 	camera.current = true
+	_make_pixel3d_overlay()
 	_make_dust()
 	audio = preload("res://scripts/audio_manager.gd").new()
 	add_child(audio)
@@ -576,6 +581,7 @@ func _process(delta: float) -> void:
 				"[chuột BẮT - ESC để thả]" if captured else "[chuột TỰ DO - Click để nhìn]",
 				_debug_shot_n + 1
 			]
+	_update_pixel3d_overlay()
 	match state:
 		State.PLAY:
 			player.view_yaw = tp_yaw if view_mode == View.THIRD else fp_yaw
@@ -594,6 +600,27 @@ func _process(delta: float) -> void:
 	_dust.position = player.position
 	audio.update(delta, self)
 	_update_camera(delta)
+
+
+func _make_pixel3d_overlay() -> void:
+	_pixel3d_layer = CanvasLayer.new()
+	_pixel3d_layer.layer = -20
+	add_child(_pixel3d_layer)
+	_pixel3d_rect = ColorRect.new()
+	_pixel3d_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pixel3d_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pixel3d_rect.color = Color.WHITE
+	_pixel3d_mat = ShaderMaterial.new()
+	_pixel3d_mat.shader = Pixel3DShader
+	_pixel3d_rect.material = _pixel3d_mat
+	_pixel3d_layer.add_child(_pixel3d_rect)
+	_update_pixel3d_overlay()
+
+
+func _update_pixel3d_overlay() -> void:
+	if _pixel3d_rect == null:
+		return
+	_pixel3d_rect.visible = chapter_no == 1 and not _debug_mode
 
 
 func _update_camera(delta: float) -> void:
@@ -708,10 +735,13 @@ func _autoplay() -> void:
 	player.force_walk = false
 	studio.queue_free()
 	fill.queue_free()
-	free_cam = false
+	free_cam = true
 	player.position = Vector3(0, 0, 7)
+	camera.position = Vector3(0.6, 1.7, 9.6)        # sau lưng Minh, nhìn XUÔI ngõ về phía quán nước
+	camera.look_at(Vector3(-3.5, 0.9, -5.0))
 	await get_tree().create_timer(0.8).timeout
 	await _shot(dir + "/c1-alley.png")
+	free_cam = false
 	# phố Trần Phú — camera đặt dọc trục phố
 	free_cam = true
 	player.position = Vector3(-14, 0, 11)
@@ -728,11 +758,15 @@ func _autoplay() -> void:
 	# C1: câu đố bóng
 	player.position = Vector3(3.2, 0, -14.8)
 	var c1 = chapters[1]
+	for pid in ["head", "wing_body", "tail_leg"]:
+		c1.puzzle.collect_and_place_part(pid)
 	enter_puzzle(c1.puzzle, "A / D — xoay đèn cho bóng Chim Lạc khớp hình mờ")
-	c1.puzzle.angle = 0.4
+	for pid in c1.puzzle.part_angles.keys():
+		c1.puzzle.set_part_angle(pid, 0.4)        # lệch — bóng chưa khớp
 	await get_tree().create_timer(1.2).timeout
 	await _shot(dir + "/c1-puzzle.png")
-	c1.puzzle.angle = 0.05
+	for pid in c1.puzzle.part_angles.keys():
+		c1.puzzle.set_part_angle(pid, 0.02)       # khớp — Chim Lạc rõ hình
 	await get_tree().create_timer(1.5).timeout
 	await _shot(dir + "/c1-solved.png")
 	state = State.PLAY

@@ -10,7 +10,7 @@ const SPEED := 4.0
 
 # ---- thân mesh (Đường 2): mesh AI rig đầy đủ tay thay cho thân primitive ----
 # Đặt false để quay lại thân primitive cũ ngay (an toàn, không phá gì).
-const USE_MESH_BODY := true
+const USE_MESH_BODY := false
 const MESH_PATH := "res://assets/models/minh_player_rigged.glb"
 const MESH_TARGET_HEIGHT := 1.72
 const MESH_YAW_OFFSET := PI          # xoay mesh khớp hướng nhìn (-Z) — tinh chỉnh khi xem
@@ -58,6 +58,8 @@ var _knee_l: Node3D
 var _knee_r: Node3D
 var _arm_swing: Node3D        # tay trái vung theo nhịp
 var _elbow_swing: Node3D
+var _arm_r: Node3D            # tay phải (ghì sào) — lưu để pose A-pose lúc QA/gen
+var _elbow_r: Node3D
 var _flap_f: Node3D
 var _flap_b: Node3D
 var _head: Node3D
@@ -168,18 +170,18 @@ func _ready() -> void:
 	Build.ball(_head, 0.011, 0.022, Vector3(0, -0.135, 0.075), Build.mat(Color(0.45, 0.1, 0.1), 0.6))
 
 	# ---- tay phải ghì sào trên vai: khuỷu sát thân, bàn tay nắm sào trước vai ----
-	var arm_r := Node3D.new()
-	arm_r.position = Vector3(0.185, 1.36, 0)
-	arm_r.rotation.z = -0.12
-	arm_r.rotation.x = 0.42
-	_visual.add_child(arm_r)
-	Build.ball(arm_r, 0.05, 0.28, Vector3(0, -0.11, 0), _robe_mat)
-	var elbow_r := Node3D.new()
-	elbow_r.position = Vector3(0, -0.22, 0)
-	elbow_r.rotation.x = -1.5
-	arm_r.add_child(elbow_r)
-	Build.ball(elbow_r, 0.044, 0.24, Vector3(0, -0.09, 0), _robe_mat)
-	Build.ball(elbow_r, 0.048, 0.095, Vector3(0, -0.2, 0), skin)
+	_arm_r = Node3D.new()
+	_arm_r.position = Vector3(0.185, 1.36, 0)
+	_arm_r.rotation.z = -0.12
+	_arm_r.rotation.x = 0.42
+	_visual.add_child(_arm_r)
+	Build.ball(_arm_r, 0.05, 0.28, Vector3(0, -0.11, 0), _robe_mat)
+	_elbow_r = Node3D.new()
+	_elbow_r.position = Vector3(0, -0.22, 0)
+	_elbow_r.rotation.x = -1.5
+	_arm_r.add_child(_elbow_r)
+	Build.ball(_elbow_r, 0.044, 0.24, Vector3(0, -0.09, 0), _robe_mat)
+	Build.ball(_elbow_r, 0.048, 0.095, Vector3(0, -0.2, 0), skin)
 
 	# ---- tay trái vung theo nhịp bước ----
 	_arm_swing = Node3D.new()
@@ -412,6 +414,22 @@ func set_first_person(v: bool) -> void:
 		_hang.position.z = 1.16
 
 
+# A-pose tĩnh: hai tay dang xa thân, khuỷu thẳng, bỏ sào/đèn — để chụp ảnh sinh
+# mesh AI có KHE tay-thân (rig vung được). Gọi sau khi set_process(false).
+func set_apose() -> void:
+	if _pole_holder:
+		_pole_holder.visible = false
+	_arm_swing.rotation = Vector3(0, 0, 1.32)     # tay trái dang ~76° (gần T-pose, tạo khe rõ)
+	_elbow_swing.rotation = Vector3.ZERO
+	_arm_r.rotation = Vector3(0, 0, -1.32)         # tay phải dang ~76°
+	_elbow_r.rotation = Vector3.ZERO
+	_leg_l.rotation = Vector3(0, 0, 0.14)          # chân tách rõ, thẳng (để gen không dính 2 chân)
+	_leg_r.rotation = Vector3(0, 0, -0.14)
+	_knee_l.rotation = Vector3.ZERO
+	_knee_r.rotation = Vector3.ZERO
+	_visual.rotation = Vector3.ZERO
+
+
 func _make_leg(x: float, linen: Material, sandal: Material) -> Node3D:
 	var hip := Node3D.new()
 	hip.position = Vector3(x, 0.82, 0)
@@ -511,15 +529,15 @@ func _process(delta: float) -> void:
 	if _use_mesh:
 		_animate_mesh(sw)
 	else:
-		# chân: đùi vung, gối gập lúc chân vung tới
+		# chân: đùi vung, gối gập lúc chân nhấc-vung (sau->trước), bớt đá gót cao
 		_leg_l.rotation.x = sw
 		_leg_r.rotation.x = -sw
-		_knee_l.rotation.x = maxf(0.0, sin(_anim_t - 0.7)) * 0.85 * _gait
-		_knee_r.rotation.x = maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.85 * _gait
+		_knee_l.rotation.x = maxf(0.0, sin(_anim_t - 0.7)) * 0.68 * _gait
+		_knee_r.rotation.x = maxf(0.0, sin(_anim_t - 0.7 + PI)) * 0.68 * _gait
 
-		# tay trái vung ngược chân trái
-		_arm_swing.rotation.x = -sw * 0.75
-		_elbow_swing.rotation.x = -0.25 - maxf(0.0, -sw) * 0.5
+		# tay trái VUNG CON LẮC rõ, ngược chân trái — duỗi hơn để tách khỏi thân
+		_arm_swing.rotation.x = -sw * 1.25
+		_elbow_swing.rotation.x = -0.14 - maxf(0.0, -sw) * 0.4
 
 		# tà áo bay: phất ra sau khi bước + rung nhẹ
 		var trail := 0.32 * _gait

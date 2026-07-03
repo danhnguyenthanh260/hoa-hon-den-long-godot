@@ -47,9 +47,9 @@ func _ready() -> void:
 	add_child(fill)
 
 	var cam := Camera3D.new()
+	add_child(cam)                                   # vào tree TRƯỚC khi look_at (cần global transform)
 	cam.position = Vector3(0, TARGET_H * 0.6, 3.3)
 	cam.look_at(Vector3(0, TARGET_H * 0.52, 0))
-	add_child(cam)
 
 	_model = (load(MODEL) as PackedScene).instantiate()
 	add_child(_model)

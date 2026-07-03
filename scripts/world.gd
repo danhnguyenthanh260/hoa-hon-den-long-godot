@@ -15,7 +15,7 @@ const ALLEY_HALF := 5.0
 const FACADE_X := 5.35
 
 const ZONES := {
-	"c1": {"bg": Color(0.015, 0.025, 0.055), "amb": Color(0.16, 0.2, 0.32), "amb_e": 0.6,
+	"c1": {"bg": Color(0.015, 0.025, 0.055), "amb": Color(0.17, 0.21, 0.33), "amb_e": 0.82,
 		"fog": Color(0.045, 0.06, 0.11), "fog_d": 0.012, "vol": 0.035},
 	"c1_lit": {"bg": Color(0.02, 0.03, 0.06), "amb": Color(0.2, 0.22, 0.3), "amb_e": 0.78,
 		"fog": Color(0.06, 0.06, 0.1), "fog_d": 0.01, "vol": 0.025},

@@ -77,6 +77,15 @@ func build(main) -> void:
 	coal_l.omni_range = 3.0
 	coal_l.position = Vector3(0.5, 0.4, 0.45)
 	stall.add_child(coal_l)
+	# đèn lồng quán CÒN SÁNG — mốc dẫn đường, thấy được từ đầu ngõ (hết spawn đen thui)
+	var beacon := Build.lantern(stall, 0.13, 0.24, Vector3(0.0, 1.7, 0.35))
+	Build.light_lantern(beacon, Color(1.0, 0.56, 0.22), 2.8)
+	var beacon_l := OmniLight3D.new()
+	beacon_l.light_color = Color(1.0, 0.6, 0.3)
+	beacon_l.light_energy = 2.0
+	beacon_l.omni_range = 15.0
+	beacon_l.position = Vector3(0.0, 1.65, 0.35)
+	stall.add_child(beacon_l)
 	var ba := Build.faceless_npc(stall, Vector3(-0.3, 0, 0.5), Color(0.22, 0.18, 0.16))
 	ba.rotation.y = 2.6
 
