@@ -4,14 +4,11 @@
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
-const Shapes := preload("res://scripts/shapes.gd")
-const ShadowPuzzle := preload("res://scripts/shadow_puzzle.gd")
 const Ghost := preload("res://scripts/ghost.gd")
 
 const O := Vector3(60, 0, -30)   # nhà nằm ở "nơi khác" — logic giấc mơ
 
 var m
-var puzzle
 var ghost
 var has_moc := false
 var vines_grown := false
@@ -22,6 +19,11 @@ var _tablet: MeshInstance3D
 var tablet_attempts := 0
 var _moc_orb: Node3D
 var _grow_t := -1.0
+# anamorphosis: các mảnh bóng chỉ ghép thành hình khi Minh đứng đúng chỗ trên gác
+var _frags: Array = []      # [mesh, scattered_pos, assembled_pos]
+var _focus_spot: Vector3
+var _align := 0.0
+var _reached_loft := false
 
 
 func build(main) -> void:
@@ -78,17 +80,14 @@ func build(main) -> void:
 	# hồn ma giữa gian
 	ghost = Ghost.new()
 	add_child(ghost)
-	ghost.setup(O + Vector3(0.5, 0, -2.0), "hoa", m.player, Callable(self, "_caught"))
-	# đố bóng hoa sen trên gác — chiếu lên vách cuối
-	puzzle = ShadowPuzzle.new()
-	add_child(puzzle)
-	puzzle.setup(O + Vector3(-4.0, 4.4, -7.2), O.z - 9.7, Shapes.lotus_polygon(), 0.45, -1.1, false)
-	puzzle.solved_callback = Callable(self, "_on_lotus_solved")
+	# hồn ma chỉ để không khí — không bắt, không reset người chơi (callback rỗng)
+	ghost.setup(O + Vector3(0.5, 0, -2.0), "hoa", m.player, Callable())
+	# anamorphosis: mảnh bóng ký ức rải khắp gian, chỉ ghép hình từ chỗ đứng trên gác
+	_build_memory_fragments()
 
 	m.add_interact(O + Vector3(-0.9, 0, -8.0), 2.0, "Nhận SẮC MỘC trên bàn thờ", Callable(self, "_take_moc"), true)
 	m.add_interact(O + Vector3(0.9, 0, -8.78), 1.8, "Bài vị trống trên bàn thờ", Callable(self, "_try_inscribe_tablet"), false)
 	m.add_interact(O + Vector3(-6.2, 0, -3.0), 2.4, "Chậu dây leo khô", Callable(self, "_try_grow"), false)
-	m.add_interact(Vector3(puzzle.light_pos.x, 3.2, puzzle.light_pos.z), 2.4, "Đèn sen của gian thờ", Callable(self, "_enter_puzzle"), false)
 	m.add_interact(O + Vector3(0, 0, 9.0), 2.2, "Cánh cửa ra", Callable(self, "_try_exit"), false)
 
 
@@ -98,10 +97,8 @@ func enter_beat() -> void:
 	m.checkpoint = O + Vector3(0, 0, 8.5)
 	m.ui.set_objective("Ngôi nhà duy nhất còn mở cửa")
 	m.say([
-		["Minh (nghĩ)", "Cửa ngoài rộng hai sải tay. Gian trong... mười cột. Nhà ai mà bên trong to hơn bên ngoài?"],
-		["Minh (nghĩ)", "Mùi gỗ lim, mùi nhang tắt. Quen lắm. Quen đến mức tôi không dám nhớ ra là quen ở đâu."],
-		["Minh (nghĩ)", "Giữa gian có một... khoảng người bị xóa. Như vết ngón tay cái di lên bức tranh còn ướt."],
-		["Minh (nghĩ)", "Nó không nhìn tôi. Nó nhìn ÁNH SÁNG của tôi. Thử lửa xem — phím 1."],
+		["Minh (nghĩ)", "Nhà ai mà bên trong to hơn bên ngoài? Giữa gian có một... khoảng người bị xóa."],
+		["Minh (nghĩ)", "Cái bóng giữa gian không nhìn tôi — nó nhìn ÁNH SÁNG của tôi. Thử lửa xem — phím 1."],
 	])
 
 
@@ -131,24 +128,35 @@ func _try_grow() -> void:
 		func(): m.ui.set_objective("Lên gác lửng theo bậc dây leo"))
 
 
-func _enter_puzzle() -> void:
-	if not puzzle.solved and m.player.position.y > 2.5:
-		m.enter_puzzle(puzzle, "A / D — xoay đèn cho bóng HOA SEN khớp vệt mờ trên vách")
+func _build_memory_fragments() -> void:
+	# chỗ "người bị xóa" từng đứng — trên gác lửng, nhìn chéo xuống vách thờ
+	_focus_spot = O + Vector3(-4.0, 3.32, -7.4)
+	# vị trí GHÉP: 6 mảnh chồng thành dáng người trên vách cuối gian
+	var assembled := [
+		O + Vector3(0.0, 3.15, -9.55), O + Vector3(-0.5, 2.65, -9.55), O + Vector3(0.5, 2.65, -9.55),
+		O + Vector3(-0.35, 2.05, -9.55), O + Vector3(0.35, 2.05, -9.55), O + Vector3(0.0, 1.5, -9.55),
+	]
+	# vị trí RẢI RÁC: khắp gian khi chưa đứng đúng chỗ
+	var scattered := [
+		O + Vector3(-3.5, 4.6, -5.0), O + Vector3(3.4, 1.2, -3.2), O + Vector3(-3.6, 1.0, -7.5),
+		O + Vector3(3.5, 4.8, -6.5), O + Vector3(-2.2, 5.2, -2.0), O + Vector3(2.6, 2.4, 1.0),
+	]
+	for i in range(assembled.size()):
+		var frag := Build.box(self, Vector3(0.55, 0.36, 0.03), scattered[i], Build.emis(Color(0.14, 0.32, 0.16), Color(0.4, 1.0, 0.5), 0.15, 0.85))
+		frag.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_frags.append([frag, scattered[i], assembled[i]])
 
 
-func _on_lotus_solved() -> void:
+func _on_photo_resolved() -> void:
 	m.ui.play_chime()
-	photo_revealed = true
-	m.exit_puzzle_after(1.6)
 	# ảnh thờ tự lật lên + nến phụt tắt một nhịp
 	var tw := create_tween()
 	tw.tween_property(_photo, "rotation:x", -1.45, 1.2).set_ease(Tween.EASE_OUT)
 	_photo.material_override = Build.emis(Color(0.8, 0.75, 0.65), Color(0.9, 0.85, 0.7), 0.35)
 	m.world.blackout_beat()
 	m.say([
-		["Minh (nghĩ)", "Bóng sen vừa khớp — cả gian nhà THỞ ra một hơi. Và cái ảnh thờ... tự lật lên."],
-		["Minh (nghĩ)", "Một gương mặt trẻ. Quen khủng khiếp."],
-		["Minh (nghĩ)", "...Ảnh thờ nhà người ta. Mình nhìn nhầm thôi. Nhìn nhầm... thôi."],
+		["Minh (nghĩ)", "Từ đúng chỗ này, các mảnh bóng chồng khít thành một dáng người. Ảnh thờ tự lật lên."],
+		["Minh (nghĩ)", "Một gương mặt trẻ. Quen khủng khiếp. ...Chắc mình nhìn nhầm thôi."],
 	], func(): m.ui.set_objective("Rời khỏi ngôi nhà"))
 
 
@@ -180,6 +188,23 @@ func update(delta: float) -> void:
 			var t := clampf(_grow_t - i * 0.55, 0.0, 1.0)
 			var s := 1.0 - pow(1.0 - t, 3.0)
 			_steps[i].scale = Vector3(maxf(s, 0.01), maxf(s, 0.01), maxf(s, 0.01))
+	# anamorphosis: đứng đúng chỗ trên gác → các mảnh bóng trôi về ghép thành hình
+	if vines_grown and not photo_revealed and not _frags.is_empty():
+		var pp: Vector3 = m.player.position
+		var target := clampf(1.0 - pp.distance_to(_focus_spot) / 3.2, 0.0, 1.0)
+		_align = lerpf(_align, target, 1.0 - pow(0.02, delta))
+		var e := _align * _align * (3.0 - 2.0 * _align)   # smoothstep
+		for trio in _frags:
+			var frag: MeshInstance3D = trio[0]
+			frag.position = (trio[1] as Vector3).lerp(trio[2], e)
+			var mt := frag.material_override as StandardMaterial3D
+			mt.emission_energy_multiplier = 0.15 + e * 1.9
+		if not _reached_loft and pp.y > 2.8:
+			_reached_loft = true
+			m.ui.set_objective("Đi dọc gác — tìm đúng chỗ đứng để bóng trên vách ghép thành hình.")
+		if _align > 0.85:
+			photo_revealed = true
+			_on_photo_resolved()
 
 
 func clamp_player(pos: Vector3) -> Vector3:

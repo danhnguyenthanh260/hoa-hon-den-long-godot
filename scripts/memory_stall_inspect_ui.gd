@@ -79,6 +79,11 @@ func _build_ui() -> void:
 
 	_portrait = Label.new()
 	_portrait.text = "    /\\\n  _/  \\_\n /______\\\n   ████\n  ██████\n  áo nâu, khói đèn\n  che gần hết mặt"
+	# ASCII nón lá cần font đều bề rộng ký tự (monospace), font mặc định là font tỉ lệ
+	# nên "/", "\", "_", "█" lệch bề rộng khác nhau, cái nón vẽ ra bị méo/lệch.
+	var mono_font := SystemFont.new()
+	mono_font.font_names = PackedStringArray(["Cascadia Code", "Consolas", "Courier New"])
+	_portrait.add_theme_font_override("font", mono_font)
 	_portrait.add_theme_font_size_override("font_size", 22)
 	_portrait.add_theme_color_override("font_color", Color(0.78, 0.65, 0.43))
 	_portrait.custom_minimum_size = Vector2(280, 250)

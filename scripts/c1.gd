@@ -103,13 +103,11 @@ func build(main) -> void:
 	puzzle.setup(Vector3(-8.2, 1.3, -16.6), -18.45)
 	puzzle.solved_callback = Callable(self, "_on_puzzle_solved")
 
-	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Bà hàng nước / mở quầy ký ức", Callable(self, "_talk_ba"), false)
+	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Bà hàng nước", Callable(self, "_talk_ba"), false)
 	m.add_interact(Vector3(-4.4, 0, -6.3), 1.8, "Rót trà mời bà — nghi lễ đầu tiên", Callable(self, "_offer_tea"), false)
+	m.add_interact(Vector3(-3.2, 0, -5.8), 1.2, "Nhìn kỹ những thứ trên quầy", Callable(self, "_read_stall_clues"), false)
 	m.add_interact(_house_door_pos, 2.0, "Cửa nhà sau quán bị khóa", Callable(self, "_try_unlock_house"), false)
-	m.add_interact(Vector3(-9.7, 0, -13.2), 1.8, "Mảnh giấy dó: đầu chim", Callable(self, "_collect_stencil_part").bind("head"), true)
-	m.add_interact(Vector3(-6.7, 0, -15.0), 1.8, "Mảnh giấy dó: thân và cánh", Callable(self, "_collect_stencil_part").bind("wing_body"), true)
-	m.add_interact(Vector3(-8.9, 0, -17.1), 1.8, "Mảnh giấy dó: đuôi và chân", Callable(self, "_collect_stencil_part").bind("tail_leg"), true)
-	m.add_interact(puzzle.stand_pos(), 2.6, "Khung đèn Chim Lạc trong nhà", Callable(self, "_enter_puzzle"), false)
+	m.add_interact(Vector3(-8.2, 0, -14.6), 2.0, "Bức Chim Lạc bị xé", Callable(self, "_collect_stencil"), true)
 	m.add_interact(_basement_pos, 2.2, "Ấn Hỏa trên cửa hầm / giếng khô", Callable(self, "_try_burn"), false)
 	m.add_interact(_basement_pos + Vector3(0, 0, -0.8), 2.0, "Đi xuống giếng khô", Callable(self, "_try_descend"), false)
 	_build_street_life()
@@ -145,9 +143,7 @@ func _build_locked_house() -> void:
 	var well := Build.cyl(_house_root, 0.65, 0.65, 0.46, _basement_pos + Vector3(0, 0.23, -0.75), stone, 18)
 	well.set_meta("role", "dry_well_c2_entrance")
 	# mốc thu nhặt mảnh ghép, dùng placeholder giấy dó chứ không import Meshy nặng
-	_make_part_marker("head", Vector3(-9.7, 0.52, -13.2), Color(0.9, 0.48, 0.22))
-	_make_part_marker("wing_body", Vector3(-6.7, 0.52, -15.0), Color(0.95, 0.74, 0.25))
-	_make_part_marker("tail_leg", Vector3(-8.9, 0.52, -17.1), Color(0.78, 0.38, 0.14))
+	_make_part_marker("stencil", Vector3(-8.2, 0.55, -14.6), Color(0.92, 0.6, 0.24))
 	m.add_interact(Vector3(-8.2, 0, -18.2), 1.8, "Bàn thờ trong căn nhà khóa", Callable(self, "_altar_clue"), false)
 
 
@@ -217,16 +213,13 @@ func _build_street_life() -> void:
 func enter_beat() -> void:
 	m.ui.set_objective("Đi sâu vào ngõ. Tìm quán nước còn sáng.")
 	m.say([
-		["Minh (nghĩ)", "Tiếng rao chè trôi qua đầu ngõ... nhưng đã mười năm rồi không ai gánh chè qua đây."],
-		["Minh (nghĩ)", "Sương đêm nay có mùi tro. Như ai vừa đốt một chồng thư cũ."],
+		["Minh (nghĩ)", "Mười năm rồi không ai gánh chè qua ngõ này. Sương đêm nay có mùi tro."],
 	], func(): m.remote_voice(
 		"c1_first_radio",
 		0.12,
 		[
-			"Trạm Bốn gọi người giữ đèn. Nếu nghe được thì đừng đứng giữa phố.",
-			"Quán nước còn sáng là mốc đầu tiên. Người ngồi đó có thể đã quên mình chờ ai.",
-			"Không xuống giếng khi chưa có lửa. Nhắc lại: không xuống giếng khi chưa có lửa.",
-			["Minh (nghĩ)", "Giọng phát ra từ trong lồng đèn, rè như máy bộ đàm ngấm nước. Nhưng nó biết tôi đang đứng ở đầu ngõ."],
+			"Trạm Bốn gọi người giữ đèn. Quán nước còn sáng là mốc đầu tiên.",
+			"Không xuống giếng khi chưa có lửa.",
 		],
 		Callable(),
 		7
@@ -236,21 +229,14 @@ func enter_beat() -> void:
 var _ba_talked := false
 var _tea_offered := false
 func _talk_ba() -> void:
-	if m.chapters[2].quest_stage == 1:
-		m.chapters[2].ba_lore()
-		return
 	if not _ba_talked:
 		_ba_talked = true
 		m.say([
-			["Bà Hàng Nước", "Trà còn nóng đó, cậu nhỏ. Ngồi xuống đi. Bà chờ khách... lâu lắm rồi."],
-			["Minh", "Bà ơi... quán này đóng cửa từ khi cháu còn bé mà?"],
-			["Bà Hàng Nước", "Đóng? À... phải. Bà cũng nhớ là có đóng. Nhưng cậu nhỏ này, NHỚ với CÒN — hai chữ đó ở phố này bây giờ là một đấy."],
-			["Bà Hàng Nước", "Rót cho bà một chén đi. Khách tới quán, phải tự tay rót trước — bà không còn sức bưng ấm nữa."],
+			["Bà Hàng Nước", "Trà còn nóng đó, cậu nhỏ. Bà chờ khách lâu lắm rồi."],
+			["Bà Hàng Nước", "Rót cho bà một chén đi — tự tay rót trước, đừng đợi bà mời."],
 		], func(): m.ui.set_objective("Rót trà mời bà hàng nước"))
 	elif not _tea_offered:
-		m.say([["Bà Hàng Nước", "Ấm trà vẫn chờ đó, cậu nhỏ."]])
-	elif not stall_inspected:
-		m.open_memory_stall(self)
+		m.say([["Bà Hàng Nước", "Ấm trà vẫn chờ đó, cậu nhỏ. Rót trước đi — đừng đợi bà mời."]])
 	elif puzzle.solved and _orb != null:
 		m.say([["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."]])
 	else:
@@ -262,29 +248,33 @@ func _offer_tea() -> void:
 		m.say([["Minh (nghĩ)", "Ấm trà không phải của tôi để tự ý rót."]])
 		return
 	if _tea_offered:
-		m.open_memory_stall(self)
+		m.say([["Bà Hàng Nước", "Chén trà cậu rót, bà giữ ấm cả đêm nay."]])
 		return
 	_tea_offered = true
+	stall_inspected = true
+	has_house_key = true
 	m.narrative.add_evidence("c1_tea_ritual", "Minh nghiêng ấm, rót một chén đầy mời bà hàng nước — nghi lễ đầu tiên của đêm.")
 	m.say([
-		["Minh (nghĩ)", "Tôi nghiêng ấm. Trà rót ra vẫn nóng, vẫn thơm — như chưa từng nguội suốt hai mươi năm."],
-		["Bà Hàng Nước", "...Cảm ơn cậu nhỏ. Lâu lắm rồi mới có người rót trước, không đợi bà mời."],
-	], func(): m.open_memory_stall(self))
+		["Bà Hàng Nước", "...Cảm ơn cậu nhỏ. Người biết rót trước khi được mời là người bà vẫn đợi. Cầm lấy."],
+		["Bà Hàng Nước", "Chìa nhà sau quán — không mở từ mùa nước lớn. Từ giờ là của cậu."],
+	], func(): m.ui.set_objective("Dùng chìa khóa mở căn nhà sau quán nước."))
 
 
-func on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
-	stall_inspected = true
-	if key_taken:
-		has_house_key = true
-		m.ui.set_objective("Dùng chìa khóa mở căn nhà sau quán nước.")
-	else:
-		m.ui.set_objective("Đọc đủ đồ trên quầy ký ức để hiểu chìa khóa nhà sau quán.")
+func _read_stall_clues() -> void:
+	# 5 manh mối cũ (trước là menu bắt buộc) — giờ là quan sát tùy chọn, không chặn đường
+	m.say([
+		["Minh (nghĩ)", "Ấm trà còn nóng — nước vẫn bốc khói, mà quán thì như đóng đã lâu."],
+		["Minh (nghĩ)", "Cuốn sổ nợ mở giữa chừng: 'Nợ trà — người gánh đèn, chưa ghi tên.'"],
+		["Minh (nghĩ)", "Bát nhang nguội. Ba ngày không ai cắm. Tro thì vẫn còn ấm."],
+		["Minh (nghĩ)", "Một xấp giấy hoa đăng: 'Nếu không nhớ tên, thả đèn thay lời gọi.'"],
+		["Minh (nghĩ)", "Trên cột — ngấn lũ cao quá đầu người. Lạ, chưa ai trong phố nhắc tới trận lũ ấy."],
+	])
 
 
 func _try_unlock_house() -> void:
 	if house_unlocked:
 		entered_locked_house = true
-		m.ui.set_objective("Tìm ba mảnh giấy dó trong nhà để phục dựng Chim Lạc.")
+		m.ui.set_objective("Tìm bức Chim Lạc bị xé trong nhà để phục dựng.")
 		return
 	if not has_house_key:
 		m.say([
@@ -297,25 +287,25 @@ func _try_unlock_house() -> void:
 	m.say([
 		["Minh (nghĩ)", "Chìa xoay đúng một nửa vòng rồi tự kéo tay tôi vào trong."],
 		["Minh (nghĩ)", "Phòng trước, sân trong, bàn thờ. Và một miệng giếng khô nằm ở chỗ đáng lẽ phải là nền nhà."],
-	], func(): m.ui.set_objective("Tìm ba mảnh giấy dó trong căn nhà. Con mèo đã đi trước."))
+	], func(): m.ui.set_objective("Tìm bức Chim Lạc bị xé trong căn nhà. Con mèo đã đi trước."))
 
 
-func _collect_stencil_part(id: String) -> void:
+func _collect_stencil() -> void:
 	if not house_unlocked:
-		m.say([["Minh (nghĩ)", "Mảnh giấy nằm bên trong nhà. Tôi cần mở cửa trước đã."]])
+		m.say([["Minh (nghĩ)", "Bức giấy nằm bên trong nhà. Tôi cần mở cửa trước đã."]])
 		return
-	if stencil_parts_collected.has(id):
+	if stencil_parts_collected.has("stencil"):
 		return
-	stencil_parts_collected[id] = true
-	puzzle.collect_and_place_part(id)
-	if _part_markers.has(id) and _part_markers[id] != null:
-		_part_markers[id].visible = false
-	var names := {"head": "đầu chim", "wing_body": "thân và cánh", "tail_leg": "đuôi và chân"}
-	m.ui.toast("Đã đặt mảnh %s vào khung đèn" % names.get(id, id))
-	if puzzle.has_all_parts():
-		m.ui.set_objective("Ba mảnh đã vào khung. Xoay 3 lớp bóng cho Chim Lạc rõ hình.")
-	else:
-		m.ui.set_objective("Tìm đủ ba mảnh giấy dó trong nhà khóa.")
+	stencil_parts_collected["stencil"] = true
+	# ghép bức lên khung và khít ngay — không cần xoay
+	for id in ["head", "wing_body", "tail_leg"]:
+		puzzle.collect_and_place_part(id)
+		puzzle.set_part_angle(id, 0.0)
+	if _part_markers.has("stencil") and _part_markers["stencil"] != null:
+		_part_markers["stencil"].visible = false
+	m.say([
+		["Minh (nghĩ)", "Tôi ghép bức Chim Lạc bị xé lên khung đèn. Các nếp giấy khít lại — con chim hiện rõ hình."],
+	], func(): puzzle.complete_if_ready())
 
 
 func _altar_clue() -> void:
@@ -326,17 +316,6 @@ func _altar_clue() -> void:
 		["Minh (nghĩ)", "Trên bàn thờ không có ảnh. Chỉ có một ô trống hình đèn lồng."],
 		["Minh (nghĩ)", "Dưới chân bàn, dòng chữ khắc vội: 'Đừng để người giữ đèn tự nhớ một mình.'"],
 	])
-
-
-func _enter_puzzle() -> void:
-	if not house_unlocked:
-		m.say([["Minh (nghĩ)", "Khung đèn nằm trong nhà sau quán. Cửa vẫn khóa."]])
-		return
-	if not puzzle.has_all_parts():
-		m.say([["Minh (nghĩ)", "Khung đèn còn khuyết. Cần đủ ba mảnh: đầu, thân/cánh, đuôi/chân."]])
-		return
-	if not puzzle.solved:
-		m.enter_puzzle(puzzle, "1/2/3 — chọn lớp giấy dó · A/D — xoay cho ba lớp Chim Lạc khớp hình mờ")
 
 
 func _on_puzzle_solved() -> void:
@@ -360,9 +339,8 @@ func _take_hoa() -> void:
 	m.ui.update_colors()
 	m._save_checkpoint()
 	m.say([
-		["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."],
-		["Bà Hàng Nước", "...Mà cậu nhỏ. Lúc nãy cậu gọi bà là gì nhỉ? Bà... không nhớ tên mình từ lúc nào rồi."],
-		["Minh (nghĩ)", "Tôi cũng không nhớ. Cả phố gọi bà là 'bà hàng nước'. Hình như... chưa ai từng gọi bằng tên."],
+		["Bà Hàng Nước", "Đem lửa của bà đi. Mà... bà không nhớ tên mình từ lúc nào rồi."],
+		["Minh (nghĩ)", "Cả phố gọi bà là 'bà hàng nước'. Chưa ai từng gọi bằng tên."],
 	], func(): m.ui.set_objective("SẮC HỎA (phím 1): mở ấn cửa hầm / giếng khô trong nhà."))
 
 
@@ -389,9 +367,7 @@ func _try_burn() -> void:
 	m.world.blackout_beat()
 	m._save_checkpoint()
 	m.say([
-		["Minh (nghĩ)", "Tơ trên cửa hầm cháy không khói. Cháy như giấy bị xóa khỏi trí nhớ."],
-		["Trạm Bốn", "Đường xuống đã mở. Đừng nhìn lên nếu nghe tiếng nước phía trên đầu."],
-		["Minh (nghĩ)", "Miệng giếng khô thở ra mùi đất ướt. Dưới đó có tiếng trẻ con đếm nhịp."],
+		["Minh (nghĩ)", "Tơ cửa hầm cháy không khói. Miệng giếng khô thở ra mùi đất ướt — dưới đó có tiếng trẻ con đếm nhịp."],
 	], func(): m.ui.set_objective("Đi xuống giếng khô trong nhà để sang Giếng Đôi."))
 
 

@@ -123,12 +123,12 @@ func build(main) -> void:
 	var tablet = Build.box(bridge, Vector3(0.25, 0.4, 0.04), Vector3(0, 2.1, -1.8), Build.mat(Color(0.18, 0.14, 0.1)))
 	tablet.rotation.x = -0.15
 
-	# 3 điểm chứng cứ (m.add_interact)
-	m.add_interact(C + Vector3(3.0, 0, -5.0), 2.0, "Soi bóng dưới mặt nước đen", Callable(self, "_verify_water"), false)
-	m.add_interact(C + Vector3(0, 0, -6.5), 2.5, "Kiểm tra bài vị tại miếu", Callable(self, "_verify_altar"), false)
-	m.add_interact(C + Vector3(-4.5, 0, -6.5), 2.0, "Neo cây đèn xuống vết nứt", Callable(self, "_verify_ground"), false)
-	# Lối tin-giọng-nói: đặt đèn xuống sớm (thiếu chứng cứ) → ending loop/costly
-	m.add_interact(C + Vector3(0, 0, 5.0), 2.2, "Nghe radio — đặt đèn xuống, kết thúc đêm nay", Callable(self, "_place_lantern"), false)
+	# 3 điểm chứng cứ — prompt nói rõ luôn cần Sắc nào
+	m.add_interact(C + Vector3(3.0, 0, -5.0), 2.0, "Soi mặt nước — đổi Sắc THỦY (2) rồi E", Callable(self, "_verify_water"), false)
+	m.add_interact(C + Vector3(0, 0, -6.5), 2.5, "Đốt tro bài vị — đổi Sắc HỎA (1) rồi E", Callable(self, "_verify_altar"), false)
+	m.add_interact(C + Vector3(-4.5, 0, -6.5), 2.0, "Neo đèn xuống vết nứt — đổi Sắc THỔ (5) rồi E", Callable(self, "_verify_ground"), false)
+	# Bẫy "vội vàng": đặt đèn xuống khi CHƯA đủ chứng cứ → kết thúc dở dang (đừng bấm nếu chưa xong 3 điểm)
+	m.add_interact(C + Vector3(0, 0, 5.0), 2.2, "[Bỏ dở] Đặt đèn xuống, kết thúc sớm khi chưa đủ chứng cứ", Callable(self, "_place_lantern"), false)
 
 
 func enter_beat() -> void:
@@ -137,18 +137,16 @@ func enter_beat() -> void:
 	m.checkpoint = C + Vector3(0, 0, 6.5)
 	m.ui.set_objective("Chùa Cầu — nơi mọi con đường của phố gặp nhau")
 	m.say([
-		["Minh (nghĩ)", "Chùa Cầu... treo giữa hư không. Quanh nó, từng mảnh phố trôi như đảo vỡ sau cơn lụt."],
-		["Giọng vọng lên từ gầm cầu", "Người giữ đèn. Lại là ngươi."],
-		["Giọng vọng lên từ gầm cầu", "Ngươi chắc chứ — rằng đêm nay khác những đêm trước?"],
-		["Minh (nghĩ)", "Có rất nhiều giọng nói đang hòa vào nhau: bà hàng nước, đứa trẻ, người chèo đò... Tôi không thể tin bất cứ giọng nào nữa."],
-		["Minh (nghĩ)", "Có ba điểm trên cây cầu này khiến tôi gai người. Tự soi bằng Đèn Ngũ Hành — rồi hẵng kết luận."],
-	], func(): m.ui.set_objective("Thu thập 3 chứng cứ trên cầu bằng Sắc phù hợp: vũng nước, bài vị, vết nứt."))
+		["Giọng vọng lên từ gầm cầu", "Người giữ đèn. Lại là ngươi. Ngươi chắc chứ — rằng đêm nay khác những đêm trước?"],
+		["Minh (nghĩ)", "Nhiều giọng hòa vào nhau: bà hàng nước, đứa trẻ, người chèo đò... Tôi không tin giọng nào nữa."],
+		["Minh (nghĩ)", "Ba điểm trên cầu khiến tôi gai người. Tự soi bằng Đèn Ngũ Hành — rồi hẵng kết luận."],
+	], func(): m.ui.set_objective("Soi 3 điểm bằng ĐÚNG Sắc: mặt nước=THỦY(2), bài vị=HỎA(1), vết nứt=THỔ(5). Đổi màu rồi bấm E."))
 
 
 func _verify_water() -> void:
 	if _water_done: return
 	if m.player.current_color != "thuy":
-		m.ui.toast("Mặt nước phản chiếu ánh lửa mờ mịt. Cần một Sắc có thể soi rõ bản chất của nước.")
+		m.ui.toast("Chưa đúng Sắc. Đổi sang THỦY (phím 2) rồi bấm E để soi mặt nước.")
 		return
 	_water_done = true
 	m.say([
@@ -164,7 +162,7 @@ func _verify_water() -> void:
 func _verify_altar() -> void:
 	if _altar_done: return
 	if m.player.current_color != "hoa":
-		m.ui.toast("Bài vị trống trơn, lạnh lẽo. Cần một Sắc có thể làm cháy lớp tro bụi che mờ sự thật.")
+		m.ui.toast("Chưa đúng Sắc. Đổi sang HỎA (phím 1) rồi bấm E để đốt tro che bài vị.")
 		return
 	_altar_done = true
 	m.say([
@@ -180,7 +178,7 @@ func _verify_altar() -> void:
 func _verify_ground() -> void:
 	if _ground_done: return
 	if m.player.current_color != "tho":
-		m.ui.toast("Mặt đất cứng như đá lạnh. Cần một Sắc có thể neo giữ lại những gì sắp trôi đi.")
+		m.ui.toast("Chưa đúng Sắc. Đổi sang THỔ (phím 5) rồi bấm E để neo cây đèn xuống đất.")
 		return
 	_ground_done = true
 	m.say([
@@ -207,8 +205,7 @@ func _check_ending() -> void:
 	if _water_done and _altar_done and _ground_done:
 		m.say([
 			["Minh (nghĩ)", "Nước không nhận bóng tôi. Bài vị ghi 'người kể chuyện'. Đất giữ được chân đèn."],
-			["Minh (nghĩ)", "Ba điều ấy chỉ khớp với một người. Không phải tôi đi tìm ký ức cho phố — tôi là ký ức phố không thể quên."],
-			["Minh (nghĩ)", "...Mọi âm thanh xung quanh bỗng im bặt. Khoảng không cuối cùng cũng chịu im lặng."],
+			["Minh (nghĩ)", "Ba điều ấy chỉ khớp một người. Không phải tôi đi tìm ký ức cho phố — tôi LÀ ký ức phố không quên được."],
 			["Minh", "Vậy thì tôi đặt đèn xuống đây."],
 		], func():
 			_show_statue_and_end()
