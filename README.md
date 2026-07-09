@@ -1,13 +1,15 @@
 # Họa Hồn Đèn Lồng (Soul Painter) — Godot 4.5
 
-Game phiêu lưu giải đố cốt truyện (~60 phút) bối cảnh phố cổ Hội An trong đêm bị
-bóng tối nuốt ký ức. Kinh dị tâm linh nhẹ, logic giấc mơ. Toàn bộ scene dựng bằng
-GDScript thuần — texture sinh procedural, không asset ngoài.
+Game phiêu lưu kể chuyện, tương tác nhẹ (~15-25 phút) bối cảnh phố cổ Hội An trong
+đêm bị bóng tối nuốt ký ức. Kinh dị tâm linh nhẹ, logic giấc mơ. Chủ yếu đi khám phá
+và cảm nhận không khí. Toàn bộ scene dựng bằng GDScript thuần — texture sinh
+procedural, không asset ngoài.
 
-**Kịch bản sản xuất:** [docs/SCRIPT-v3.md](docs/SCRIPT-v3.md) — 5 chương, nghi lễ,
-dramatic irony và các kết. Kế hoạch nâng cấp end-to-end nằm tại
-[docs/PRODUCTION-PLAN-V3.md](docs/PRODUCTION-PLAN-V3.md); pipeline ảnh thực/3D tại
-[docs/REAL-ASSET-PIPELINE.md](docs/REAL-ASSET-PIPELINE.md).
+**Cách chơi cốt lõi:** đi khám phá → tìm vật → đổi đúng màu đèn Ngũ Hành (phím 1-5)
+→ bấm E.
+
+**Mô tả gameplay:** [docs/GAME-PLAY.md](docs/GAME-PLAY.md) — lối chơi, điều khiển,
+5 chương, Ngũ Hành, các kết.
 
 ## Chạy game
 
@@ -21,20 +23,24 @@ dramatic irony và các kết. Kế hoạch nâng cấp end-to-end nằm tại
 
 | Phím | Hành động |
 |------|-----------|
-| W A S D | Di chuyển |
-| Shift | Đi giật lùi (có lúc phải đi như người-ở-đây đi...) |
+| W A S D · chuột | Di chuyển · nhìn quanh |
 | E / Space | Tương tác · tua thoại |
 | 1-5 | Đổi màu đèn Ngũ Hành (Hỏa·Thủy·Mộc·Kim·Thổ — mở khóa dần) |
-| A / D | Xoay đèn lồng / gương khi đứng gần |
+| V | Đổi góc nhìn camera |
+| M | Bản đồ |
 | R | Chơi lại (sau khi kết thúc) |
 
-## 5 chương — 6 loại câu đố
+## 5 chương — mỗi Sắc một công dụng rõ
 
-1. **Ngõ Không Tên** — bà hàng nước không mặt · đố bóng Chim Lạc · Sắc Hỏa đốt rào tơ nhện
-2. **Giếng Đôi** — sân lặp như giấc mơ · đứa trẻ không bóng · Sắc Thủy hiện đường đá ẩn · thoát bằng đi lùi
-3. **Nhà Ký Ức** — nhà trong to hơn ngoài · Hồn Ma Phai Nhạt (khắc bằng Hỏa) · Sắc Mộc mọc thang dây leo · đố bóng Hoa Sen · ảnh thờ
-4. **Bến Sông Ngược** — trăng dưới đáy sông · gương đồng dẫn tia trăng (Kim) · đầm bùn cứng hóa (Thổ) · người chèo đò đòi một ký ức (lựa chọn)
-5. **Chùa Cầu Treo Giữa Không** — 3 chứng cứ vật lý bằng Sắc phù hợp · reveal (Minh là ai) · ending + credits
+Lối chơi mọi chương giống nhau: **đi khám phá → tìm vật → đổi đúng màu đèn → bấm E.**
+
+1. **Ngõ Không Tên** (Hỏa) — rót trà mời bà hàng nước để nhận chìa · ghép bức Chim Lạc bị xé · **Sắc Hỏa (1)** đốt rào tơ nhện, xuống hầm
+2. **Giếng Đôi** (Thủy) — đứa trẻ không bóng · soi giếng bắt radio nói dối · nhận **Sắc Thủy (2)** + đóa sen · thả sen trả lễ để mở cổng
+3. **Nhà Ký Ức** (Mộc) — nhà trong to hơn ngoài · **Sắc Mộc (3)** mọc thang dây leo lên gác · đứng đúng chỗ cho bóng ghép thành hình → ảnh thờ lật
+4. **Bến Sông Ngược** (Kim · Thổ) — thắp 2 chuông, nghe người chèo đò giải oan · đắp mộ gió: **Sắc Thổ (5)** đắp đất, **Sắc Kim (4)** khắc tên · trả một ký ức để qua sông (lựa chọn)
+5. **Chùa Cầu Treo Giữa Không** — soi 3 chứng cứ bằng đúng Sắc (mặt nước = Thủy, bài vị = Hỏa, vết nứt = Thổ) · hé lộ Minh là ai · ending
+
+**Ngũ Hành — dùng ở đâu:** Hỏa = đốt · Thủy = nước/soi · Mộc = mọc/sống · Kim = khắc/kim loại · Thổ = đắp/neo đất.
 
 ## Kiến trúc & đồ họa
 
@@ -76,8 +82,8 @@ dramatic irony và các kết. Kế hoạch nâng cấp end-to-end nằm tại
 | `scripts/c1..c5.gd` | Nội dung + beat + câu đố từng chương |
 | `scripts/player.gd` | Minh + hệ màu Ngũ Hành + animation |
 | `scripts/dialogue_ui.gd` | Hộp thoại máy đánh chữ + lựa chọn + chế độ auto (test) |
-| `scripts/shadow_puzzle.gd` | Đố bóng tổng quát (Chim Lạc, Hoa Sen) |
-| `scripts/ghost.gd` | Hồn Ma Phai Nhạt (đèn âm nuốt sáng) |
+| `scripts/bird_stencil_puzzle.gd` | Khung đèn Chim Lạc (C1) |
+| `scripts/ghost.gd` | Hồn Ma Phai Nhạt — hiệu ứng không khí trong Nhà Ký Ức |
 | `scripts/build.gd` | Thư viện dựng hình: ngói âm dương, mắt cửa, đèn lồng, NPC không mặt |
 | `scripts/textures.gd` | Texture procedural: gạch, vữa, gỗ |
 | `scripts/gen3d.py` | Ảnh → mesh 3D qua HF Space Hunyuan3D-2 (miễn phí) |

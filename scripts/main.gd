@@ -69,6 +69,7 @@ var _interacts: Array = []
 var _say_then: Callable = Callable()
 var _memory_stall_owner = null
 var _memorial_tablet_owner = null
+var _pre_panel_mouse_mode := Input.MOUSE_MODE_VISIBLE
 var _dust: GPUParticles3D
 var _debug_dir := ""
 var _debug_shot_n := 0
@@ -325,12 +326,15 @@ func open_memory_stall(owner) -> void:
 	_memory_stall_owner = owner
 	state = State.DIALOGUE
 	ui.show_prompt("")
+	_pre_panel_mouse_mode = Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	memory_stall.open_panel()
 
 
 func _on_memory_stall_closed(inspected_ids: Array, key_taken: bool) -> void:
 	if state == State.DIALOGUE:
 		state = State.PLAY
+	Input.mouse_mode = _pre_panel_mouse_mode
 	if _memory_stall_owner != null and _memory_stall_owner.has_method("on_memory_stall_closed"):
 		_memory_stall_owner.on_memory_stall_closed(inspected_ids, key_taken)
 	_memory_stall_owner = null
@@ -341,12 +345,15 @@ func open_memorial_tablet(owner) -> void:
 	_memorial_tablet_owner = owner
 	state = State.DIALOGUE
 	ui.show_prompt("")
+	_pre_panel_mouse_mode = Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	memorial_tablet.open_panel()
 
 
 func _on_memorial_tablet_closed(attempted_name: String, attempts: int) -> void:
 	if state == State.DIALOGUE:
 		state = State.PLAY
+	Input.mouse_mode = _pre_panel_mouse_mode
 	if _memorial_tablet_owner != null and _memorial_tablet_owner.has_method("on_memorial_tablet_closed"):
 		_memorial_tablet_owner.on_memorial_tablet_closed(attempted_name, attempts)
 	_memorial_tablet_owner = null
