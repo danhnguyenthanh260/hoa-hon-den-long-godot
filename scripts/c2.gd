@@ -1,6 +1,5 @@
 # CHƯƠNG HAI — GIẾNG ĐÔI (Thủy)
-# Sân giếng lặp như giấc mơ: cổng cuối sân gập về điểm xuất phát. Đứa trẻ không bóng.
-# Sắc Thủy hiện đường đá ẩn trên vũng tối. Thoát bằng cách đi GIẬT LÙI qua cổng (Shift).
+# Một sân giếng kín, một cánh cổng có then thật. Người chơi tự lần ra lễ trả nước.
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
@@ -9,313 +8,328 @@ const ReflectionPool := preload("res://scripts/reflection_pool.gd")
 
 const Z0 := -20.6
 const Z1 := -43.6
-const POOL_Z0 := -33.0
-const POOL_Z1 := -37.5
+const LEFT_WELL_POS := Vector3(-3.25, 0, -28.0)
+const RIGHT_WELL_POS := Vector3(3.25, 0, -28.0)
+const CHILD_POS := Vector3(0.0, 0, -23.8)
+const GATE_POS := Vector3(0.0, 0, -42.65)
 
 var m
-var loops := 0
 var has_thuy := false
-# nhiệm vụ điều tra: 0 chưa biết gì → 1 hỏi bà hàng nước → 2 tìm sen giấy
-# → 3 có sen → 4 đã trả lễ, cổng mở
+var has_lotus := false
 var quest_stage := 0
-var _trail: Array = []
+var passed := false
+var _child_talked := false
+var _left_well_seen := false
+var _right_well_seen := false
+var _right_well_chosen := false
+var _gate_open := false
+var _time := 0.0
 var _child: Node3D
-var _plank: MeshInstance3D
-var _tiles: Array = []   # [mesh, Vector3]
 var _well_orb: Node3D
 var _lotus_node: Node3D
-var _well_reflection: ReflectionPool
 var _right_well_water: MeshInstance3D
-var _gate_cooldown := 0.0
-var _time := 0.0
-var passed := false
+var _well_reflection: ReflectionPool
+var _gate_doors: Node3D
+var _gate_leaves: Array = []
+var _gate_seal: Node3D
+var _child_interact: Dictionary
+var _right_well_interact: Dictionary
+var _gate_interact: Dictionary
+var _lotus_interact: Dictionary
 
 
 func build(main) -> void:
 	m = main
-	var plaster := Build.mat(Color(0.3, 0.26, 0.2), 0.95)
-	# tường bao sân
-	Build.box(self, Vector3(0.6, 4.0, Z0 - Z1 + 1.0), Vector3(-8.0, 2.0, (Z0 + Z1) / 2.0), plaster)
-	Build.box(self, Vector3(0.6, 4.0, Z0 - Z1 + 1.0), Vector3(8.0, 2.0, (Z0 + Z1) / 2.0), plaster)
+	var plaster := Build.mat(Color(0.28, 0.25, 0.23), 0.96)
+	var paving := Build.pbr("res://assets/textures/PavingStones138", 0.65, Color(0.42, 0.43, 0.46), 0.45)
+	Build.box(self, Vector3(16.0, 0.16, Z0 - Z1 + 1.0), Vector3(0, -0.08, (Z0 + Z1) * 0.5), paving)
+	Build.box(self, Vector3(0.6, 4.0, Z0 - Z1 + 1.0), Vector3(-8.0, 2.0, (Z0 + Z1) * 0.5), plaster)
+	Build.box(self, Vector3(0.6, 4.0, Z0 - Z1 + 1.0), Vector3(8.0, 2.0, (Z0 + Z1) * 0.5), plaster)
 	Build.box(self, Vector3(6.0, 4.0, 0.6), Vector3(-5.0, 2.0, Z1), plaster)
 	Build.box(self, Vector3(6.0, 4.0, 0.6), Vector3(5.0, 2.0, Z1), plaster)
 	Build.box(self, Vector3(4.2, 1.2, 0.6), Vector3(0, 4.3, Z1), plaster)
-	# cổng vòm cuối sân
-	for sx in [-1.9, 1.9]:
-		Build.cyl(self, 0.18, 0.22, 2.7, Vector3(sx, 1.35, Z1), Build.mat(Color(0.24, 0.22, 0.2)))
-	# ánh trăng lạnh rọi xuống sân
-	for lp in [Vector3(-2.2, 3.5, -27.0), Vector3(2.2, 3.5, -27.0), Vector3(0, 3.0, -35.0), Vector3(0, 3.0, -41.0)]:
-		var ml := OmniLight3D.new()
-		ml.light_color = Color(0.5, 0.75, 1.0)
-		ml.light_energy = 0.85
-		ml.omni_range = 8.0
-		ml.position = lp
-		add_child(ml)
-	# giếng đôi — giếng VUÔNG kiểu giếng cổ Bá Lễ (thành đá, khung gỗ đỡ kéo nước)
-	for sx in [-2.2, 2.2]:
-		var stone := Build.mat(Color(0.24, 0.24, 0.26), 0.95)
-		for rot in range(4):
-			var ang := rot * PI / 2.0
-			var rim := Build.box(self, Vector3(1.5, 0.6, 0.18), Vector3(sx, 0.3, -27.0) + Vector3(cos(ang), 0, sin(ang)) * 0.66, stone)
-			rim.rotation.y = -ang
-		var water := Build.box(self, Vector3(1.15, 0.02, 1.15), Vector3(sx, 0.5, -27.0), null)
-		var wmat := StandardMaterial3D.new()
-		wmat.albedo_color = Color(0.02, 0.06, 0.08)
-		wmat.metallic = 0.9
-		wmat.roughness = 0.06
-		water.material_override = wmat
-		if sx > 0:
-			_right_well_water = water
-		# khung gỗ + đòn ngang treo gàu
-		for px in [-0.8, 0.8]:
-			Build.cyl(self, 0.05, 0.06, 2.1, Vector3(sx + px, 1.05, -27.0), Build.mat(Color(0.16, 0.11, 0.07)), 8)
-		Build.cyl(self, 0.04, 0.04, 1.8, Vector3(sx, 2.05, -27.0), Build.mat(Color(0.16, 0.11, 0.07)), 8).rotation.z = PI / 2.0
-	_well_reflection = ReflectionPool.new()
-	add_child(_well_reflection)
-	_well_reflection.setup(m.camera, 0.5, Vector2i(384, 384), 8)
-	var refl_mat := StandardMaterial3D.new()
-	refl_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	refl_mat.albedo_texture = _well_reflection.texture()
-	refl_mat.emission_enabled = true
-	refl_mat.emission_texture = _well_reflection.texture()
-	refl_mat.emission_energy_multiplier = 0.9
-	_right_well_water.material_override = refl_mat
-	# ánh sáng dưới giếng phải — phố-còn-sáng-đèn lộn ngược
-	var glow := Build.cyl(self, 0.66, 0.66, 0.02, Vector3(2.2, 0.56, -27.0), Build.emis(Color(1, 0.7, 0.4), Color(1.0, 0.55, 0.2), 0.7))
-	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_build_ritual_gate(Build.pbr("res://assets/textures/WoodFloor043", 0.8, Color(0.19, 0.12, 0.07), 1.15))
+	_build_gate_backdrop()
 
-	# vũng tối giữa sân
-	var pool := Build.box(self, Vector3(15.0, 0.06, POOL_Z0 - POOL_Z1), Vector3(0, -0.06, (POOL_Z0 + POOL_Z1) / 2.0), null)
-	var pmat := StandardMaterial3D.new()
-	pmat.albedo_color = Color(0.004, 0.006, 0.012)
-	pmat.metallic = 0.85
-	pmat.roughness = 0.04
-	pool.material_override = pmat
-	# tấm ván cũ — sẽ biến mất
-	_plank = Build.box(self, Vector3(0.9, 0.08, POOL_Z0 - POOL_Z1 + 1.0), Vector3(-3.5, 0.02, (POOL_Z0 + POOL_Z1) / 2.0), Build.mat(Color(0.2, 0.15, 0.1), 0.95))
-	# phiến đá ẩn — chỉ hiện dưới ánh Thủy
-	var tile_pos := [Vector3(1.2, 0, -33.6), Vector3(0.1, 0, -34.5), Vector3(1.0, 0, -35.4), Vector3(-0.2, 0, -36.2), Vector3(0.8, 0, -37.0)]
-	for p in tile_pos:
-		var t := Build.cyl(self, 0.55, 0.6, 0.1, p + Vector3(0, 0.0, 0), null, 8)
-		var tm := StandardMaterial3D.new()
-		tm.albedo_color = Color(0.4, 0.7, 0.9, 0.0)
-		tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		tm.emission_enabled = true
-		tm.emission = Color(0.25, 0.55, 1.0)
-		tm.emission_energy_multiplier = 0.0
-		t.material_override = tm
-		_tiles.append([t, p])
+	for lp in [LEFT_WELL_POS + Vector3(0, 3.5, 0), RIGHT_WELL_POS + Vector3(0, 3.5, 0), Vector3(0, 3.0, -36.0)]:
+		var moon_light := OmniLight3D.new()
+		moon_light.light_color = Color(0.5, 0.75, 1.0)
+		moon_light.light_energy = 1.08
+		moon_light.omni_range = 8.0
+		moon_light.position = lp
+		add_child(moon_light)
+	_build_well(LEFT_WELL_POS, false)
+	_build_well(RIGHT_WELL_POS, true)
+	_build_child()
 
-	# đứa trẻ — xuất hiện sau vòng lặp đầu, KHÔNG đổ bóng
-	_child = Build.faceless_npc(self, Vector3(3.4, 0, -26.6), Color(0.5, 0.52, 0.55), 0.55, false)
+	_child_interact = m.add_interact(CHILD_POS, 1.15, "Đứa trẻ ngồi bên giếng", Callable(self, "_talk_child"), false)
+	m.add_interact(LEFT_WELL_POS, 1.10, "Nhìn xuống giếng trái", Callable(self, "_interact_left_well"), false)
+	_right_well_interact = m.add_interact(RIGHT_WELL_POS, 1.10, "Nhìn xuống giếng phải", Callable(self, "_interact_right_well"), false)
+	_gate_interact = m.add_interact(GATE_POS, 1.65, "Cổng gỗ khóa kín", Callable(self, "_try_gate"), false)
+
+	var walker := GhostWalker.new()
+	add_child(walker)
+	walker.speed = 0.42
+	walker.setup("res://assets/models/minh_rigged.glb", 1.65,
+		[Vector3(-5.8, 0, -24.4), Vector3(-5.8, 0, -31.6), Vector3(-1.6, 0, -31.6), Vector3(-1.6, 0, -24.4)])
+
+
+func _build_well(pos: Vector3, remembers: bool) -> void:
+	var stone := Build.mat(Color(0.24, 0.24, 0.26), 0.95)
+	for rot in range(4):
+		var ang := rot * PI / 2.0
+		var rim := Build.box(self, Vector3(1.5, 0.6, 0.18), pos + Vector3(cos(ang), 0.3, sin(ang)) * 0.66, stone)
+		rim.rotation.y = -ang
+	var water := Build.box(self, Vector3(1.15, 0.02, 1.15), pos + Vector3(0, 0.5, 0), null)
+	var water_mat := StandardMaterial3D.new()
+	water_mat.albedo_color = Color(0.02, 0.06, 0.08)
+	water_mat.metallic = 0.9
+	water_mat.roughness = 0.06
+	water.material_override = water_mat
+	for side in [-0.8, 0.8]:
+		Build.cyl(self, 0.05, 0.06, 2.1, pos + Vector3(side, 1.05, 0), Build.mat(Color(0.16, 0.11, 0.07)), 8)
+	Build.cyl(self, 0.04, 0.04, 1.8, pos + Vector3(0, 2.05, 0), Build.mat(Color(0.16, 0.11, 0.07)), 8).rotation.z = PI / 2.0
+	if remembers:
+		_right_well_water = water
+		_well_reflection = ReflectionPool.new()
+		add_child(_well_reflection)
+		_well_reflection.setup(m.camera, 0.5, Vector2i(384, 384), 8)
+		var reflection_mat := StandardMaterial3D.new()
+		reflection_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		reflection_mat.albedo_texture = _well_reflection.texture()
+		reflection_mat.emission_enabled = true
+		reflection_mat.emission_texture = _well_reflection.texture()
+		reflection_mat.emission_energy_multiplier = 0.92
+		_right_well_water.material_override = reflection_mat
+		var glow := Build.cyl(self, 0.66, 0.66, 0.02, pos + Vector3(0, 0.56, 0), Build.emis(Color(1, 0.7, 0.4), Color(1.0, 0.55, 0.2), 0.7))
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _build_child() -> void:
+	_child = Build.faceless_npc(self, CHILD_POS, Color(0.5, 0.52, 0.55), 0.55, false)
 	_child.rotation.y = -1.4
-	_child.visible = false
+	var child_light := OmniLight3D.new()
+	child_light.light_color = Color(0.48, 0.68, 1.0)
+	child_light.light_energy = 0.38
+	child_light.omni_range = 3.2
+	child_light.position = CHILD_POS + Vector3(0, 1.1, 0)
+	add_child(child_light)
 
-	m.add_interact(Vector3(3.4, 0, -26.6), 2.0, "Nói chuyện với đứa trẻ", Callable(self, "_talk_child"), false)
-	m.add_interact(Vector3(2.2, 0, -27.0), 1.7, "Nhìn xuống giếng", Callable(self, "_look_well"), false)
-	m.add_interact(Vector3(2.2, 0, -27.8), 1.6, "Thả đóa sen xuống giếng", Callable(self, "_offer_lotus"), false)
 
-	# hồn dân phố đã phai — đi mãi những vòng quen thuộc của ngày còn sống
-	var w1 := GhostWalker.new()
-	add_child(w1)
-	w1.setup("res://assets/models/minh_rigged.glb", 1.7,
-		[Vector3(-5.2, 0, -24.0), Vector3(-5.2, 0, -30.5), Vector3(-1.2, 0, -30.5), Vector3(-1.2, 0, -24.0)])
-	var w2 := GhostWalker.new()
-	add_child(w2)
-	w2.speed = 0.4
-	w2.setup("res://assets/models/minh_rigged.glb", 1.65,
-		[Vector3(6.0, 0, -23.5), Vector3(6.0, 0, -41.5)])
+func _build_gate_backdrop() -> void:
+	# Phía sau cổng có bờ phố và mái nhà mờ, không còn là một màn xanh rỗng.
+	var backdrop := Node3D.new()
+	backdrop.position = Vector3(0, 0, -47.2)
+	add_child(backdrop)
+	var house := Build.mat(Color(0.06, 0.08, 0.16), 0.95)
+	var roof := Build.mat(Color(0.13, 0.07, 0.05), 0.9)
+	for i in range(7):
+		var x := -6.2 + i * 2.05
+		var h := 1.5 + float((i * 2) % 3) * 0.55
+		Build.box(backdrop, Vector3(1.75, h, 0.62), Vector3(x, h * 0.5, 0), house)
+		var tile := Build.box(backdrop, Vector3(2.02, 0.18, 0.92), Vector3(x, h + 0.18, -0.04), roof)
+		tile.rotation.z = 0.10 if i % 2 == 0 else -0.10
+		if i % 2 == 0:
+			var lantern := Build.lantern(backdrop, 0.09, 0.16, Vector3(x, h * 0.58, -0.38))
+			Build.light_lantern(lantern, Color(1.0, 0.42, 0.14), 1.25)
+
+
+func _build_ritual_gate(wood: Material) -> void:
+	_gate_doors = Node3D.new()
+	_gate_doors.name = "C2_RitualGate"
+	_gate_doors.position = Vector3(0, 1.55, Z1 + 0.32)
+	add_child(_gate_doors)
+	var brace := Build.mat(Color(0.09, 0.055, 0.03), 0.82)
+	for side in [-1.0, 1.0]:
+		var leaf := Node3D.new()
+		leaf.position = Vector3(side * 1.68, 0, 0)
+		_gate_doors.add_child(leaf)
+		_gate_leaves.append(leaf)
+		var panel_offset := Vector3(-side * 0.825, 0, 0)
+		Build.box(leaf, Vector3(1.65, 3.0, 0.16), panel_offset, wood)
+		Build.box(leaf, Vector3(1.28, 0.09, 0.06), panel_offset + Vector3(0, 0.58, 0.12), brace).rotation.z = side * 0.56
+		Build.box(leaf, Vector3(1.28, 0.09, 0.06), panel_offset + Vector3(0, -0.58, 0.12), brace).rotation.z = -side * 0.56
+	_gate_seal = Node3D.new()
+	_gate_doors.add_child(_gate_seal)
+	var seal := Build.emis(Color(0.22, 0.48, 0.72), Color(0.28, 0.7, 1.0), 1.15)
+	Build.box(_gate_seal, Vector3(2.92, 0.08, 0.06), Vector3(0, 0.02, 0.18), seal)
+	for x in [-1.1, -0.55, 0.0, 0.55, 1.1]:
+		Build.ball(_gate_seal, 0.055, 0.08, Vector3(x, 0.02, 0.2), seal)
+
+
+func _open_ritual_gate() -> void:
+	if _gate_open:
+		return
+	_gate_open = true
+	_gate_interact["prompt"] = "Đi qua cổng đã mở"
+	var door_tween := create_tween().set_parallel(true)
+	for i in range(_gate_leaves.size()):
+		var direction := -1.0 if i == 0 else 1.0
+		door_tween.tween_property(_gate_leaves[i], "rotation:y", direction * PI * 0.58, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if _gate_seal != null:
+		var seal_tween := create_tween()
+		seal_tween.tween_property(_gate_seal, "scale", Vector3(1.0, 0.01, 0.01), 0.35)
+		seal_tween.tween_callback(_gate_seal.queue_free)
 
 
 func enter_beat() -> void:
 	m.world.set_zone("c2")
-	m.ui.set_objective("Băng qua sân giếng đôi")
 	m.checkpoint = Vector3(0, 0, -22.0)
-	m.say([
-		["Minh (nghĩ)", "Sân giếng đôi. Giờ thì... giờ nào cũng là sau giờ Dậu."],
-	], func(): m.remote_voice(
-		"c2_radio_bad_shortcut",
-		0.24,
-		[
-			"Cứ đi thẳng qua cổng cuối sân. Đừng mất thời gian với đứa trẻ bên giếng.",
-		],
-		Callable(),
-		5
-	))
+	m.ui.set_objective("")
+	m.say([["Minh (nghĩ)", "Hai giếng đứng đối diện nhau. Một đứa trẻ đã ngồi chờ ở giữa sân."]])
 
 
-var _child_talked := false
 func _talk_child() -> void:
-	if not _child.visible:
-		return
 	if not _child_talked:
 		_child_talked = true
+		quest_stage = 1
 		m.say([
-			["Đứa Trẻ Soi Giếng", "Em soi mãi mà không thấy mặt em đâu. Giếng này soi cái khác cơ. Anh thử đi — nhưng đừng soi lâu."],
-			["Minh (nghĩ)", "Đèn tôi chiếu thẳng vào nó... mà dưới chân nó không có bóng."],
-		], func(): m.ui.set_objective("Nhìn xuống giếng bên phải"))
+			["Đứa Trẻ Soi Giếng", "Giếng trái soi người đang đứng đây. Giếng phải nhớ người đã rời đi."],
+		], func(): m.ui.set_objective("Mặt nước ở hai giếng không giống nhau."))
+	elif _right_well_chosen and not has_thuy:
+		m.say([["Đứa Trẻ Soi Giếng", "Nước đã nhận ra anh. Lấy ánh nước đi."]])
+	elif has_thuy and not has_lotus:
+		m.say([["Đứa Trẻ Soi Giếng", "Em để một đóa sen giấy trên bậc giếng. Nước chỉ mở đường cho người biết trả lễ."]])
+	elif has_lotus:
+		m.say([["Đứa Trẻ Soi Giếng", "Đóa sen cần chạm đúng giếng biết nhớ."]])
 	else:
-		m.say([["Đứa Trẻ Soi Giếng", "Ở đây cái gì cũng ngược, anh ạ. Trăng dưới nước. Sông chảy lên. Muốn ra thì đi như người ở đây đi."]])
+		m.say([["Đứa Trẻ Soi Giếng", "Đừng vội. Nước không kể cùng một chuyện hai lần."]])
 
 
-var _looked := false
-func _look_well() -> void:
+func _interact_left_well() -> void:
 	if not _child_talked:
-		m.say([["Minh (nghĩ)", "Nước giếng đen như mực mài. Có ánh gì le lói rất sâu... để sau. Đi tiếp cái đã."]])
+		m.say([["Minh (nghĩ)", "Đứa trẻ nhìn mặt nước, như chờ tôi hỏi điều gì đó."]])
 		return
-	if _looked:
+	if _left_well_seen:
+		m.say([["Minh (nghĩ)", "Giếng trái vẫn chỉ soi sân, ngọn đèn và bóng tôi."]])
 		return
-	_looked = true
+	_left_well_seen = true
+	m.say([["Minh (nghĩ)", "Giếng trái trả lại đúng những gì đang ở đây: tường đá, ngọn đèn, bóng tôi run trên nước."]], Callable(self, "_after_well_seen"))
+
+
+func _interact_right_well() -> void:
+	if has_lotus:
+		_offer_lotus()
+		return
+	if not _child_talked:
+		m.say([["Minh (nghĩ)", "Nước đen như mực. Tôi nên nghe đứa trẻ trước."]])
+		return
+	if _right_well_chosen:
+		m.say([["Minh (nghĩ)", "Dưới mặt nước, phố vẫn sáng lộn ngược."]])
+		return
+	if not _right_well_seen:
+		_right_well_seen = true
+		m.narrative.record_contradiction("c2_well_vs_radio_shortcut", "Giếng phải không phản chiếu Minh mà giữ hình ảnh phố Hội còn sáng đèn, lộn ngược dưới đáy nước.")
+		m.say([
+			["Minh (nghĩ)", "Chỗ lẽ ra là mặt tôi lại là một con phố còn sáng đèn, lộn ngược dưới đáy nước."],
+			["Đứa Trẻ Soi Giếng", "Giếng này không soi. Nó nhớ."],
+		], Callable(self, "_after_well_seen"))
+		return
+	_choose_remembering_well()
+
+
+func _after_well_seen() -> void:
+	if _left_well_seen and _right_well_seen and not _right_well_chosen:
+		_right_well_interact["prompt"] = "Chạm lại giếng biết nhớ"
+		m.ui.set_objective("Một giếng soi. Một giếng nhớ.")
+
+
+func _choose_remembering_well() -> void:
+	_right_well_chosen = true
+	quest_stage = 2
 	m.say([
-		["Minh (nghĩ)", "Chỗ lẽ ra là mặt tôi lại mở ra PHỐ — còn sáng đèn, nguyên vẹn, đông người... lộn ngược."],
-		["Đứa Trẻ Soi Giếng", "Nước ở đây nhớ dai lắm. Lấy một ít về đi."],
-	], func(): m.remote_voice(
-		"c2_well_contradiction",
-		0.36,
-		[
-			"Rời giếng đi. Cái dưới nước chỉ nhại lại ký ức của cậu thôi.",
-			["Minh (nghĩ)", "Không. Nó chậm hơn tôi — chỗ đáng lẽ là mặt tôi lại là một con phố nguyên vẹn. Nó không nhại."],
-		],
-		Callable(self, "_confirm_well_contradiction"),
-		-12,
-		"well_reflection",
-		"Well reflection lags behind the player and shows the intact inverted town instead of Minh's face."
-	))
-
-
-func _confirm_well_contradiction() -> void:
-	m.narrative.record_contradiction(
-		"c2_well_vs_radio_shortcut",
-		"Trạm Bốn bảo bỏ qua giếng vì nó 'chỉ nhại ký ức', nhưng giếng cho thấy phố nguyên vẹn lộn ngược — chi tiết mà radio không thể biết nếu nó chỉ đang nhại lại trí nhớ của Minh."
-	)
-	_spawn_thuy()
+		["Minh (nghĩ)", "Tôi đặt tay lên thành giếng phải. Nước không trả lại mặt tôi, chỉ trả lại một thành phố chưa kịp quên."],
+	], Callable(self, "_spawn_thuy"))
 
 
 func _spawn_thuy() -> void:
-	_well_orb = Build.color_orb(self, Vector3(2.2, 1.3, -27.0), Color(0.25, 0.55, 1.0))
-	m.add_interact(Vector3(2.2, 0, -27.2), 1.8, "Nhận SẮC THỦY", Callable(self, "_take_thuy"), true)
+	if _well_orb != null:
+		return
+	_well_orb = Build.color_orb(self, RIGHT_WELL_POS + Vector3(0, 1.1, -1.35), Color(0.25, 0.55, 1.0))
+	m.add_interact(RIGHT_WELL_POS + Vector3(0, 0, -1.35), 0.82, "Nhận SẮC THỦY", Callable(self, "_take_thuy"), true)
+	_right_well_interact["prompt"] = "Giếng phải đang phát sáng"
 
 
 func _take_thuy() -> void:
+	if _well_orb == null:
+		return
 	_well_orb.queue_free()
+	_well_orb = null
+	has_thuy = true
+	quest_stage = 3
 	m.player.unlock_color("thuy")
 	m.ui.update_colors()
-	has_thuy = true
-	quest_stage = 3   # nhận luôn đóa sen — bỏ bước nhặt riêng cho gọn
-	m.ui.toast("Nhận: ĐÓA SEN GIẤY")
+	_spawn_lotus()
 	m.say([
-		["Minh (nghĩ)", "Lạnh. Như cầm một vốc đáy sông trong lòng bàn tay."],
-		["Đứa Trẻ Soi Giếng", "Cổng chỉ mở cho người TRẢ LỄ. Cầm lấy đóa sen giấy này — thả xuống giếng cho nước biết anh không lấy không của đất."],
-	], func(): m.ui.set_objective("Thả đóa sen xuống giếng phải — trả lễ cho nước (tới giếng, bấm E)"))
+		["Minh (nghĩ)", "Sắc nước lạnh nằm yên trong đèn. Trên bậc giếng, đứa trẻ đặt xuống một đóa sen giấy."],
+	], func(): m.ui.set_objective("Một đóa sen giấy đang chờ bên đứa trẻ."))
 
 
-# bà hàng nước kể sự tích giếng — gọi từ c1 khi quest_stage == 1
-func ba_lore() -> void:
-	quest_stage = 2
-	m.say([
-		["Bà Hàng Nước", "Cái cổng sau sân giếng hả... Cậu nhỏ hỏi đúng người rồi đấy."],
-		["Bà Hàng Nước", "Giếng đó người Chăm đào, trước cả phố này. Nước ngọt quanh năm — nhưng xưa nay XIN NƯỚC PHẢI TRẢ LỄ. Một đóa sen giấy thả xuống lòng giếng, để nước biết mình không lấy không của đất."],
-		["Bà Hàng Nước", "Hai mươi năm nay không ai trả lễ nữa. Nên cái sân ấy... nó giận. Nó gập đường lại, không cho ai đi qua mà tay không."],
-		["Minh", "Sen giấy... giờ tìm đâu ra?"],
-		["Bà Hàng Nước", "Gánh hoa đăng nhà con Tư còn bỏ ngoài phố kìa. Nó đi rồi, nhưng sen thì còn. Lấy một đóa — nó không trách đâu. Người bán hoa đăng chưa bao giờ trách người cần ánh sáng."],
-	], func(): m.ui.set_objective("Lấy một đóa sen giấy ở gánh hoa đăng trên phố"))
-
-
-func take_lotus() -> void:
-	if quest_stage >= 3:
-		return
-	quest_stage = 3
+func _spawn_lotus() -> void:
 	if _lotus_node != null:
-		_lotus_node.queue_free()
-		_lotus_node = null
-	m.ui.toast("Nhận: ĐÓA SEN GIẤY")
-	m.say([
-		["Minh (nghĩ)", "Một đóa sen giấy hồng, nếp gấp vẫn sắc. Người gấp nó có đôi tay rất khéo."],
-	], func(): m.ui.set_objective("Thả đóa sen xuống giếng phải — trả lễ cho nước"))
-
-
-func _gate_loop_beat() -> void:
-	loops += 1
-	m.flash_black()
-	m.player.position = Vector3(0, 0, -22.0)
-	if loops == 1:
-		_child.visible = true
-		m.say([["Minh (nghĩ)", "Tôi vừa đi thẳng qua cổng — sao lại quay về chỗ cũ? Có ai đó ở bên giếng."]])
-	elif loops == 2:
-		_plank.visible = false
-		m.say([["Minh (nghĩ)", "Lại quay về. Tấm ván bắc qua vũng nước — lúc nãy nó CÒN Ở ĐÓ mà."]])
-	else:
-		m.say([["Minh (nghĩ)", "Lại quay về. Cái cổng này muốn một thứ gì đó... mà tôi chưa có."]])
-
-
-# trả lễ: sen chạm nước — vệt sáng xanh chảy từ giếng ra cổng, dẫn đường qua vũng tối
-func _offer_lotus() -> void:
-	if quest_stage < 3:
-		if quest_stage >= 1:
-			m.say([["Minh (nghĩ)", "Giếng chờ một lễ vật. Tay tôi đang trống không."]])
 		return
-	if quest_stage >= 4:
+	_lotus_node = Node3D.new()
+	_lotus_node.position = CHILD_POS + Vector3(1.35, 0.22, 0.12)
+	add_child(_lotus_node)
+	Build.cyl(_lotus_node, 0.075, 0.09, 0.06, Vector3.ZERO, Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.6, 0.25), 2.3), 8)
+	for petal in range(6):
+		var ang := TAU * petal / 6.0
+		Build.ball(_lotus_node, 0.055, 0.045, Vector3(cos(ang) * 0.1, 0.02, sin(ang) * 0.1), Build.mat(Color(0.85, 0.4, 0.5), 0.7))
+	_lotus_interact = m.add_interact(CHILD_POS + Vector3(1.35, 0, 0.12), 0.75, "Nhận đóa sen giấy", Callable(self, "_take_lotus"), true)
+
+
+func _take_lotus() -> void:
+	if _lotus_node == null:
+		return
+	_lotus_node.queue_free()
+	_lotus_node = null
+	has_lotus = true
+	_right_well_interact["prompt"] = "Thả đóa sen xuống giếng phải"
+	m.ui.toast("Nhận: ĐÓA SEN GIẤY")
+	m.say([["Đứa Trẻ Soi Giếng", "Nước nhớ đường về. Trả đóa sen cho nó trước khi đi."]], func(): m.ui.set_objective("Giếng phải đang chờ lễ trả."))
+
+
+func _offer_lotus() -> void:
+	if not has_lotus:
+		m.say([["Minh (nghĩ)", "Giếng này chờ một lễ vật."]])
+		return
+	if m.player.current_color != "thuy":
+		m.say([["Minh (nghĩ)", "Nước trong đèn phải sáng trước khi sen chạm mặt giếng. (Sắc Thủy - phím 2)"]])
+		return
+	if _gate_open:
 		return
 	quest_stage = 4
+	_right_well_interact["used"] = true
 	m.ui.play_chime()
-	# đóa sen nổi trên mặt giếng
+	_open_ritual_gate()
 	var lotus := Node3D.new()
-	lotus.position = Vector3(2.2, 0.56, -27.0)
+	lotus.position = RIGHT_WELL_POS + Vector3(0, 0.56, 0)
 	add_child(lotus)
 	Build.cyl(lotus, 0.07, 0.09, 0.06, Vector3.ZERO, Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.6, 0.25), 2.5), 8)
-	for pk in range(6):
-		var ang := TAU * pk / 6.0
-		Build.ball(lotus, 0.06, 0.05, Vector3(cos(ang) * 0.1, 0.01, sin(ang) * 0.1), Build.mat(Color(0.85, 0.4, 0.5), 0.7))
-	# vệt nước dẫn đường: giếng → phiến đá ẩn → cổng
-	var path_pts := [Vector3(2.2, 0.04, -28.5), Vector3(1.6, 0.04, -31.0), Vector3(1.2, 0.04, -33.6),
-		Vector3(0.1, 0.04, -34.5), Vector3(1.0, 0.04, -35.4), Vector3(-0.2, 0.04, -36.2),
-		Vector3(0.8, 0.04, -37.0), Vector3(0.4, 0.04, -39.5), Vector3(0.0, 0.04, -42.0)]
-	for pp in path_pts:
-		var dot := Build.cyl(self, 0.16, 0.2, 0.025, pp, Build.emis(Color(0.5, 0.8, 1.0), Color(0.3, 0.65, 1.0), 2.0), 10)
-		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_trail.append(dot)
 	m.say([
-		["Minh (nghĩ)", "Đóa sen chạm nước — lòng giếng sáng lên, một vệt nước chảy NGƯỢC dốc vẽ đường thẳng ra cổng."],
-		["Đứa Trẻ Soi Giếng", "Đi theo nó. Giữ ánh nước trên đèn — đường trên vũng tối chỉ chịu chân người mang Thủy."],
-	], func(): m.ui.set_objective("Theo vệt nước ra cổng (giữ Sắc Thủy — phím 2 — khi qua vũng tối)"))
+		["Minh (nghĩ)", "Đóa sen chạm nước. Then cửa phía cuối sân bật một tiếng khô, rồi hai cánh gỗ mở ra."],
+	], func(): m.ui.set_objective("Cổng cuối sân đã mở."))
+
+
+func _try_gate() -> void:
+	if _gate_open:
+		if passed:
+			return
+		passed = true
+		m.goto_chapter(3)
+		return
+	m.say([["Minh (nghĩ)", "Then cửa không nhúc nhích. Nước lạnh khóa kín khe gỗ."]])
 
 
 func update(delta: float) -> void:
+	_time += delta
 	if _well_reflection != null:
 		_well_reflection.update(delta)
-	_time += delta
-	_gate_cooldown = maxf(0.0, _gate_cooldown - delta)
-	# phiến đá ẩn hiện dần dưới ánh Thủy
-	var show: bool = m.player.current_color == "thuy"
-	for pair in _tiles:
-		var mt: StandardMaterial3D = pair[0].material_override
-		var target := 0.55 if show else 0.0
-		mt.albedo_color.a = lerpf(mt.albedo_color.a, target, 1.0 - pow(0.01, delta))
-		mt.emission_energy_multiplier = lerpf(mt.emission_energy_multiplier, 1.4 if show else 0.0, 1.0 - pow(0.01, delta))
-	var p: Vector3 = m.player.position
-	# cổng vòm: chưa trả lễ thì gập đường về chỗ cũ; trả lễ rồi thì mở
-	if p.z < Z1 + 0.9 and _gate_cooldown <= 0.0 and not passed:
-		if quest_stage >= 4:
-			passed = true
-			m.say([
-				["Minh (nghĩ)", "Con đường sau cổng THẲNG ra — như tờ giấy gập được vuốt phẳng. Xin thì phải trả; chỉ có người là quên phép tắc."],
-			], func(): m.goto_chapter(3))
-		else:
-			_gate_cooldown = 1.0
-			_gate_loop_beat()
-	# đứa trẻ lắc lư rất chậm — hơi sai nhịp người thật
-	if _child.visible:
-		_child.rotation.z = sin(_time * 0.7) * 0.06
+	if _child != null:
+		_child.rotation.z = sin(_time * 0.7) * 0.045
 
 
 func clamp_player(pos: Vector3) -> Vector3:
-	# nhiệm vụ "hỏi bà hàng nước" + "lấy sen ở gánh hoa đăng" đòi đi bộ thật ngược lên
-	# khu C1 (Bà ở z=-5.5, gánh hoa đăng ở z=12.8) — ngoài dải sân giếng của C2.
-	# Ra khỏi miệng sân thì dùng lại clamp phố của C1 cho đoạn đường quay lại đó.
-	if pos.z > Z0 + 0.4:
-		# dùng nguyên clamp của C1 (không chỉ world.clamp_alley) để còn quay lại
-		# ĐƯỢC vào trong nhà khóa qua cửa trước — chỗ có giếng khô xuống lại C2.
-		return m.chapters[1].clamp_player(pos)
 	pos.x = clampf(pos.x, -7.4, 7.4)
-	pos.z = clampf(pos.z, Z1 + 0.3, Z0 + 0.4)
+	pos.z = clampf(pos.z, Z1 + 0.35, Z0 + 0.4)
 	return pos

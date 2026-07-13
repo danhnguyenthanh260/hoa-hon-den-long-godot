@@ -152,6 +152,14 @@ func _finish() -> void:
 	finished.emit()
 
 
+func skip_current() -> void:
+	# Giữ Space chỉ bỏ phần thoại đang phát; lựa chọn và state gameplay vẫn cần người chơi quyết.
+	if not active or _waiting_choice:
+		return
+	_index = _lines.size()
+	_show_current()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return

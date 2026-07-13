@@ -2,8 +2,12 @@ class_name NarrativeState
 extends RefCounted
 
 const SAVE_VERSION := 1
-const MIN_RELEASE_EVIDENCE := 3
 const MIN_RELEASE_BOND := 2
+const RELEASE_EVIDENCE_IDS := [
+	"c5_water_refuses_body",
+	"c5_blank_tablet_accepts_ash",
+	"c5_lantern_is_anchor",
+]
 
 var current_beat := "intro_familiar_street"
 var pressure := 0.0
@@ -69,13 +73,18 @@ func record_choice(choice_id: String, index: int, label: String) -> void:
 		heard_boatman = true
 
 
+func has_release_evidence() -> bool:
+	for evidence_id in RELEASE_EVIDENCE_IDS:
+		if not evidence.has(evidence_id):
+			return false
+	return true
+
+
 func ending_key() -> String:
-	var enough_evidence := verify_count >= MIN_RELEASE_EVIDENCE
+	var enough_evidence := has_release_evidence()
 	var enough_bond := bond_ba + bond_child >= MIN_RELEASE_BOND
-	if name_kept == true and enough_evidence and enough_bond:
+	if enough_evidence and enough_bond:
 		return "release"
-	if enough_evidence:
-		return "costly_hope"
 	return "loop"
 
 

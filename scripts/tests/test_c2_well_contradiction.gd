@@ -23,12 +23,17 @@ func _run() -> void:
 	c2._child.visible = true
 	c2._talk_child()
 	await _settle(game)
+	c2._interact_left_well()
+	await _settle(game)
 	c2._look_well()
 	await _until(func(): return game.narrative.contradictions.has("c2_well_vs_radio_shortcut"), "well contradiction dialogue chain", game)
+	await _until(func(): return c2._well_choice_open, "well choice opens after both wells", game)
+	c2._choose_right_well()
+	await _until(func(): return c2._well_orb != null, "Sac Thuy appears after choosing the remembering well", game)
 
 	_check(game.narrative.contradictions.has("c2_well_vs_radio_shortcut"), "well contradiction was not recorded")
 	_check(game.narrative.evidence.has("well_reflection"), "well reflection evidence was not recorded")
-	_check(c2._well_orb != null, "Sac Thuy orb did not spawn after well contradiction")
+	_check(c2._well_orb != null, "Sac Thuy orb did not spawn after choosing the remembering well")
 
 	game.queue_free()
 	if failures.is_empty():

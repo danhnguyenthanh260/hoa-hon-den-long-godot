@@ -15,19 +15,19 @@ const ALLEY_HALF := 5.0
 const FACADE_X := 5.35
 
 const ZONES := {
-	"c1": {"bg": Color(0.015, 0.025, 0.055), "amb": Color(0.16, 0.2, 0.32), "amb_e": 0.6,
+	"c1": {"bg": Color(0.018, 0.030, 0.065), "amb": Color(0.22, 0.27, 0.40), "amb_e": 0.92,
 		"fog": Color(0.045, 0.06, 0.11), "fog_d": 0.012, "vol": 0.035},
-	"c1_lit": {"bg": Color(0.02, 0.03, 0.06), "amb": Color(0.2, 0.22, 0.3), "amb_e": 0.78,
+	"c1_lit": {"bg": Color(0.025, 0.038, 0.075), "amb": Color(0.26, 0.30, 0.40), "amb_e": 1.05,
 		"fog": Color(0.06, 0.06, 0.1), "fog_d": 0.01, "vol": 0.025},
-	"c2": {"bg": Color(0.006, 0.018, 0.028), "amb": Color(0.14, 0.3, 0.38), "amb_e": 1.35,
+	"c2": {"bg": Color(0.008, 0.024, 0.040), "amb": Color(0.18, 0.35, 0.46), "amb_e": 1.55,
 		"fog": Color(0.025, 0.07, 0.09), "fog_d": 0.015, "vol": 0.05},
-	"c3": {"bg": Color(0.004, 0.003, 0.002), "amb": Color(0.24, 0.19, 0.12), "amb_e": 0.95,
+	"c3": {"bg": Color(0.008, 0.006, 0.004), "amb": Color(0.31, 0.25, 0.17), "amb_e": 1.28,
 		"fog": Color(0.035, 0.025, 0.015), "fog_d": 0.013, "vol": 0.04},
 	"c3_dark": {"bg": Color(0.002, 0.002, 0.002), "amb": Color(0.06, 0.05, 0.04), "amb_e": 0.25,
 		"fog": Color(0.01, 0.01, 0.01), "fog_d": 0.02, "vol": 0.05},
-	"c4": {"bg": Color(0.015, 0.008, 0.035), "amb": Color(0.26, 0.19, 0.38), "amb_e": 1.1,
+	"c4": {"bg": Color(0.022, 0.014, 0.052), "amb": Color(0.32, 0.25, 0.48), "amb_e": 1.45,
 		"fog": Color(0.05, 0.035, 0.09), "fog_d": 0.011, "vol": 0.035},
-	"c5": {"bg": Color(0.004, 0.003, 0.01), "amb": Color(0.16, 0.14, 0.26), "amb_e": 1.05,
+	"c5": {"bg": Color(0.010, 0.008, 0.024), "amb": Color(0.24, 0.21, 0.38), "amb_e": 1.42,
 		"fog": Color(0.015, 0.012, 0.03), "fog_d": 0.005, "vol": 0.045},
 	# Phase 7 — zone địa lý khi tự do khám phá C1 (sau light_up):
 	# phố Trần Phú ấm đèn lồng / hành lang khu cầu sương phong ấn đặc lạnh
@@ -72,6 +72,7 @@ var _hanging: Array = []
 var _string_lanterns: Array = []
 var _windows: Array = []
 var _moon_ball: MeshInstance3D
+var _c1_locked_house_slot: Node3D
 var _time := 0.0
 var blackout := 0.0    # >0: mọi đèn phụt tắt một nhịp (beat kinh dị)
 var geo_zone_on := false   # bật sau light_up() — C1 roam tự do, zone đổi theo nơi đứng
@@ -137,6 +138,19 @@ func set_zone(zone: String) -> void:
 	_zone_target = ZONES[zone]
 
 
+func set_story_geometry_visible(v: bool) -> void:
+	for child in get_children():
+		if child is WorldEnvironment or child is DirectionalLight3D:
+			continue
+		# C1 dựng một căn nhà có thể vào được ở đúng ô này; giữ nhà nền ẩn để
+		# không chồng mái, sàn và tường với geometry của chapter.
+		if child == _c1_locked_house_slot:
+			child.visible = false
+			continue
+		if child is Node3D:
+			child.visible = v
+
+
 func set_moon_visible(v: bool) -> void:
 	_moon_ball.visible = v
 
@@ -182,7 +196,10 @@ func _build_houses() -> void:
 	for i in range(4):
 		var z := 6.0 - i * 6.0
 		_house(Vector3(FACADE_X, 0, z), 0.0, i)
-		_house(Vector3(-FACADE_X, 0, z), PI, i + 3)
+		var west_house := _house(Vector3(-FACADE_X, 0, z), PI, i + 3)
+		if i == 3:
+			_c1_locked_house_slot = west_house
+			_c1_locked_house_slot.visible = false
 	# đồ ngõ: chậu cây nép chân thềm cạnh cửa (tâm nhà ± 2.2), xe đạp dựa tường,
 	# bụi chuối dồn hẳn vào GÓC cuối ngõ sát tường chắn — chừa trống lối đi
 	Parts.pot_plant(self, Vector3(4.6, 0, 3.8), 3, 0.9)
@@ -1019,7 +1036,7 @@ func _build_chua_cau() -> void:
 # nhà phố Hội An: xoay vòng 5 MẪU NHÀ dựng theo ảnh ref (house01..house05) —
 # mẫu + tuổi nhà chọn deterministic theo idx nên không nhà nào giống nhà nào.
 # Mặt tiền tại local x=0 quay về -x, thân kéo về +x — dùng cho cả ngõ lẫn phố chính.
-func _house(pos: Vector3, yrot: float, idx: int) -> void:
+func _house(pos: Vector3, yrot: float, idx: int) -> Node3D:
 	var models := [House01, House02, House03, House04, House05]
 	var ms: GDScript = models[idx % 5]
 	var age := 0.2 + 0.55 * fposmod(idx * 0.618, 1.0)
@@ -1049,6 +1066,7 @@ func _house(pos: Vector3, yrot: float, idx: int) -> void:
 	if (idx * 7) % 2 == 0:
 		Parts.grass_tuft(a, Vector3(-0.22, 0, -2.7 + fposmod(idx * 1.93, 0.9)), 0.9)
 		Parts.grass_tuft(a, Vector3(-0.3, 0, 1.9 + fposmod(idx * 1.31, 0.7)), 0.8)
+	return a
 
 func _build_lantern_strings() -> void:
 	var palette := [Color(1.0, 0.16, 0.08), Color(1.0, 0.62, 0.12), Color(1.0, 0.32, 0.08), Color(0.95, 0.25, 0.4)]
