@@ -32,12 +32,17 @@ var _memorial_stone: MeshInstance3D
 func build(main) -> void:
 	m = main
 	var bank := Build.pbr("res://assets/textures/PavingStones138", 0.62, Color(0.31, 0.27, 0.24), 0.5)
-	Build.box(self, Vector3(16.0, 0.16, 16.0), Vector3(0, -0.08, -52.7), bank)
+	# Bờ gần dừng trước mặt nước. Trước đây tấm nền lát đá phủ qua sông nên giấu toàn bộ dòng chảy.
+	Build.box(self, Vector3(16.0, 0.16, 11.1), Vector3(0, -0.08, -50.55), bank)
 	var water_mat := StandardMaterial3D.new()
-	water_mat.albedo_color = Color(0.015, 0.035, 0.09)
-	water_mat.metallic = 0.82
-	water_mat.roughness = 0.10
-	Build.box(self, Vector3(16.0, 0.05, 4.8), Vector3(0, -0.04, -59.4), water_mat)
+	water_mat.albedo_color = Color(0.025, 0.11, 0.24)
+	water_mat.metallic = 0.58
+	water_mat.roughness = 0.16
+	water_mat.emission_enabled = true
+	water_mat.emission = Color(0.015, 0.06, 0.16)
+	water_mat.emission_energy_multiplier = 0.32
+	Build.box(self, Vector3(16.0, 0.07, 13.8), Vector3(0, 0.01, -62.85), water_mat)
+	_build_river_banks(bank)
 	_build_river_backdrop()
 	_build_bell(BELL_LEFT_POS, 0)
 	_build_bell(BELL_RIGHT_POS, 1)
@@ -72,17 +77,47 @@ func build(main) -> void:
 
 
 func _build_river_backdrop() -> void:
+	# Bờ đối diện lùi sâu để nước có chiều rộng nhìn thấy được từ bến.
 	var backdrop := Node3D.new()
-	backdrop.position = Vector3(0, 0, -62.4)
+	backdrop.position = Vector3(0, 0, -70.05)
 	add_child(backdrop)
 	var silhouette := Build.mat(Color(0.025, 0.035, 0.085), 0.96)
+	var far_bank := Build.mat(Color(0.17, 0.15, 0.14), 0.92)
+	Build.box(backdrop, Vector3(16.0, 0.26, 2.1), Vector3(0, 0.02, 0.45), far_bank)
 	for i in range(9):
 		var x := -7.0 + i * 1.75
 		var h := 1.0 + float((i * 5) % 4) * 0.45
-		Build.box(backdrop, Vector3(1.45, h, 0.8), Vector3(x, h * 0.5, 0), silhouette)
+		Build.box(backdrop, Vector3(1.45, h, 0.8), Vector3(x, h * 0.5, 1.05), silhouette)
 		if i % 3 == 0:
-			var far_lantern := Build.lantern(backdrop, 0.075, 0.14, Vector3(x, h * 0.62, -0.46))
+			var far_lantern := Build.lantern(backdrop, 0.075, 0.14, Vector3(x, h * 0.62, 0.58))
 			Build.light_lantern(far_lantern, Color(1.0, 0.38, 0.12), 1.0)
+
+
+func _build_river_banks(bank: Material) -> void:
+	var edge := Build.mat(Color(0.20, 0.18, 0.17), 0.88)
+	var wood := Build.mat(Color(0.15, 0.085, 0.045), 0.86)
+	# Mép bờ đá chạy ngang trước dòng sông, giúp người chơi đọc được ranh giới đất/nước.
+	Build.box(self, Vector3(16.0, 0.30, 0.48), Vector3(0, 0.08, -56.15), edge)
+	for side in [-1.0, 1.0]:
+		Build.box(self, Vector3(0.45, 0.24, 12.8), Vector3(side * 7.72, 0.06, -62.55), edge)
+		for z in [-58.0, -62.0, -66.0]:
+			Build.cyl(self, 0.08, 0.10, 0.82, Vector3(side * 7.24, 0.40, z), wood, 8)
+	# Cầu ván nhỏ cho phép đi tới con đò mà không bước trên mặt nước.
+	Build.box(self, Vector3(2.45, 0.16, 4.45), Vector3(2.6, 0.11, -57.95), wood)
+	for z in [-56.15, -59.75]:
+		Build.cyl(self, 0.075, 0.09, 1.15, Vector3(1.52, 0.56, z), wood, 8)
+		Build.cyl(self, 0.075, 0.09, 1.15, Vector3(3.68, 0.56, z), wood, 8)
+	for i in range(4):
+		Build.box(self, Vector3(2.58, 0.035, 0.055), Vector3(2.6, 0.21, -56.42 - i * 1.02), Build.mat(Color(0.30, 0.18, 0.09), 0.82))
+	# Vệt trăng rời rạc trên mặt nước: đủ để đọc là dòng chảy, không biến thành chỉ dẫn đường.
+	var ripple_mat := Build.emis(Color(0.10, 0.24, 0.44), Color(0.16, 0.42, 0.78), 0.26)
+	for ripple_pos in [
+		Vector3(-4.45, 0.07, -58.25), Vector3(-2.85, 0.07, -60.05),
+		Vector3(-4.05, 0.07, -62.45), Vector3(0.15, 0.07, -63.55),
+		Vector3(-1.20, 0.07, -66.10), Vector3(4.90, 0.07, -65.05),
+	]:
+		var ripple := Build.box(self, Vector3(1.55, 0.012, 0.055), ripple_pos, ripple_mat)
+		ripple.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _build_shore_lantern(pos: Vector3) -> void:

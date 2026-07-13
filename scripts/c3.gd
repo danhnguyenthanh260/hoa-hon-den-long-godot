@@ -26,6 +26,8 @@ var _memory_revealing := false
 var _memory_reveal_t := 0.0
 var _exit_door: Node3D
 var _loft_accessed := false
+var _altar_growth: Node3D
+var _altar_growth_light: OmniLight3D
 
 
 func build(main) -> void:
@@ -97,6 +99,7 @@ func build(main) -> void:
 		add_child(cl)
 	# Sắc Mộc giữa bát nhang
 	_moc_orb = Build.color_orb(self, O + Vector3(-0.9, 1.7, -8.8), Color(0.3, 1.0, 0.38))
+	_build_altar_growth()
 	# chậu dây leo + các bậc thang chưa mọc
 	Build.cyl(self, 0.35, 0.45, 0.5, O + Vector3(-6.2, 0.25, -3.0), Build.mat(Color(0.2, 0.12, 0.08)))
 	var vine_step_mat := Build.pbr("res://assets/textures/WoodFloor043", 0.9, Color(0.16, 0.27, 0.12), 1.0)
@@ -154,8 +157,47 @@ func _try_grow() -> void:
 		return
 	vines_grown = true
 	_grow_t = 0.0
-	m.say([["Minh (nghĩ)", "Dây leo bò lên trong ánh xanh — chậm rãi, kẽo kẹt, như người già vươn vai sau giấc ngủ dài."]],
+	_awaken_altar_growth()
+	m.say([["Minh (nghĩ)", "Dây leo bò lên trong ánh xanh. Ở bàn thờ, tro nhang nứt ra một mầm sống — cả gian nhà đổi màu trước khi bậc thang kịp mọc."]],
 		func(): m.ui.set_objective("Lên gác lửng — tìm nút dây leo sáng trên gác"))
+
+
+func _build_altar_growth() -> void:
+	_altar_growth = Node3D.new()
+	_altar_growth.name = "C3_AltarAwakening"
+	_altar_growth.position = O + Vector3(0, 1.18, -8.36)
+	_altar_growth.visible = false
+	add_child(_altar_growth)
+	var vine := Build.mat(Color(0.07, 0.28, 0.10), 0.82)
+	var leaf := Build.emis(Color(0.18, 0.52, 0.20), Color(0.22, 0.92, 0.38), 0.45)
+	for side in [-1.0, 1.0]:
+		for i in range(3):
+			var x: float = float(side) * (0.62 + float(i) * 0.24)
+			var stem := Build.cyl(_altar_growth, 0.022, 0.035, 0.52 + i * 0.12, Vector3(x, 0.24 + i * 0.10, 0.02), vine, 7)
+			stem.rotation.z = side * (0.22 + i * 0.08)
+			var sprout := Build.ball(_altar_growth, 0.045, 0.085, Vector3(x + side * 0.10, 0.54 + i * 0.16, -0.01), leaf)
+			sprout.scale = Vector3(0.65, 1.0, 1.25)
+	for i in range(5):
+		var arc_x: float = -0.48 + float(i) * 0.24
+		Build.ball(_altar_growth, 0.028, 0.052, Vector3(arc_x, 0.20 + absf(arc_x) * 0.22, -0.05), leaf)
+	Build.ball(_altar_growth, 0.075, 0.12, Vector3(0, 0.30, -0.02), Build.emis(Color(0.24, 0.72, 0.32), Color(0.22, 1.0, 0.44), 1.1))
+	_altar_growth_light = OmniLight3D.new()
+	_altar_growth_light.light_color = Color(0.30, 1.0, 0.46)
+	_altar_growth_light.light_energy = 0.0
+	_altar_growth_light.omni_range = 5.6
+	_altar_growth_light.position = Vector3(0, 0.78, 0.25)
+	_altar_growth.add_child(_altar_growth_light)
+
+
+func _awaken_altar_growth() -> void:
+	if _altar_growth == null:
+		return
+	_altar_growth.visible = true
+	_altar_growth.scale = Vector3(0.05, 0.05, 0.05)
+	var bloom := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	bloom.tween_property(_altar_growth, "scale", Vector3.ONE, 0.72)
+	if _altar_growth_light != null:
+		_altar_growth_light.light_energy = 1.15
 
 
 func memory_vine_position() -> Vector3:

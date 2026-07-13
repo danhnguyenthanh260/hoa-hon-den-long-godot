@@ -49,6 +49,7 @@ func build(main) -> void:
 	Build.box(self, Vector3(6.0, 4.0, 0.6), Vector3(5.0, 2.0, Z1), plaster)
 	Build.box(self, Vector3(4.2, 1.2, 0.6), Vector3(0, 4.3, Z1), plaster)
 	_build_ritual_gate(Build.pbr("res://assets/textures/WoodFloor043", 0.8, Color(0.19, 0.12, 0.07), 1.15))
+	_build_entry_backdrop()
 	_build_gate_backdrop()
 
 	for lp in [LEFT_WELL_POS + Vector3(0, 3.5, 0), RIGHT_WELL_POS + Vector3(0, 3.5, 0), Vector3(0, 3.0, -36.0)]:
@@ -117,21 +118,57 @@ func _build_child() -> void:
 
 
 func _build_gate_backdrop() -> void:
-	# Phía sau cổng có bờ phố và mái nhà mờ, không còn là một màn xanh rỗng.
-	var backdrop := Node3D.new()
-	backdrop.position = Vector3(0, 0, -47.2)
-	add_child(backdrop)
-	var house := Build.mat(Color(0.06, 0.08, 0.16), 0.95)
+	# Cổng mở ra một ngõ tiếp nối có chiều sâu, không phải một tấm backdrop ngay sau cánh cửa.
+	var outlook := Node3D.new()
+	outlook.name = "C2_GateOutlook"
+	outlook.position = Vector3(0, 0, -50.8)
+	add_child(outlook)
+	var paving := Build.pbr("res://assets/textures/PavingStones138", 0.7, Color(0.31, 0.34, 0.40), 0.4)
+	var house := Build.mat(Color(0.055, 0.07, 0.13), 0.95)
 	var roof := Build.mat(Color(0.13, 0.07, 0.05), 0.9)
-	for i in range(7):
-		var x := -6.2 + i * 2.05
-		var h := 1.5 + float((i * 2) % 3) * 0.55
-		Build.box(backdrop, Vector3(1.75, h, 0.62), Vector3(x, h * 0.5, 0), house)
-		var tile := Build.box(backdrop, Vector3(2.02, 0.18, 0.92), Vector3(x, h + 0.18, -0.04), roof)
-		tile.rotation.z = 0.10 if i % 2 == 0 else -0.10
-		if i % 2 == 0:
-			var lantern := Build.lantern(backdrop, 0.09, 0.16, Vector3(x, h * 0.58, -0.38))
-			Build.light_lantern(lantern, Color(1.0, 0.42, 0.14), 1.25)
+	var wood := Build.mat(Color(0.11, 0.065, 0.04), 0.88)
+	Build.box(outlook, Vector3(13.8, 0.14, 13.2), Vector3(0, -0.09, 0), paving)
+	for side in [-1.0, 1.0]:
+		Build.box(outlook, Vector3(1.25, 3.0, 12.6), Vector3(side * 6.25, 1.5, 0.25), house)
+		Build.box(outlook, Vector3(1.62, 0.18, 12.9), Vector3(side * 6.18, 3.08, 0.25), roof)
+		for z in [-3.6, 1.0, 4.9]:
+			Build.cyl(outlook, 0.055, 0.075, 2.05, Vector3(side * 5.45, 1.02, z), wood, 8)
+			var lantern := Build.lantern(outlook, 0.10, 0.18, Vector3(side * 5.45, 2.0, z))
+			Build.light_lantern(lantern, Color(1.0, 0.40, 0.13), 1.45)
+	# Mái nhà và cổng nhỏ ở cuối ngõ tạo một điểm nhìn thay vì chặn lối bằng mảng xanh.
+	for side in [-1.0, 1.0]:
+		Build.box(outlook, Vector3(4.3, 2.45, 0.68), Vector3(side * 4.65, 1.22, -5.9), house)
+		var eave := Build.box(outlook, Vector3(4.65, 0.22, 1.05), Vector3(side * 4.65, 2.58, -5.92), roof)
+		eave.rotation.z = side * 0.075
+	Build.box(outlook, Vector3(0.18, 3.15, 0.55), Vector3(-1.58, 1.58, -5.9), wood)
+	Build.box(outlook, Vector3(0.18, 3.15, 0.55), Vector3(1.58, 1.58, -5.9), wood)
+	Build.box(outlook, Vector3(3.35, 0.18, 0.55), Vector3(0, 3.02, -5.9), wood)
+	var distant_lantern := Build.lantern(outlook, 0.12, 0.22, Vector3(0, 2.12, -5.55))
+	Build.light_lantern(distant_lantern, Color(0.86, 0.55, 0.22), 1.65)
+
+
+func _build_entry_backdrop() -> void:
+	# Phía sau lưng lúc mới xuống giếng vẫn là một khoảng sân có lối đi lên, không hở thẳng ra nền trời.
+	var entry := Node3D.new()
+	entry.name = "C2_WellEntryBackdrop"
+	# Lùi hẳn qua vị trí camera follow tại spawn để cảnh chỉ là hậu cảnh, không cắt ngang ống kính.
+	entry.position = Vector3(0, 0, Z0 + 7.4)
+	add_child(entry)
+	var stone := Build.mat(Color(0.19, 0.21, 0.25), 0.92)
+	var dark := Build.mat(Color(0.025, 0.035, 0.06), 0.98)
+	var roof := Build.mat(Color(0.14, 0.075, 0.045), 0.86)
+	Build.box(entry, Vector3(13.6, 0.16, 4.7), Vector3(0, -0.08, 0), stone)
+	Build.box(entry, Vector3(4.6, 3.6, 0.48), Vector3(-4.45, 1.8, -0.5), stone)
+	Build.box(entry, Vector3(4.6, 3.6, 0.48), Vector3(4.45, 1.8, -0.5), stone)
+	Build.box(entry, Vector3(4.1, 0.55, 0.48), Vector3(0, 3.35, -0.5), stone)
+	Build.box(entry, Vector3(3.95, 2.75, 0.06), Vector3(0, 1.45, -0.24), dark)
+	Build.box(entry, Vector3(10.0, 0.24, 1.05), Vector3(0, 3.82, -0.52), roof)
+	for x in [-2.0, 2.0]:
+		Build.cyl(entry, 0.07, 0.09, 2.15, Vector3(x, 1.08, -0.16), Build.mat(Color(0.12, 0.075, 0.045), 0.9), 8)
+		var lantern := Build.lantern(entry, 0.10, 0.18, Vector3(x, 2.12, -0.12))
+		Build.light_lantern(lantern, Color(0.58, 0.74, 1.0), 1.15)
+	for i in range(3):
+		Build.box(entry, Vector3(2.8 - i * 0.45, 0.12, 0.42), Vector3(0, 0.08 + i * 0.12, 1.22 + i * 0.42), stone)
 
 
 func _build_ritual_gate(wood: Material) -> void:

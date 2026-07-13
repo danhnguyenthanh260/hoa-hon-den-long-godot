@@ -6,9 +6,12 @@ const Build := preload("res://scripts/build.gd")
 
 const C := Vector3(0, 40, -120)
 const PILLAR_IDS := ["hoa", "thuy", "moc", "kim", "tho"]
-const FOUNDATION_SOCKET_POS := C + Vector3(5.85, 0, 3.05)
-const FOUNDATION_STONE_POS := C + Vector3(-5.75, 0, 1.45)
+# Nằm trong bán kính clamp của sân nghi lễ, nhưng vẫn tách hẳn năm đỉnh ngôi sao.
+const FOUNDATION_SOCKET_POS := C + Vector3(5.75, 0, 3.90)
+const FOUNDATION_STONE_POS := C + Vector3(-5.75, 0, 3.90)
 const BRIDGE_ENTRY_POS := C + Vector3(0, 0, -3.45)
+const STAR_CENTER := C + Vector3(0, 0, -0.8)
+const STAR_LINK_IDS := ["hoa", "moc", "tho", "thuy", "kim", "hoa"]
 
 var m
 var _time := 0.0
@@ -112,12 +115,14 @@ func _build_foundation() -> void:
 
 func _build_ritual_posts() -> void:
 	_pillar_positions = {
-		"hoa": C + Vector3(-6.15, 0, 3.35),
-		"thuy": C + Vector3(-6.15, 0, 0.25),
-		"moc": C + Vector3(-5.65, 0, -3.0),
-		"kim": C + Vector3(5.65, 0, -3.0),
-		"tho": C + Vector3(6.15, 0, 0.25),
+		# Năm đỉnh của một ngôi sao xoay để lối giữa đi ra Chùa Cầu vẫn trống.
+		"hoa": STAR_CENTER + Vector3(-3.25, 0, -4.35),
+		"thuy": STAR_CENTER + Vector3(3.25, 0, -4.35),
+		"moc": STAR_CENTER + Vector3(5.25, 0, 0.85),
+		"kim": STAR_CENTER + Vector3(0, 0, 4.15),
+		"tho": STAR_CENTER + Vector3(-5.25, 0, 0.85),
 	}
+	_build_star_inlay()
 	for sac in PILLAR_IDS:
 		var post := Node3D.new()
 		post.position = _pillar_positions[sac]
@@ -134,6 +139,18 @@ func _build_ritual_posts() -> void:
 		post.add_child(light)
 		_pillar_lights[sac] = {"lantern": lantern, "light": light}
 		_pillar_interacts[sac] = m.add_interact(_pillar_positions[sac], 1.0, "Treo SẮC %s lên cột đèn" % _sac_label(sac), Callable(self, "_offer_sac").bind(sac), false)
+
+
+func _build_star_inlay() -> void:
+	# Ngôi sao trên nền nối các cột theo thứ tự ngũ giác, để bố cục đọc được từ cả hai góc nhìn.
+	var line_mat := Build.emis(Color(0.26, 0.18, 0.10), Color(0.72, 0.43, 0.18), 0.24)
+	for i in range(STAR_LINK_IDS.size() - 1):
+		var a: Vector3 = _pillar_positions[STAR_LINK_IDS[i]]
+		var b: Vector3 = _pillar_positions[STAR_LINK_IDS[i + 1]]
+		var delta := b - a
+		var line := Build.box(self, Vector3(0.10, 0.035, delta.length()), (a + b) * 0.5 + Vector3(0, 0.035, 0), line_mat)
+		line.rotation.y = atan2(delta.x, delta.z)
+	Build.cyl(self, 0.26, 0.32, 0.055, STAR_CENTER + Vector3(0, 0.035, 0), Build.emis(Color(0.20, 0.14, 0.09), Color(0.72, 0.43, 0.18), 0.28), 10)
 
 
 func enter_beat() -> void:
@@ -235,7 +252,7 @@ func _check_ritual_complete() -> void:
 	_ritual_complete = true
 	_bridge_interact = m.add_interact(BRIDGE_ENTRY_POS, 1.25, "Bước lên Chùa Cầu", Callable(self, "_begin_ending"), false)
 	m.say([
-		["Minh (nghĩ)", "Năm cột sáng ở hai bên cầu. Lối giữa cuối cùng cũng trống, như đang chờ người giữ đèn đi qua."]
+		["Minh (nghĩ)", "Năm cột sáng thành một ngôi sao trên sân. Lối giữa cuối cùng cũng trống, như đang chờ người giữ đèn đi qua."]
 	], func(): m.ui.set_objective("Chùa Cầu đã sáng."))
 
 

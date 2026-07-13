@@ -631,7 +631,8 @@ func _apply_view_mode() -> void:
 	player.set_first_person(first_person)
 	player.cam_relative = view_mode != View.FOLLOW
 	if view_mode == View.THIRD:
-		tp_yaw = player.facing_yaw      # bắt đầu sau lưng theo hướng đang quay
+		player.fp_yaw = fp_yaw
+		tp_yaw = player.face_lantern_direction(fp_yaw)
 	var capture := view_mode == View.FIRST or view_mode == View.THIRD
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
 	ui.toast(["Góc nhìn thứ nhất", "Góc nhìn thứ ba", "Camera theo dõi"][view_mode])
@@ -726,7 +727,7 @@ func _update_camera(delta: float) -> void:
 		var pivot := player.position + Vector3(0, tp_height, 0)
 		var fwd := Vector3(sin(tp_yaw), 0, cos(tp_yaw))
 		var orbit_dist := _third_camera_distance()
-		desired = pivot - fwd * (orbit_dist * cos(tp_pitch)) + Vector3.UP * (orbit_dist * sin(tp_pitch))
+		desired = pivot + fwd * (orbit_dist * cos(tp_pitch)) + Vector3.UP * (orbit_dist * sin(tp_pitch))
 		desired = _constrain_third_camera(desired)
 		var tt := 1.0 - pow(0.0001, delta)
 		camera.position = camera.position.lerp(desired, tt)

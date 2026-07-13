@@ -498,13 +498,23 @@ func update_move(delta: float, clamp_cb: Callable) -> void:
 		dir = dir.normalized()
 		position += dir * SPEED * delta
 		if first_person:
-			_target_yaw = fp_yaw
+			_target_yaw = fp_yaw - PI
 		else:
 			_target_yaw = atan2(dir.x, dir.z)
 	elif first_person:
-		_target_yaw = fp_yaw
+		_target_yaw = fp_yaw - PI
 	position = clamp_cb.call(position)
-	facing_yaw = _visual.rotation.y
+	facing_yaw = _target_yaw
+
+
+func face_lantern_direction(yaw: float) -> float:
+	# Camera thứ nhất nhìn theo fp_yaw - PI. Đồng bộ body ngay lúc đổi view để model không quay mặt vào camera.
+	_target_yaw = yaw - PI
+	if _visual != null:
+		_visual.rotation.y = _target_yaw
+	_prev_yaw = _target_yaw
+	facing_yaw = _target_yaw
+	return _target_yaw
 
 
 func _process(delta: float) -> void:
