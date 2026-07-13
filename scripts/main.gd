@@ -16,6 +16,7 @@ const C5 := preload("res://scripts/c5.gd")
 const NarrativeState := preload("res://scripts/narrative_state.gd")
 const CheckpointService := preload("res://scripts/checkpoint_service.gd")
 const VoiceDirector := preload("res://scripts/voice_director.gd")
+const OpeningPrologue := preload("res://scripts/opening_prologue.gd")
 
 enum State { INTRO, PLAY, PUZZLE, DIALOGUE, CUTSCENE, WON }
 
@@ -30,7 +31,7 @@ const CHAPTER_SPAWNS := {
 	2: Vector3(0, 0, -22.5),
 	3: Vector3(60, 0, -22),
 	4: Vector3(0, 0, -46.5),
-	5: Vector3(0, 40, -113.5),
+	5: Vector3(0, 40, -112.0),
 }
 
 var state: int = State.INTRO
@@ -45,6 +46,8 @@ var checkpoints: CheckpointService
 var voice: VoiceDirector
 var audio: Node
 var camera: Camera3D
+var _fp_lantern_beam: SpotLight3D
+var _fp_lantern_fill: OmniLight3D
 var cam_look := Vector3(0, 1.3, 7)
 var checkpoint := Vector3(0, 0, 7)
 var chapter_no := 1
@@ -62,6 +65,9 @@ var tp_pitch := 0.18        # góc ngẩng/cúi ngôi-3
 var tp_dist := 4.2          # khoảng cách sau lưng
 var tp_height := 1.45       # tâm ngắm ngang vai
 var bot_mode := false
+var _gui_telemetry := false
+var _gui_state_path := ""
+var _gui_state_t := 0.0
 var free_cam := false
 var map_mode := false
 var _pre_map_fp := false
@@ -81,6 +87,11 @@ var _debug_note_panel: CanvasItem
 var _debug_note_edit: LineEdit
 var _debug_note_idx := -1
 var _debug_session: Array = []
+var opening_prologue
+var _opening_started := false
+var _skip_hold := 0.0
+var _skip_triggered := false
+var _cutscene_skip: Callable = Callable()
 
 
 func _ready() -> void:
@@ -110,9 +121,14 @@ func _ready() -> void:
 	add_child(camera)
 	camera.position = Vector3(0, 3.4, 13)
 	camera.current = true
+	_build_first_person_light_rig()
 	_make_dust()
 	audio = preload("res://scripts/audio_manager.gd").new()
 	add_child(audio)
+	opening_prologue = OpeningPrologue.new()
+	add_child(opening_prologue)
+	opening_prologue.setup(self)
+	opening_prologue.finished.connect(_on_opening_finished)
 
 	# Debug session: clear shots/debug/ at every launch
 	_debug_dir = ProjectSettings.globalize_path("res://shots/debug")
@@ -130,9 +146,14 @@ func _ready() -> void:
 	for n in chapters:
 		add_child(chapters[n])
 		chapters[n].build(self)
+	_set_active_chapter(1)
 
-	var args := OS.get_cmdline_args()
+	var args := Array(OS.get_cmdline_args())
+	args.append_array(Array(OS.get_cmdline_user_args()))
 	bot_mode = args.has("--autoplay") or args.has("--flow")
+	_gui_telemetry = args.has("--gui-telemetry")
+	if _gui_telemetry:
+		_gui_state_path = ProjectSettings.globalize_path("res://shots/gui_state.json")
 	for a in args:
 		if a.begins_with("--start="):
 			_start_chapter = clampi(int(a.trim_prefix("--start=")), 1, 5)
@@ -249,8 +270,39 @@ func is_play() -> bool:
 	return state == State.PLAY
 
 
+func _begin_opening() -> void:
+	_opening_started = true
+	state = State.CUTSCENE
+	ui.set_gameplay_hud_visible(false)
+	ui.show_skip_hint(true)
+	set_cutscene_skip(Callable(opening_prologue, "skip"))
+	opening_prologue.play()
+
+
+func _on_opening_finished() -> void:
+	clear_cutscene_skip()
+	ui.show_cinematic_caption("")
+	ui.show_skip_hint(false)
+	ui.set_gameplay_hud_visible(true)
+	goto_chapter(1)
+
+
+func set_cutscene_skip(callback: Callable) -> void:
+	_cutscene_skip = callback
+
+
+func clear_cutscene_skip() -> void:
+	_cutscene_skip = Callable()
+
+
 func current_chapter():
 	return chapters[chapter_no]
+
+
+func _set_active_chapter(n: int) -> void:
+	world.set_story_geometry_visible(n == 1)
+	for id in chapters:
+		chapters[id].visible = id == n
 
 
 # ---------- hạt bụi / tàn tro lơ lửng quanh người chơi ----------
@@ -411,6 +463,7 @@ func goto_chapter(n: int) -> void:
 	state = State.CUTSCENE
 	await ui.fade_to(1.0, 1.0)
 	chapter_no = n
+	_set_active_chapter(n)
 	match n:
 		2:
 			narrative.set_beat("c2_first_displacement", 0.24)
@@ -458,26 +511,18 @@ func ending_sequence() -> void:
 	state = State.CUTSCENE
 	ui.set_objective("")
 	var outcome := narrative.ending_key()
+	await ui.fade_to(1.0, 2.0, Color(1.0, 0.85, 0.4) if outcome == "release" else Color(0.35, 0.38, 0.5))
 	if outcome == "release":
-		await ui.fade_to(1.0, 3.0, Color(1.0, 0.85, 0.4))
 		dialogue.reveal_player_name()
 		dialogue.start([
 			["Giọng từ phía sông", "Minh..."],
-			["Giọng từ đầu ngõ", "Minh..."],
-			["Những giọng trong phố", "Minh, mau về."],
+			["Những giọng trong phố", "Minh, về thôi."],
 			["Minh (nghĩ)", "Lần đầu tiên trong đêm, cái tên ấy thuộc về tôi."],
 		])
 		await dialogue.finished
-		await ui.title_card("MINH", "Lần đầu tiên trong đêm, những giọng khác gọi đúng tên người giữ đèn")
-		await ui.title_card("Minh đặt đèn xuống", "Phố không xám lại. Hoa đăng xuôi dòng trở về.")
-	elif outcome == "costly_hope":
-		await ui.fade_to(1.0, 3.0, Color(0.65, 0.75, 1.0))
-		await ui.title_card("Một tiếng gọi mắc lại bên kia sông", "Người chèo đò mở bàn tay. Trong đó còn một đốm sáng chưa tắt.")
-		await ui.title_card("Người giữ đèn đặt gánh xuống", "Phố sáng qua một đêm. Cái tên vẫn đang vượt sông trước bình minh.")
+		await ui.title_card("MINH", "Người giữ đèn đặt đèn xuống. Hoa đăng xuôi dòng trở về.")
 	else:
-		await ui.fade_to(1.0, 2.0, Color(0.35, 0.38, 0.5))
-		await ui.title_card("Nghi lễ hoàn tất", "Tất cả đèn trong phố sáng lên cùng một nhịp.")
-		await ui.title_card("Rồi trời gần sáng", "Phố xám lại. Người giữ đèn vẫn cầm gánh ở đầu ngõ.")
+		await ui.title_card("Chưa thể rời đi", "Một vài ký ức vẫn chưa tìm được chỗ đứng trên cây cầu.")
 	await ui.fade_to(1.0, 1.5, Color(0, 0, 0))
 	await ui.roll_credits("Minh" if outcome == "release" else "Người giữ đèn")
 	ui.show_win()
@@ -521,13 +566,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Debug: phím số 1–5 ở intro để vào thẳng chương đó (test nhanh)
 			if event is InputEventKey and event.keycode >= KEY_1 and event.keycode <= KEY_5:
 				start_ch = event.keycode - KEY_1 + 1
-			state = State.PLAY
 			ui.hide_intro()
 			if first_person:
 				player.set_first_person(true)
 				player.fp_yaw = fp_yaw
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-			goto_chapter(start_ch)
+			if start_ch == 1 and not _opening_started:
+				_begin_opening()
+			else:
+				state = State.PLAY
+				goto_chapter(start_ch)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var cid: String = player.color_for_key(event)
@@ -583,7 +631,8 @@ func _apply_view_mode() -> void:
 	player.set_first_person(first_person)
 	player.cam_relative = view_mode != View.FOLLOW
 	if view_mode == View.THIRD:
-		tp_yaw = player.facing_yaw      # bắt đầu sau lưng theo hướng đang quay
+		player.fp_yaw = fp_yaw
+		tp_yaw = player.face_lantern_direction(fp_yaw)
 	var capture := view_mode == View.FIRST or view_mode == View.THIRD
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
 	ui.toast(["Góc nhìn thứ nhất", "Góc nhìn thứ ba", "Camera theo dõi"][view_mode])
@@ -591,6 +640,7 @@ func _apply_view_mode() -> void:
 
 # ---------- vòng lặp ----------
 func _process(delta: float) -> void:
+	_update_skip_hold(delta)
 	if _debug_pos_lbl:
 		_debug_pos_lbl.text = "State: %d | Pos: %.1f, %.1f" % [state, player.position.x, player.position.z]
 	if _debug_mode:
@@ -635,9 +685,30 @@ func _process(delta: float) -> void:
 	_dust.position = player.position
 	audio.update(delta, self)
 	_update_camera(delta)
+	if _gui_telemetry:
+		_write_gui_telemetry(delta)
+
+
+func _update_skip_hold(delta: float) -> void:
+	var skippable := state == State.DIALOGUE or state == State.CUTSCENE
+	if not skippable or not Input.is_key_pressed(KEY_SPACE):
+		_skip_hold = 0.0
+		_skip_triggered = false
+		return
+	_skip_hold += delta
+	if _skip_triggered or _skip_hold < 0.8:
+		return
+	_skip_triggered = true
+	if dialogue.active:
+		dialogue.skip_current()
+	else:
+		ui.request_skip()
+		if _cutscene_skip.is_valid():
+			_cutscene_skip.call()
 
 
 func _update_camera(delta: float) -> void:
+	_sync_first_person_light()
 	if free_cam:
 		return
 	var desired: Vector3
@@ -655,12 +726,21 @@ func _update_camera(delta: float) -> void:
 		# góc nhìn thứ ba: camera sau lưng, xoay quanh bằng chuột, ngắm ngang vai
 		var pivot := player.position + Vector3(0, tp_height, 0)
 		var fwd := Vector3(sin(tp_yaw), 0, cos(tp_yaw))
-		desired = pivot - fwd * (tp_dist * cos(tp_pitch)) + Vector3.UP * (tp_dist * sin(tp_pitch))
+		var orbit_dist := _third_camera_distance()
+		desired = pivot + fwd * (orbit_dist * cos(tp_pitch)) + Vector3.UP * (orbit_dist * sin(tp_pitch))
+		desired = _constrain_third_camera(desired)
 		var tt := 1.0 - pow(0.0001, delta)
 		camera.position = camera.position.lerp(desired, tt)
 		cam_look = cam_look.lerp(pivot, tt)
 		camera.look_at(cam_look)
 		return
+	elif view_mode == View.FOLLOW and _is_in_c1_locked_house() and (state == State.PLAY or state == State.DIALOGUE):
+		desired = _constrain_third_camera(player.position + Vector3(1.25, 1.5, 2.3))
+		look = player.position + Vector3(0, 1.12, 0)
+	elif view_mode == View.FOLLOW and chapter_no == 3 and (state == State.PLAY or state == State.DIALOGUE):
+		var c3_side := -2.4 if player.position.x < 60.0 else 2.4
+		desired = _constrain_third_camera(player.position + Vector3(c3_side, 2.2, 3.0))
+		look = player.position + Vector3(0, 1.15, 0)
 	else:
 		desired = player.position + Vector3(0, 3.2, 5.6)
 		look = player.position + Vector3(0, 1.3, 0)
@@ -669,6 +749,109 @@ func _update_camera(delta: float) -> void:
 	cam_look = cam_look.lerp(look, t)
 	if camera.position.distance_to(cam_look) > 0.05:
 		camera.look_at(cam_look)
+
+
+func _build_first_person_light_rig() -> void:
+	_fp_lantern_beam = SpotLight3D.new()
+	_fp_lantern_beam.position = Vector3(0.20, -0.16, -0.12)
+	_fp_lantern_beam.light_energy = 4.5
+	_fp_lantern_beam.spot_range = 14.0
+	_fp_lantern_beam.spot_angle = 50.0
+	_fp_lantern_beam.spot_attenuation = 0.85
+	_fp_lantern_beam.shadow_enabled = true
+	_fp_lantern_beam.visible = false
+	camera.add_child(_fp_lantern_beam)
+
+	_fp_lantern_fill = OmniLight3D.new()
+	_fp_lantern_fill.position = Vector3(0.0, -0.22, -0.28)
+	_fp_lantern_fill.light_energy = 0.5
+	_fp_lantern_fill.omni_range = 4.0
+	_fp_lantern_fill.visible = false
+	camera.add_child(_fp_lantern_fill)
+
+
+func _sync_first_person_light() -> void:
+	if _fp_lantern_beam == null or _fp_lantern_fill == null:
+		return
+	# Cùng một ánh đèn dẫn đường ở cả ngôi một, ngôi ba và Follow; chỉ giảm cường độ
+	# ở camera ngoài để không biến cảnh thành đèn pin phẳng.
+	var active := not free_cam and (state == State.PLAY or state == State.DIALOGUE)
+	_fp_lantern_beam.visible = active
+	_fp_lantern_fill.visible = active
+	if active:
+		var color: Color = player.lantern_light_color()
+		_fp_lantern_beam.light_color = color.lerp(Color(1.0, 0.88, 0.70), 0.42)
+		_fp_lantern_fill.light_color = color.lerp(Color.WHITE, 0.55)
+		# Đèn gánh là nguồn dẫn đường chính, không chỉ là ánh trang trí trên nhân vật.
+		# Cần đủ tầm ở ngôi một để người chơi đọc được nền và vật thể trước mặt.
+		_fp_lantern_beam.light_energy = 7.2 if first_person else 3.8
+		_fp_lantern_beam.spot_range = 18.0 if first_person else 13.0
+		_fp_lantern_fill.light_energy = 1.0 if first_person else 0.62
+
+
+func _constrain_third_camera(desired: Vector3) -> Vector3:
+	var result := desired
+	if chapter_no == 2:
+		result.x = clampf(result.x, -7.3, 7.3)
+		result.z = clampf(result.z, -43.0, -21.0)
+	elif chapter_no == 3:
+		result.x = clampf(result.x, 53.2, 66.8)
+		result.z = clampf(result.z, -39.2, -20.9)
+	elif chapter_no == 1:
+		var p: Vector3 = player.position
+		var in_locked_house := p.x > -10.9 and p.x < -5.2 and p.z > -20.5 and p.z < -10.6
+		if in_locked_house:
+			result.x = clampf(result.x, -10.6, -5.7)
+			result.z = clampf(result.z, -18.9, -11.0)
+	return result
+
+
+func _uses_tight_third_camera() -> bool:
+	return _is_in_c1_locked_house()
+
+
+func _third_camera_distance() -> float:
+	if chapter_no == 3:
+		return 2.65
+	return 2.25 if _uses_tight_third_camera() else tp_dist
+
+
+func _is_in_c1_locked_house() -> bool:
+	if chapter_no != 1:
+		return false
+	var p: Vector3 = player.position
+	return p.x > -10.9 and p.x < -5.2 and p.z > -19.3 and p.z < -10.7
+
+
+func _write_gui_telemetry(delta: float) -> void:
+	_gui_state_t += delta
+	if _gui_state_t < 0.12:
+		return
+	_gui_state_t = 0.0
+	var p: Vector3 = player.position
+	var it = _nearest_interact() if state == State.PLAY else null
+	var payload := {
+		"state": state,
+		"chapter": chapter_no,
+		"x": p.x,
+		"y": p.y,
+		"z": p.z,
+		"prompt": str(it["prompt"]) if it != null else "",
+		"dialogue_active": dialogue.active,
+		"dialogue_waiting_choice": dialogue._waiting_choice,
+		"memory_stall_active": memory_stall.active,
+		"memorial_tablet_active": memorial_tablet.active,
+		"view_mode": view_mode,
+		"current_color": player.current_color,
+		"ending": narrative.ending_key(),
+	}
+	if chapters.has(3):
+		payload["c3_memory_revealing"] = chapters[3]._memory_revealing
+		payload["c3_memory_progress"] = clampf(chapters[3]._memory_reveal_t / chapters[3].MEMORY_ASSEMBLE_SECONDS, 0.0, 1.0)
+		payload["c3_photo_revealed"] = chapters[3].photo_revealed
+	var f := FileAccess.open(_gui_state_path, FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify(payload))
 
 
 # ---------- bản đồ từ trên cao (phím M) ----------
@@ -770,10 +953,14 @@ func _autoplay() -> void:
 	player.position = Vector3(3.2, 0, -14.8)
 	var c1 = chapters[1]
 	enter_puzzle(c1.puzzle, "A / D — xoay đèn cho bóng Chim Lạc khớp hình mờ")
-	c1.puzzle.angle = 0.4
+	for id in ["head", "wing_body", "tail_leg"]:
+		c1.puzzle.collect_and_place_part(id)
+	c1.puzzle.set_part_angle("head", 0.35)
+	c1.puzzle.set_part_angle("wing_body", -0.25)
+	c1.puzzle.set_part_angle("tail_leg", 0.45)
 	await get_tree().create_timer(1.2).timeout
 	await _shot(dir + "/c1-puzzle.png")
-	c1.puzzle.angle = 0.05
+	c1.puzzle.debug_solve()
 	await get_tree().create_timer(1.5).timeout
 	await _shot(dir + "/c1-solved.png")
 	state = State.PLAY
@@ -782,6 +969,7 @@ func _autoplay() -> void:
 		player.unlock_color(cid)
 	ui.update_colors()
 	chapter_no = 2
+	_set_active_chapter(2)
 	world.set_zone("c2")
 	chapters[2]._child.visible = true
 	player.set_color("thuy")
@@ -794,6 +982,7 @@ func _autoplay() -> void:
 	await _shot(dir + "/c2-tiles.png")
 	# C3
 	chapter_no = 3
+	_set_active_chapter(3)
 	world.set_zone("c3")
 	world.set_moon_visible(false)
 	var c3 = chapters[3]
@@ -804,10 +993,12 @@ func _autoplay() -> void:
 	camera.position = player.position + Vector3(0, 3.2, 5.6)
 	await get_tree().create_timer(2.5).timeout
 	await _shot(dir + "/c3-house.png")
-	enter_puzzle(c3.puzzle, "A / D — xoay đèn cho bóng HOA SEN khớp vệt mờ")
-	c3.puzzle.angle = 0.35
-	await get_tree().create_timer(1.2).timeout
-	await _shot(dir + "/c3-lotus.png")
+	player.position = c3.memory_vine_position()
+	camera.position = player.position + Vector3(2.4, 1.3, 2.8)
+	camera.look_at(c3.O + Vector3(0.0, 2.35, -9.55))
+	c3._begin_memory_reveal()
+	await get_tree().create_timer(0.85).timeout
+	await _shot(dir + "/c3-memory-shadow.png")
 	state = State.PLAY
 	ui.show_hint("")
 	if active_puzzle != null:
@@ -815,6 +1006,7 @@ func _autoplay() -> void:
 		active_puzzle = null
 	# C4
 	chapter_no = 4
+	_set_active_chapter(4)
 	world.set_zone("c4")
 	player.set_color("tho")
 	player.position = Vector3(0, 0, -52)
@@ -826,6 +1018,7 @@ func _autoplay() -> void:
 	await _shot(dir + "/c4-mirrors.png")
 	# C5
 	chapter_no = 5
+	_set_active_chapter(5)
 	world.set_zone("c5")
 	player.set_color("thuy")
 	player.position = Vector3(0, 40, -114)
@@ -1131,6 +1324,9 @@ func _house_view() -> void:
 
 
 func _shot(path: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		print("shot skipped in headless: ", path)
+		return
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 	print("shot: ", path)
@@ -1317,43 +1513,40 @@ func _rigview() -> void:
 
 
 # ---------- flow test: chơi hết 5 chương bằng chính các handler thật (headless) ----------
+func _flow_mark(label: String) -> void:
+	print("FLOW STEP: " + label)
+
+
 func _flow_test() -> void:
 	dialogue.auto_advance = true
 	state = State.PLAY
 	ui.hide_intro()
+	_flow_mark("c1 enter")
 	var c1 = chapters[1]
 	c1.enter_beat()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 intro")
 	c1._talk_ba()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 talk ba")
 	c1._offer_tea()
-	await _wait_dialogue_only()
-	for id in MemoryStallInspectUI.REQUIRED_FOR_KEY:
-		memory_stall.inspect_item(id)
-	memory_stall._take_key()
-	memory_stall.close_panel()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 tea")
 	assert(c1.has_house_key)
 	c1._try_descend()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 blocked descend key only")
 	assert(chapter_no == 1)
 	c1._try_unlock_house()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 unlock house")
 	assert(c1.house_unlocked)
 	c1._try_descend()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 blocked descend before puzzle")
 	assert(chapter_no == 1)
-	for id in ["head", "wing_body", "tail_leg"]:
-		c1._collect_stencil_part(id)
-	enter_puzzle(c1.puzzle, "")
-	c1.puzzle.debug_solve()
+	c1._collect_stencil()
+	await _wait_dialogue("c1 collect stencil")
 	await _until(func(): return c1.puzzle.solved, "c1 puzzle")
-	await _until(func(): return state == State.PLAY, "c1 exit puzzle")
 	c1._take_hoa()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 take hoa")
 	player.set_color("hoa")
 	c1._try_burn()
-	await _wait_dialogue()
+	await _wait_dialogue("c1 burn basement")
 	assert(c1.basement_open)
 	player.position = Vector3(0, 0, -23.5)
 	await get_tree().create_timer(0.5).timeout
@@ -1361,121 +1554,117 @@ func _flow_test() -> void:
 	player.position = c1._basement_pos
 	c1._try_descend()
 	await _until(func(): return chapter_no == 2 and state == State.PLAY, "vào c2", 30.0)
+	_flow_mark("c2 enter")
 	var c2 = chapters[2]
-	for i in range(2):
-		player.position = Vector3(0, 0, -43.0)
-		await _until(func(): return c2.loops == i + 1, "vòng lặp cổng %d" % (i + 1))
-		await _wait_dialogue()
 	c2._talk_child()
-	await _wait_dialogue()
-	c2._look_well()
-	await _wait_dialogue()
+	await _wait_dialogue("c2 talk child")
+	c2._interact_left_well()
+	await _wait_dialogue("c2 look left well")
+	c2._interact_right_well()
+	await _wait_dialogue("c2 look right well")
+	c2._interact_right_well()
+	await _wait_dialogue("c2 choose remembering well")
+	await _until(func(): return c2._well_orb != null, "c2 spawn thuy")
 	c2._take_thuy()
-	await _wait_dialogue()
-	assert(c2.quest_stage == 1)
-	chapters[1]._talk_ba()      # bà kể sự tích giếng → cần sen giấy
-	await _wait_dialogue()
-	assert(c2.quest_stage == 2)
-	chapters[1]._hoa_dang_stall()  # lấy sen từ gánh hoa đăng
-	await _wait_dialogue()
+	await _wait_dialogue("c2 take thuy")
 	assert(c2.quest_stage == 3)
-	c2._offer_lotus()           # trả lễ — vệt nước dẫn đường, cổng mở
-	await _wait_dialogue()
+	c2._take_lotus()
+	await _wait_dialogue("c2 take lotus")
+	player.set_color("thuy")
+	c2._offer_lotus()
+	await _wait_dialogue("c2 offer lotus")
 	assert(c2.quest_stage == 4)
-	player.position = Vector3(0, 0, -43.0)
+	c2._try_gate()
 	await _until(func(): return chapter_no == 3 and state == State.PLAY, "vào c3", 30.0)
+	_flow_mark("c3 enter")
 	var c3 = chapters[3]
 	c3._take_moc()
-	await _wait_dialogue()
-	c3._try_inscribe_tablet()
-	memorial_tablet._name_edit.text = "Minh"
-	memorial_tablet._try_inscribe()
-	memorial_tablet.close_panel()
-	await _wait_dialogue()
-	if c3.tablet_attempts != 1:
-		push_error("FLOW FAILED: bai vi phai ghi nhan 1 lan thu khac ten, got %d" % c3.tablet_attempts)
-		get_tree().quit(1)
-		return
-	if not narrative.evidence.has("c3_tablet_refuses_name"):
-		push_error("FLOW FAILED: bai vi tu choi ten phai ghi evidence")
-		get_tree().quit(1)
-		return
+	await _wait_dialogue("c3 take moc")
 	player.set_color("moc")
 	c3._try_grow()
-	await _wait_dialogue()
+	await _wait_dialogue("c3 grow")
 	await _until(func(): return c3._grow_t > 4.5, "dây leo mọc", 30.0)
-	player.position = Vector3(56, 3.32, -38)
-	c3._enter_puzzle()
-	c3.puzzle.angle = 0.05
-	await _until(func(): return c3.puzzle.solved, "đố hoa sen")
-	await _wait_dialogue()
+	player.position = c3.memory_vine_position()
+	c3._begin_memory_reveal()
+	await _until(func(): return c3.photo_revealed, "bong ky uc tren gac", 30.0)
+	await _wait_dialogue("c3 photo")
 	c3._try_exit()
 	await _until(func(): return chapter_no == 4 and state == State.PLAY, "vào c4", 30.0)
+	_flow_mark("c4 enter")
 	var c4 = chapters[4]
 	c4._talk_boatman()
-	await _wait_dialogue()
-	c4._mirrors[0][1] = -PI / 4.0
-	c4._mirrors[1][1] = 3.0 * PI / 4.0
-	for pairm in c4._mirrors:
-		pairm[0].rotation.y = pairm[1]
-	await _until(func(): return c4.bell1_rung, "chuông 1 (gương)")
-	c4._take_kim()
-	await _wait_dialogue()
-	c4._take_tho()
-	await _wait_dialogue()
-	player.set_color("tho")
-	player.position = Vector3(c4._bell2_pos.x, 0, c4._bell2_pos.z)
+	await _wait_dialogue("c4 talk boatman")
+	c4._ring_bell1()
+	await _until(func(): return c4.bell1_rung, "chuong 1")
 	c4._ring_bell2()
+	await _wait_dialogue("c4 bell two")
 	assert(c4.bell2_rung)
-	c4._talk_boatman()          # giai oan beat
-	await _wait_dialogue()
-	assert(c4._giai_oan_done, "FLOW: giai_oan_done phải true sau giai oan beat")
-	c4._talk_boatman()          # price + choice
+	await _until(func(): return c4._kim_orb != null, "c4 spawn kim")
+	c4._take_kim()
+	await _wait_dialogue("c4 take kim")
+	c4._talk_boatman()
+	await _wait_dialogue("c4 memorial lead")
+	player.set_color("kim")
+	c4._work_mo_gio()
+	await _wait_dialogue("c4 mark memorial")
+	c4._talk_boatman()
+	await _wait_dialogue("c4 ready boat")
+	c4._talk_boatman()
 	await _until(func(): return chapter_no == 5 and state == State.PLAY, "vào c5", 40.0)
-	if narrative.name_kept != true:
-		push_error("FLOW FAILED: auto dialogue choice did not persist c4_crossing_price")
-		get_tree().quit(1)
-		return
-	if narrative.ending_key() != "loop":
-		push_error("FLOW FAILED: before C5 verification, prototype must remain loop-eligible")
+	_flow_mark("c5 enter")
+	if narrative.has_release_evidence():
+		push_error("FLOW FAILED: before C5 verification, release evidence must not already be complete")
 		get_tree().quit(1)
 		return
 	var c5 = chapters[5]
-	await _wait_dialogue()
+	await _wait_dialogue("c5 intro")
 	
-	player.set_color("thuy")
-	player.position = c5.C + Vector3(3.0, 0, -5.0)
-	c5._verify_water()
-	await _wait_dialogue()
-	
-	player.set_color("hoa")
-	player.position = c5.C + Vector3(0, 0, -6.5)
-	c5._verify_altar()
-	await _wait_dialogue()
-	
-	player.set_color("tho")
-	player.position = c5.C + Vector3(-4.5, 0, -6.5)
-	c5._verify_ground()
-	await _wait_dialogue()
+	player.position = c5.FOUNDATION_SOCKET_POS
+	c5._inspect_foundation_socket()
+	await _wait_dialogue("c5 inspect foundation")
+	c5._take_foundation_stone()
+	await _wait_dialogue("c5 take foundation stone")
+	c5._inspect_foundation_socket()
+	await _wait_dialogue("c5 restore foundation")
+	c5._take_tho()
+	await _wait_dialogue("c5 take tho")
+	for sac in c5.PILLAR_IDS:
+		player.set_color(sac)
+		player.position = c5._pillar_positions[sac]
+		c5._offer_sac(sac)
+		await _wait_dialogue("c5 offer %s" % sac)
 	if narrative.ending_key() != "release":
 		push_error("FLOW FAILED: verified C5 should unlock release ending, got %s" % narrative.ending_key())
 		get_tree().quit(1)
 		return
+	c5._begin_ending()
 	await _until(func(): return state == State.WON, "ending + credits", 60.0)
-	print("FLOW OK — het 5 chuong, choice persisted, outcome=", narrative.ending_key())
+	print("FLOW OK — het 5 chuong, outcome=", narrative.ending_key())
 	get_tree().quit()
 
 
-func _wait_dialogue() -> void:
+func _wait_dialogue(label := "dialogue", timeout := 30.0) -> void:
 	await get_tree().create_timer(0.4).timeout
+	var t := 0.0
 	while dialogue.active or (memory_stall != null and memory_stall.active) or (memorial_tablet != null and memorial_tablet.active):
 		await get_tree().create_timer(0.1).timeout
+		t += 0.1
+		if t > timeout:
+			push_error("FLOW TIMEOUT: " + label)
+			get_tree().quit(1)
+			return
 
 
-func _wait_dialogue_only() -> void:
+func _wait_dialogue_only(label := "dialogue", timeout := 30.0) -> void:
 	await get_tree().create_timer(0.4).timeout
+	var t := 0.0
 	while dialogue.active:
 		await get_tree().create_timer(0.1).timeout
+		t += 0.1
+		if t > timeout:
+			push_error("FLOW TIMEOUT: " + label)
+			get_tree().quit(1)
+			return
 
 
 func _until(cond: Callable, label: String, timeout := 20.0) -> void:

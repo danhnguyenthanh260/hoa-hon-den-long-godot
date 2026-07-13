@@ -21,14 +21,19 @@ var hoa_unlocked := false
 var basement_open := false
 var descended_to_c2 := false
 var stencil_parts_collected := {}
-var _house_door_pos := Vector3(-6.8, 0, -10.8)
+var _house_door_pos := Vector3(-5.4, 0, -12.6)
 var _front_room_pos := Vector3(-8.2, 0, -13.8)
-var _basement_pos := Vector3(-8.2, 0, -19.0)
+var _basement_pos := Vector3(-8.2, 0, -17.25)
 var _house_root: Node3D
+var _house_door: Node3D
 var _part_markers := {}
 var _cat: Node3D
 var _cat_met := false
 var _knocked := false
+var _ba_interact: Dictionary
+var _burn_interact: Dictionary
+var _descend_interact: Dictionary
+var _hoa_interact: Dictionary
 var _street_lamps: Array = []
 var _lamps_lit := 0
 # mèo đi dạo: các bậu cửa nó hay ngồi
@@ -53,14 +58,16 @@ func _init_materials() -> void:
 	_m_darkwood = Build.pbr("res://assets/textures/WoodFloor043", 0.7, Color(0.26, 0.17, 0.10), 1.3)
 	_m_stone = Build.pbr("res://assets/textures/PavingStones138", 0.6, Color(0.5, 0.46, 0.43), 0.35)
 	_m_tile = Build.pbr("res://assets/textures/RoofingTiles013A", 0.55, Color(0.42, 0.22, 0.12), 0.7)
+	_m_plaster.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_m_tile.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 
 func build(main) -> void:
 	m = main
 	_init_materials()
-	# quán nước xiêu vẹo + bà hàng nước
+	# quán trà cạnh xưởng đèn: bà, ấm trà và cửa không còn chồng lên cùng một điểm.
 	var stall := Node3D.new()
-	stall.position = Vector3(-4.4, 0, -6)
+	stall.position = Vector3(-2.5, 0, -11.7)
 	add_child(stall)
 	Build.box(stall, Vector3(1.6, 0.08, 0.8), Vector3(0, 0.5, 0), _m_wood)
 	for dx in [-0.7, 0.7]:
@@ -79,6 +86,18 @@ func build(main) -> void:
 	stall.add_child(coal_l)
 	var ba := Build.faceless_npc(stall, Vector3(-0.3, 0, 0.5), Color(0.22, 0.18, 0.16))
 	ba.rotation.y = 2.6
+	# bộ trà đủ để người chơi đọc được nghi lễ bằng hình ảnh, không phải bằng một prompt dài.
+	var tea_tray := Build.box(stall, Vector3(0.92, 0.045, 0.48), Vector3(0.22, 0.57, -0.06), _m_darkwood)
+	tea_tray.rotation.y = 0.08
+	var tea := Build.mat(Color(0.26, 0.16, 0.10), 0.48)
+	Build.cyl(stall, 0.16, 0.18, 0.24, Vector3(0.22, 0.70, -0.06), tea, 12)
+	Build.cyl(stall, 0.09, 0.13, 0.035, Vector3(0.22, 0.84, -0.06), tea, 12)
+	for cup_pos in [Vector3(-0.16, 0.64, -0.10), Vector3(0.56, 0.64, 0.10)]:
+		Build.cyl(stall, 0.075, 0.09, 0.10, cup_pos, Build.mat(Color(0.72, 0.66, 0.54), 0.55), 12)
+		Build.cyl(stall, 0.052, 0.052, 0.012, cup_pos + Vector3(0, 0.056, 0), Build.emis(Color(0.28, 0.12, 0.05), Color(0.8, 0.28, 0.08), 0.18), 12)
+	for i in range(3):
+		var steam := Build.ball(stall, 0.024, 0.075, Vector3(0.18 + i * 0.035, 0.94 + i * 0.09, -0.05), Build.emis(Color(0.72, 0.82, 0.95), Color(0.52, 0.70, 0.96), 0.16))
+		steam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 	_build_locked_house()
 
@@ -103,13 +122,14 @@ func build(main) -> void:
 	puzzle.setup(Vector3(-8.2, 1.3, -16.6), -18.45)
 	puzzle.solved_callback = Callable(self, "_on_puzzle_solved")
 
-	m.add_interact(Vector3(-4.7, 0, -5.5), 2.2, "Bà hàng nước", Callable(self, "_talk_ba"), false)
-	m.add_interact(Vector3(-4.4, 0, -6.3), 1.8, "Rót trà mời bà — nghi lễ đầu tiên", Callable(self, "_offer_tea"), false)
-	m.add_interact(Vector3(-3.2, 0, -5.8), 1.2, "Nhìn kỹ những thứ trên quầy", Callable(self, "_read_stall_clues"), false)
-	m.add_interact(_house_door_pos, 2.0, "Cửa nhà sau quán bị khóa", Callable(self, "_try_unlock_house"), false)
+	_ba_interact = m.add_interact(Vector3(-3.15, 0, -11.05), 0.95, "Bà hàng trà", Callable(self, "_talk_ba"), false)
+	m.add_interact(Vector3(-1.92, 0, -12.08), 0.85, "Rót một chén trà", Callable(self, "_offer_tea"), false)
+	m.add_interact(_house_door_pos, 1.30, "Cửa xưởng đèn bên cạnh", Callable(self, "_try_unlock_house"), false)
 	m.add_interact(Vector3(-8.2, 0, -14.6), 2.0, "Bức Chim Lạc bị xé", Callable(self, "_collect_stencil"), true)
-	m.add_interact(_basement_pos, 2.2, "Ấn Hỏa trên cửa hầm / giếng khô", Callable(self, "_try_burn"), false)
-	m.add_interact(_basement_pos + Vector3(0, 0, -0.8), 2.0, "Đi xuống giếng khô", Callable(self, "_try_descend"), false)
+	_burn_interact = m.add_interact(_basement_pos, 1.25, "Ấn Hỏa trên cửa hầm / giếng khô", Callable(self, "_try_burn"), false)
+	_burn_interact["used"] = true
+	_descend_interact = m.add_interact(_basement_pos + Vector3(0, 0, -0.65), 1.25, "Đi xuống giếng khô", Callable(self, "_try_descend"), false)
+	_descend_interact["used"] = true
 	_build_street_life()
 
 
@@ -121,26 +141,55 @@ func _build_locked_house() -> void:
 	var plaster := _m_plaster
 	var tile := _m_tile
 	var stone := _m_stone
-	# footprint: sau quầy, lệch trái khỏi tim phố để không còn là cổng giữa đường
+	# xưởng đèn nằm cạnh quán, lệch khỏi tim phố để không còn là cổng giữa đường
 	Build.box(_house_root, Vector3(5.4, 0.10, 8.4), Vector3(-8.2, 0.05, -15.0), stone)
 	Build.box(_house_root, Vector3(5.6, 2.3, 0.12), Vector3(-8.2, 1.15, -10.7), plaster)
 	Build.box(_house_root, Vector3(5.6, 2.3, 0.12), Vector3(-8.2, 1.15, -19.3), plaster)
 	Build.box(_house_root, Vector3(0.12, 2.3, 8.5), Vector3(-11.0, 1.15, -15.0), plaster)
-	Build.box(_house_root, Vector3(0.12, 2.3, 8.5), Vector3(-5.4, 1.15, -15.0), plaster)
-	Build.box(_house_root, Vector3(6.0, 0.22, 8.9), Vector3(-8.2, 2.45, -15.0), tile)
-	# cửa trước có mắt cửa, nằm ngay sau quầy nước
-	Build.box(_house_root, Vector3(1.15, 1.85, 0.10), _house_door_pos + Vector3(0, 0.93, 0.04), wood)
-	Build.door_eye(_house_root, _house_door_pos + Vector3(-0.22, 1.45, 0.10), 1.0)
-	Build.door_eye(_house_root, _house_door_pos + Vector3(0.22, 1.45, 0.10), 1.0)
+	var side_wall_x := -5.4
+	var side_wall_min_z := -19.25
+	var side_wall_max_z := -10.75
+	var door_width := 1.30
+	var door_min_z := _house_door_pos.z - door_width * 0.5
+	var door_max_z := _house_door_pos.z + door_width * 0.5
+	Build.box(_house_root, Vector3(0.12, 2.3, side_wall_max_z - door_max_z), Vector3(side_wall_x, 1.15, (side_wall_max_z + door_max_z) * 0.5), plaster)
+	Build.box(_house_root, Vector3(0.12, 2.3, door_min_z - side_wall_min_z), Vector3(side_wall_x, 1.15, (door_min_z + side_wall_min_z) * 0.5), plaster)
+	Build.box(_house_root, Vector3(0.12, 0.45, door_width), Vector3(side_wall_x, 2.075, _house_door_pos.z), plaster)
+	Build.box(_house_root, Vector3(6.0, 0.22, 8.9), Vector3(-8.2, 2.39, -15.0), tile)
+	Build.box(_house_root, Vector3(0.18, 2.25, 0.16), Vector3(side_wall_x, 1.125, door_min_z), wood)
+	Build.box(_house_root, Vector3(0.18, 2.25, 0.16), Vector3(side_wall_x, 1.125, door_max_z), wood)
+	_house_door = Node3D.new()
+	_house_door.name = "C1_HouseDoor"
+	_house_door.position = Vector3(side_wall_x, 0.93, door_min_z)
+	_house_root.add_child(_house_door)
+	Build.box(_house_door, Vector3(0.11, 1.85, door_width), Vector3(0, 0, door_width * 0.5), wood)
+	Build.door_eye(_house_door, Vector3(0.065, 0.48, door_width * 0.34), -1.0)
+	Build.door_eye(_house_door, Vector3(0.065, 0.48, door_width * 0.66), -1.0)
+	var entry_light := OmniLight3D.new()
+	entry_light.light_color = Color(1.0, 0.42, 0.15)
+	entry_light.light_energy = 0.42
+	entry_light.omni_range = 3.5
+	entry_light.position = Vector3(side_wall_x + 0.32, 1.6, _house_door_pos.z)
+	_house_root.add_child(entry_light)
+	var entry_lantern := Build.lantern(_house_root, 0.12, 0.24, Vector3(side_wall_x + 0.18, 1.95, _house_door_pos.z))
+	Build.light_lantern(entry_lantern, Color(1.0, 0.42, 0.15), 1.5)
+	var interior_lantern := Build.lantern(_house_root, 0.15, 0.28, Vector3(-9.55, 2.0, -14.2))
+	Build.light_lantern(interior_lantern, Color(1.0, 0.5, 0.18), 1.8)
+	var interior_light := OmniLight3D.new()
+	interior_light.light_color = Color(1.0, 0.48, 0.18)
+	interior_light.light_energy = 0.85
+	interior_light.omni_range = 7.0
+	interior_light.position = Vector3(-9.55, 1.9, -14.2)
+	_house_root.add_child(interior_light)
 	# phòng trước / sân trong / bàn thờ / ngấn lũ
 	Build.box(_house_root, Vector3(3.8, 0.04, 0.75), _front_room_pos + Vector3(0, 0.55, 1.3), wood)
 	for x in [-9.6, -6.8]:
 		Build.cyl(_house_root, 0.07, 0.09, 2.2, Vector3(x, 1.1, -15.5), wood, 8)
 	var altar := Build.box(_house_root, Vector3(1.5, 0.12, 0.55), Vector3(-8.2, 0.85, -18.35), wood)
 	altar.set_meta("role", "altar")
-	Build.cyl(_house_root, 0.04, 0.05, 0.38, Vector3(-8.2, 1.1, -18.36), Build.mat(Color(0.55, 0.45, 0.32)), 8)
+	Build.cyl(_house_root, 0.04, 0.05, 0.38, Vector3(-8.58, 1.1, -18.36), Build.mat(Color(0.18, 0.11, 0.07)), 8)
 	Build.box(_house_root, Vector3(5.1, 0.04, 0.035), Vector3(-8.2, 1.85, -10.62), Build.mat(Color(0.12, 0.18, 0.22)))
-	var well := Build.cyl(_house_root, 0.65, 0.65, 0.46, _basement_pos + Vector3(0, 0.23, -0.75), stone, 18)
+	var well := Build.cyl(_house_root, 0.65, 0.65, 0.46, _basement_pos + Vector3(0, 0.23, 0), stone, 18)
 	well.set_meta("role", "dry_well_c2_entrance")
 	# mốc thu nhặt mảnh ghép, dùng placeholder giấy dó chứ không import Meshy nặng
 	_make_part_marker("stencil", Vector3(-8.2, 0.55, -14.6), Color(0.92, 0.6, 0.24))
@@ -211,19 +260,10 @@ func _build_street_life() -> void:
 
 
 func enter_beat() -> void:
-	m.ui.set_objective("Đi sâu vào ngõ. Tìm quán nước còn sáng.")
+	m.ui.set_objective("")
 	m.say([
-		["Minh (nghĩ)", "Mười năm rồi không ai gánh chè qua ngõ này. Sương đêm nay có mùi tro."],
-	], func(): m.remote_voice(
-		"c1_first_radio",
-		0.12,
-		[
-			"Trạm Bốn gọi người giữ đèn. Quán nước còn sáng là mốc đầu tiên.",
-			"Không xuống giếng khi chưa có lửa.",
-		],
-		Callable(),
-		7
-	))
+		["Minh (nghĩ)", "Mùi trà còn ấm trong con ngõ đã tắt đèn."],
+	])
 
 
 var _ba_talked := false
@@ -231,33 +271,33 @@ var _tea_offered := false
 func _talk_ba() -> void:
 	if not _ba_talked:
 		_ba_talked = true
+		_ba_interact["used"] = true
 		m.say([
-			["Bà Hàng Nước", "Trà còn nóng đó, cậu nhỏ. Bà chờ khách lâu lắm rồi."],
-			["Bà Hàng Nước", "Rót cho bà một chén đi — tự tay rót trước, đừng đợi bà mời."],
-		], func(): m.ui.set_objective("Rót trà mời bà hàng nước"))
+			["Bà Hàng Trà", "Trà còn nóng. Cậu rót giúp bà một chén được không?"],
+		], func(): m.ui.set_objective("Quán trà còn một ấm nước nóng."))
 	elif not _tea_offered:
-		m.say([["Bà Hàng Nước", "Ấm trà vẫn chờ đó, cậu nhỏ. Rót trước đi — đừng đợi bà mời."]])
+		m.say([["Bà Hàng Trà", "Ấm trà vẫn ở trên quầy."]])
 	elif puzzle.solved and _orb != null:
-		m.say([["Bà Hàng Nước", "Đem lửa của bà đi. Đằng nào bà cũng không còn ai để pha trà."]])
+		m.say([["Bà Hàng Trà", "Mang lửa đi. Quán này đã chờ đủ lâu rồi."]])
 	else:
-		m.say([["Bà Hàng Nước", "Nhà sau quán không tự mở. Chim trong nhà cũng không tự bay."]])
+		m.say([["Bà Hàng Trà", "Xưởng đèn không tự mở. Con chim trong đó cũng không tự bay."]])
 
 
 func _offer_tea() -> void:
 	if not _ba_talked:
-		m.say([["Minh (nghĩ)", "Ấm trà không phải của tôi để tự ý rót."]])
+		m.say([["Minh (nghĩ)", "Tôi nên hỏi bà trước."]])
 		return
 	if _tea_offered:
 		m.say([["Bà Hàng Nước", "Chén trà cậu rót, bà giữ ấm cả đêm nay."]])
 		return
 	_tea_offered = true
+	_ba_interact["used"] = false
 	stall_inspected = true
 	has_house_key = true
 	m.narrative.add_evidence("c1_tea_ritual", "Minh nghiêng ấm, rót một chén đầy mời bà hàng nước — nghi lễ đầu tiên của đêm.")
 	m.say([
-		["Bà Hàng Nước", "...Cảm ơn cậu nhỏ. Người biết rót trước khi được mời là người bà vẫn đợi. Cầm lấy."],
-		["Bà Hàng Nước", "Chìa nhà sau quán — không mở từ mùa nước lớn. Từ giờ là của cậu."],
-	], func(): m.ui.set_objective("Dùng chìa khóa mở căn nhà sau quán nước."))
+		["Bà Hàng Trà", "Cảm ơn. Đây là chìa xưởng đèn cạnh quán. Nó giữ hộ những thứ người ta bỏ quên."],
+	], func(): m.ui.set_objective("Cánh cửa xưởng đèn đã có thể mở."))
 
 
 func _read_stall_clues() -> void:
@@ -274,20 +314,27 @@ func _read_stall_clues() -> void:
 func _try_unlock_house() -> void:
 	if house_unlocked:
 		entered_locked_house = true
-		m.ui.set_objective("Tìm bức Chim Lạc bị xé trong nhà để phục dựng.")
+		m.ui.set_objective("Bên trong xưởng có một bức giấy bị xé.")
 		return
 	if not has_house_key:
 		m.say([
-			["Minh (nghĩ)", "Cửa gỗ cài then từ bên trong. Hai mắt cửa nhìn tôi như nhận ra một người khác."],
-			["Trạm Bốn", "Không có chìa thì đừng ép cửa. Nhà ở phố này nhớ lực tay rất lâu."],
+			["Minh (nghĩ)", "Cửa gỗ khóa kín. Qua khe cửa còn mùi gỗ cháy dở."],
 		])
 		return
 	house_unlocked = true
 	entered_locked_house = true
+	_open_house_door()
 	m.say([
-		["Minh (nghĩ)", "Chìa xoay đúng một nửa vòng rồi tự kéo tay tôi vào trong."],
-		["Minh (nghĩ)", "Phòng trước, sân trong, bàn thờ. Và một miệng giếng khô nằm ở chỗ đáng lẽ phải là nền nhà."],
-	], func(): m.ui.set_objective("Tìm bức Chim Lạc bị xé trong căn nhà. Con mèo đã đi trước."))
+		["Minh (nghĩ)", "Cửa xưởng mở ra. Bên trong có một miệng giếng khô nằm giữa nền nhà."],
+	], func(): m.ui.set_objective("Tìm bức giấy Chim Lạc bị xé trong xưởng."))
+
+
+func _open_house_door() -> void:
+	if _house_door == null:
+		return
+	var tw := create_tween()
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_house_door, "rotation:y", -PI * 0.62, 0.65)
 
 
 func _collect_stencil() -> void:
@@ -326,7 +373,7 @@ func _on_puzzle_solved() -> void:
 	m.exit_puzzle_after(1.8)
 	m.ui.toast("Chim Lạc đã rõ hình. Ấn Hỏa dưới nền nhà nứt ra.")
 	_orb = Build.color_orb(self, _basement_pos + Vector3(0.8, 1.1, -0.35), Color(1.0, 0.3, 0.1))
-	m.add_interact(_basement_pos + Vector3(0.8, 0, -0.35), 1.8, "Nhận SẮC HỎA từ ấn nứt", Callable(self, "_take_hoa"), true)
+	_hoa_interact = m.add_interact(_basement_pos + Vector3(0.8, 0, -0.35), 1.25, "Nhận SẮC HỎA từ ấn nứt", Callable(self, "_take_hoa"), true)
 	m.ui.set_objective("Nhận SẮC HỎA cạnh giếng khô trong căn nhà.")
 
 
@@ -337,10 +384,11 @@ func _take_hoa() -> void:
 	hoa_unlocked = true
 	m.player.unlock_color("hoa")
 	m.ui.update_colors()
+	if not _burn_interact.is_empty():
+		_burn_interact["used"] = false
 	m._save_checkpoint()
 	m.say([
-		["Bà Hàng Nước", "Đem lửa của bà đi. Mà... bà không nhớ tên mình từ lúc nào rồi."],
-		["Minh (nghĩ)", "Cả phố gọi bà là 'bà hàng nước'. Chưa ai từng gọi bằng tên."],
+		["Bà Hàng Trà", "Mang lửa đi. Ta không còn nhớ tên mình, nhưng đèn vẫn nhớ đường."],
 	], func(): m.ui.set_objective("SẮC HỎA (phím 1): mở ấn cửa hầm / giếng khô trong nhà."))
 
 
@@ -361,6 +409,10 @@ func _try_burn() -> void:
 		return
 	web_burned = true
 	basement_open = true
+	if not _burn_interact.is_empty():
+		_burn_interact["used"] = true
+	if not _descend_interact.is_empty():
+		_descend_interact["used"] = false
 	if _web != null:
 		_web.queue_free()
 		_web = null
@@ -458,9 +510,6 @@ func _seal_market() -> void:
 
 
 func _hoa_dang_stall() -> void:
-	if m.chapters[2].quest_stage == 2:
-		m.chapters[2].take_lotus()
-		return
 	m.say([
 		["Minh (nghĩ)", "Gánh hoa đăng bỏ không. Ba đóa sen giấy còn nguyên, giấy chưa ố."],
 		["Minh (nghĩ)", "Người bán chỉ vừa rời đi — hai mươi năm trước."],
@@ -533,18 +582,32 @@ func _update_cat(delta: float) -> void:
 
 
 const _HOUSE_X_MIN := -10.7
-const _HOUSE_X_MAX := 5.0
-const _HOUSE_Z_MIN := -20.5
-const _HOUSE_Z_MAX := -10.6
+const _HOUSE_X_MAX := -5.05
+const _HOUSE_Z_MIN := -19.15
+const _HOUSE_Z_MAX := -10.85
 
 
 func clamp_player(pos: Vector3) -> Vector3:
 	# nhà khóa nằm lệch tây (x tới -10.9), ngoài dải ngõ hẹp mà clamp_alley cho phép
 	# khi geo_zone_on chưa bật (chỉ bật sau khi giải xong Chim Lạc — đố cần ở trong nhà).
 	# Mở khóa nhà xong thì nới clamp theo đúng dải z của nội thất, tránh vòng lặp bất khả thi.
-	if house_unlocked and pos.z > _HOUSE_Z_MIN and pos.z < _HOUSE_Z_MAX:
-		pos.x = clampf(pos.x, _HOUSE_X_MIN, _HOUSE_X_MAX)
+	# Hành lang từ quán trà sang xưởng phải chịu được việc người chơi đi chéo.
+	# Dải cũ quá hẹp nên chỉ cần vượt z=-13.25 một nhịp là world.clamp_alley kéo họ về phố.
+	var approaching_house_door := not house_unlocked and pos.x > -6.10 and pos.x < -3.70 and pos.z > -15.0 and pos.z < -5.0
+	if approaching_house_door:
+		# Hành lang ngoài cửa nằm sát mép dải ngõ. Nếu để world.clamp_alley xử lý,
+		# nó coi x < -5 là phố lớn và kéo người chơi về z=8 trước khi tới được cửa.
+		pos.x = clampf(pos.x, -5.45, -3.70)
+		pos.z = clampf(pos.z, -14.0, -5.15)
 		pos.y = m.world.ground_height(pos)
+		return pos
+	var near_locked_house := pos.x > -11.0 and pos.x < -4.7 and pos.z > -20.0 and pos.z < -10.4
+	if house_unlocked and near_locked_house:
+		pos.x = clampf(pos.x, _HOUSE_X_MIN, _HOUSE_X_MAX)
+		pos.z = clampf(pos.z, _HOUSE_Z_MIN, _HOUSE_Z_MAX)
+		# Sàn căn nhà khóa nằm ở y=0; không dùng floor registry của phố,
+		# vì ô nhà procedural nền đã được thay bằng geometry riêng của C1.
+		pos.y = 0.0
 		return pos
 	pos = m.world.clamp_alley(pos)
 	if not basement_open and pos.z < -21.0:

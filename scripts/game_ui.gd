@@ -19,8 +19,11 @@ var _title: Label
 var _subtitle: Label
 var _colors_box: HBoxContainer
 var _start_label: Label
+var _cinematic_caption: Label
+var _skip_hint: Label
 var _toast_timer := 0.0
 var _pulse_t := 0.0
+var _skip_requested := false
 
 
 func _ready() -> void:
@@ -49,6 +52,13 @@ func _ready() -> void:
 	_colors_box.position = Vector2(-250, -46)
 	_colors_box.add_theme_constant_override("separation", 10)
 	add_child(_colors_box)
+
+	_cinematic_caption = _label("", 22, CREAM, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_BOTTOM, -138)
+	_cinematic_caption.visible = false
+	add_child(_cinematic_caption)
+	_skip_hint = _label("Giữ Space để bỏ qua", 14, Color(CREAM.r, CREAM.g, CREAM.b, 0.72), HORIZONTAL_ALIGNMENT_RIGHT, VERTICAL_ALIGNMENT_TOP, 18)
+	_skip_hint.visible = false
+	add_child(_skip_hint)
 
 	_win = _build_win()
 	_win.visible = false
@@ -150,8 +160,37 @@ func _build_win() -> Control:
 
 func hide_intro() -> void:
 	_intro.visible = false
-	_hud.visible = true
+	set_gameplay_hud_visible(true)
 	update_colors()
+
+
+func set_gameplay_hud_visible(visible: bool) -> void:
+	_hud.visible = visible
+	_objective.visible = visible
+	_prompt.visible = visible
+	_hint.visible = visible and _hint.text != ""
+	_colors_box.visible = visible
+
+
+func show_cinematic_caption(text: String) -> void:
+	_cinematic_caption.text = text
+	_cinematic_caption.visible = text != ""
+
+
+func show_skip_hint(visible: bool) -> void:
+	_skip_hint.visible = visible
+
+
+func request_skip() -> void:
+	_skip_requested = true
+
+
+func _wait_skippable(seconds: float) -> void:
+	var elapsed := 0.0
+	while elapsed < seconds and not _skip_requested:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+	_skip_requested = false
 
 
 func set_objective(text: String) -> void:
@@ -194,7 +233,9 @@ func update_colors() -> void:
 
 
 func show_win() -> void:
-	_hud.visible = false
+	set_gameplay_hud_visible(false)
+	show_cinematic_caption("")
+	show_skip_hint(false)
 	_prompt.text = ""
 	_objective.text = ""
 	_win.visible = true
@@ -208,6 +249,7 @@ func fade_to(alpha: float, dur: float, color: Color = Color(0, 0, 0)) -> void:
 
 
 func title_card(title: String, subtitle: String) -> void:
+	_skip_requested = false
 	_title.text = title
 	_subtitle.text = subtitle
 	var tw := create_tween()
@@ -215,7 +257,7 @@ func title_card(title: String, subtitle: String) -> void:
 	tw.tween_property(_title, "modulate:a", 1.0, 0.8)
 	tw.tween_property(_subtitle, "modulate:a", 1.0, 0.8)
 	await tw.finished
-	await get_tree().create_timer(2.2).timeout
+	await _wait_skippable(2.2)
 	var tw2 := create_tween()
 	tw2.set_parallel(true)
 	tw2.tween_property(_title, "modulate:a", 0.0, 0.8)
@@ -224,6 +266,7 @@ func title_card(title: String, subtitle: String) -> void:
 
 
 func roll_credits(player_credit_name: String = "Người giữ đèn") -> void:
+	_skip_requested = false
 	var lines := [
 		["HỌA HỒN ĐÈN LỒNG", 40, GOLD],
 		["", 10, CREAM],
@@ -238,7 +281,7 @@ func roll_credits(player_credit_name: String = "Người giữ đèn") -> void:
 	var tw := create_tween()
 	tw.tween_property(card, "modulate:a", 1.0, 1.2)
 	await tw.finished
-	await get_tree().create_timer(3.0).timeout
+	await _wait_skippable(3.0)
 	var tw2 := create_tween()
 	tw2.tween_property(card, "modulate:a", 0.0, 1.0)
 	await tw2.finished

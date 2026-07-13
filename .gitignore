@@ -1,6 +1,7 @@
 .godot/
 tools/*
 !tools/*.ps1
+!tools/gui_driver.py
 shots/*
 !shots/.gdignore
 .agent-profiles/

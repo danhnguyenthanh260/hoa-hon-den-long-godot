@@ -1,336 +1,300 @@
-# CHƯƠNG BỐN — BẾN SÔNG NGƯỢC (Kim · Thổ)
-# Trăng nằm dưới đáy sông, hoa đăng trôi ngược. Gương đồng dẫn tia trăng đến chuông (Kim).
-# Đầm bùn cứng lại dưới ánh vàng (Thổ). Người chèo đò đòi trả phí bằng một ký ức.
+# CHƯƠNG BỐN — BẾN SÔNG NGƯỢC (Kim)
+# Người chèo đò chỉ cho hai tiếng chuông và một ngôi mộ vô danh; không còn gương hay lựa chọn rẽ nhánh.
 extends Node3D
 
 const Build := preload("res://scripts/build.gd")
 
 const BANK_Z0 := -45.0
 const RIVER_Z := -58.0
+const BELL_LEFT_POS := Vector3(-5.1, 0, -51.2)
+const BELL_RIGHT_POS := Vector3(5.1, 0, -53.8)
+const BOATMAN_POS := Vector3(2.6, 0, -58.3)
+const KIM_POS := Vector3(0.0, 0, -55.8)
+const MEMORIAL_POS := Vector3(-5.7, 0, -47.4)
 
 var m
 var bell1_rung := false
 var bell2_rung := false
-var has_tho := false
-var _bell1_pos := Vector3(-4.8, 1.3, -54.0)
-var _bell2_pos := Vector3(-4.5, 0, -57.2)
-var _pads: Array = []           # [mesh, pos, hard_t]
-var _boatman: Node3D
-var _hoa_dang: Array = []
-var _kim_orb: Node3D
-var _tho_orb: Node3D
+var _boatman_met := false
+var _kim_taken := false
+var _memorial_carved := false
+var _ready_to_cross := false
 var _time := 0.0
-var _moon_l: OmniLight3D
-var _hoa_speed := 1.0
-var _giai_oan_done := false
-var _mound_done := false      # đắp mộ bằng Sắc Thổ
-var _name_carved := false     # khắc tên bằng Sắc Kim
-var _will_o_wisps: Array = []   # [node, base_pos, phase]
-
-
-func _take_tho() -> void:
-	_tho_orb.queue_free()
-	m.player.unlock_color("tho")
-	m.ui.update_colors()
-	has_tho = true
-	m.say([["Minh (nghĩ)", "Nặng và ấm, như nắm đất đầu mùa. Đất thì không biết nói dối — chắc vậy mà người ta thề với đất."]],
-		func(): m.ui.set_objective("Sang bãi bên kia đầm, đánh quả chuông thứ hai (bấm E)"))
-
-
-func _take_kim() -> void:
-	_kim_orb.queue_free()
-	m.player.unlock_color("kim")
-	m.ui.update_colors()
-	m.say([["Minh (nghĩ)", "Ánh trăng đặc lại như giọt thủy ngân. Sáng — và sắc. Sắc như một lời hứa bị bẻ đôi."]])
+var _kim_orb: Node3D
+var _boatman: Node3D
+var _boatman_interact: Dictionary
+var _memorial_interact: Dictionary
+var _bell_lights: Array = []
+var _hoa_dang: Array = []
+var _memorial_stone: MeshInstance3D
 
 
 func build(main) -> void:
 	m = main
-	# bãi bến + sông
-	var ground := Build.box(self, Vector3(16, 0.2, RIVER_Z - (-78.0)), Vector3(0, -0.1, (BANK_Z0 - 35.0)), Build.pbr("res://assets/textures/Ground068", 0.5, Color(0.55, 0.46, 0.4), 1.4))
-	ground.position = Vector3(0, -0.1, -51.5)
-	var water := Build.box(self, Vector3(16, 0.1, 18), Vector3(0, -0.04, -67.0), null)
-	var wmat := StandardMaterial3D.new()
-	wmat.albedo_color = Color(0.015, 0.03, 0.05)
-	wmat.metallic = 0.9
-	wmat.roughness = 0.05
-	water.material_override = wmat
-	# TRĂNG DƯỚI ĐÁY SÔNG
-	var moon := Build.cyl(self, 2.6, 2.6, 0.02, Vector3(0, 0.03, -66.0), Build.emis(Color(0.9, 0.93, 1.0), Color(0.85, 0.9, 1.0), 2.2))
+	var bank := Build.pbr("res://assets/textures/PavingStones138", 0.62, Color(0.31, 0.27, 0.24), 0.5)
+	# Bờ gần dừng trước mặt nước. Trước đây tấm nền lát đá phủ qua sông nên giấu toàn bộ dòng chảy.
+	Build.box(self, Vector3(16.0, 0.16, 11.1), Vector3(0, -0.08, -50.55), bank)
+	var water_mat := StandardMaterial3D.new()
+	water_mat.albedo_color = Color(0.025, 0.11, 0.24)
+	water_mat.metallic = 0.58
+	water_mat.roughness = 0.16
+	water_mat.emission_enabled = true
+	water_mat.emission = Color(0.015, 0.06, 0.16)
+	water_mat.emission_energy_multiplier = 0.32
+	Build.box(self, Vector3(16.0, 0.07, 13.8), Vector3(0, 0.01, -62.85), water_mat)
+	_build_river_banks(bank)
+	_build_river_backdrop()
+	_build_bell(BELL_LEFT_POS, 0)
+	_build_bell(BELL_RIGHT_POS, 1)
+	_build_boat()
+	_build_memorial()
+
+	var moon := Build.ball(self, 1.0, 2.0, Vector3(-1.8, 7.0, -60.4), Build.emis(Color(0.82, 0.85, 1.0), Color(0.58, 0.68, 1.0), 1.25))
 	moon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_moon_l = OmniLight3D.new()
-	_moon_l.light_color = Color(0.7, 0.8, 1.0)
-	_moon_l.light_energy = 1.2
-	_moon_l.omni_range = 14.0
-	_moon_l.position = Vector3(0, 1.0, -66.0)
-	add_child(_moon_l)
-	# hoa đăng trôi NGƯỢC dòng
-	for i in range(10):
-		var hd := Node3D.new()
-		hd.position = Vector3(-6.0 + fmod(i * 2.3, 12.0), 0.06, -76.0 + fmod(i * 3.1, 16.0))
-		add_child(hd)
-		Build.cyl(hd, 0.09, 0.11, 0.09, Vector3(0, 0.05, 0), Build.emis(Color(1.0, 0.8, 0.5), Color(1.0, 0.62, 0.22), 3.0))
-		for p in range(6):
-			var ang := TAU * p / 6.0
-			Build.ball(hd, 0.085, 0.07, Vector3(cos(ang) * 0.13, 0.02, sin(ang) * 0.13), Build.emis(Color(0.9, 0.45, 0.55), Color(0.9, 0.35, 0.4), 0.5, 0.7))
-		_hoa_dang.append(hd)
-	# nguồn tia trăng: trụ đá + mảnh trăng vỡ
-	Build.box(self, Vector3(0.7, 2.4, 0.7), Vector3(6.2, 1.2, -50.0), Build.mat(Color(0.25, 0.25, 0.28)))
-	Build.ball(self, 0.22, 0.4, Vector3(6.2, 2.0, -50.0), Build.emis(Color(0.9, 0.93, 1.0), Color(0.85, 0.9, 1.0), 3.0))
-	# chuông 1 — treo trên giá, đánh trực tiếp (đã bỏ đố gương)
-	Build.box(self, Vector3(1.4, 0.12, 0.3), _bell1_pos + Vector3(0, 0.9, 0), Build.mat(Color(0.13, 0.09, 0.06)))
-	for sx in [-0.6, 0.6]:
-		Build.box(self, Vector3(0.12, 2.1, 0.3), Vector3(_bell1_pos.x + sx, 1.05, _bell1_pos.z), Build.mat(Color(0.13, 0.09, 0.06)))
-	Build.cyl(self, 0.28, 0.4, 0.55, _bell1_pos, Build.mat(Color(0.55, 0.42, 0.2), 0.35), 12)
-	m.add_interact(_bell1_pos, 1.8, "Đánh chuông trăng", Callable(self, "_ring_bell1"), false)
-	# đầm bùn + phiến
-	var mud := Build.box(self, Vector3(6.5, 0.04, 7.0), Vector3(-3.2, -0.02, -52.8), Build.mat(Color(0.08, 0.06, 0.05), 1.0))
-	mud.material_override.metallic = 0.3
-	mud.material_override.roughness = 0.55
-	var pad_pos := [Vector3(-1.4, 0, -50.8), Vector3(-2.8, 0, -51.9), Vector3(-1.8, 0, -53.2), Vector3(-3.4, 0, -54.3), Vector3(-2.4, 0, -55.6), Vector3(-3.8, 0, -56.4)]
-	for p in pad_pos:
-		var pad := Build.cyl(self, 0.62, 0.68, 0.12, p + Vector3(0, 0.04, 0), Build.emis(Color(0.35, 0.28, 0.18), Color(1.0, 0.78, 0.2), 0.0, 0.9), 8)
-		_pads.append([pad, p, 0.0])
-	# Sắc Thổ bên mép đầm
-	_tho_orb = Build.color_orb(self, Vector3(0.4, 0.9, -50.4), Color(1.0, 0.78, 0.2))
-	m.add_interact(Vector3(0.4, 0, -50.4), 1.8, "Nhận SẮC THỔ", Callable(self, "_take_tho"), true)
-	# chuông 2 bên kia đầm
-	Build.cyl(self, 0.3, 0.42, 0.6, _bell2_pos + Vector3(0, 1.3, 0), Build.mat(Color(0.55, 0.42, 0.2), 0.35), 12)
-	for sx in [-0.6, 0.6]:
-		Build.box(self, Vector3(0.12, 2.2, 0.3), _bell2_pos + Vector3(sx, 1.1, 0), Build.mat(Color(0.13, 0.09, 0.06)))
-	Build.box(self, Vector3(1.4, 0.12, 0.3), _bell2_pos + Vector3(0, 2.1, 0), Build.mat(Color(0.13, 0.09, 0.06)))
-	m.add_interact(_bell2_pos, 1.6, "Đánh chuông bến", Callable(self, "_ring_bell2"), false)
-	# đò + người chèo đò
+	var moon_light := OmniLight3D.new()
+	moon_light.light_color = Color(0.55, 0.68, 1.0)
+	moon_light.light_energy = 1.35
+	moon_light.omni_range = 18.0
+	moon_light.position = Vector3(-1.8, 5.4, -56.0)
+	add_child(moon_light)
+	for shore_pos in [Vector3(-4.8, 2.0, -50.4), Vector3(4.8, 2.0, -54.8), Vector3(0, 2.4, -57.0)]:
+		var shore_light := OmniLight3D.new()
+		shore_light.light_color = Color(0.46, 0.56, 0.92)
+		shore_light.light_energy = 0.95
+		shore_light.omni_range = 9.0
+		shore_light.position = shore_pos
+		add_child(shore_light)
+	_build_shore_lantern(Vector3(-3.8, 0, -48.4))
+	_build_shore_lantern(Vector3(4.2, 0, -51.0))
+
+	for i in range(12):
+		_make_lantern(Vector3(-6.6 + fmod(float(i) * 2.17, 13.2), 0.07, -57.6 - fmod(float(i) * 1.31, 3.0)), float(i) * 0.7)
+
+	_boatman_interact = m.add_interact(BOATMAN_POS, 1.45, "Hỏi người chèo đò", Callable(self, "_talk_boatman"), false)
+	m.add_interact(BELL_LEFT_POS, 1.25, "Đánh chuông bên bờ trái", Callable(self, "_ring_bell1"), false)
+	m.add_interact(BELL_RIGHT_POS, 1.25, "Đánh chuông bên bờ phải", Callable(self, "_ring_bell2"), false)
+	_memorial_interact = m.add_interact(MEMORIAL_POS, 1.25, "Mộ vô danh bên bờ sông", Callable(self, "_work_mo_gio"), false)
+
+
+func _build_river_backdrop() -> void:
+	# Bờ đối diện lùi sâu để nước có chiều rộng nhìn thấy được từ bến.
+	var backdrop := Node3D.new()
+	backdrop.position = Vector3(0, 0, -70.05)
+	add_child(backdrop)
+	var silhouette := Build.mat(Color(0.025, 0.035, 0.085), 0.96)
+	var far_bank := Build.mat(Color(0.17, 0.15, 0.14), 0.92)
+	Build.box(backdrop, Vector3(16.0, 0.26, 2.1), Vector3(0, 0.02, 0.45), far_bank)
+	for i in range(9):
+		var x := -7.0 + i * 1.75
+		var h := 1.0 + float((i * 5) % 4) * 0.45
+		Build.box(backdrop, Vector3(1.45, h, 0.8), Vector3(x, h * 0.5, 1.05), silhouette)
+		if i % 3 == 0:
+			var far_lantern := Build.lantern(backdrop, 0.075, 0.14, Vector3(x, h * 0.62, 0.58))
+			Build.light_lantern(far_lantern, Color(1.0, 0.38, 0.12), 1.0)
+
+
+func _build_river_banks(bank: Material) -> void:
+	var edge := Build.mat(Color(0.20, 0.18, 0.17), 0.88)
+	var wood := Build.mat(Color(0.15, 0.085, 0.045), 0.86)
+	# Mép bờ đá chạy ngang trước dòng sông, giúp người chơi đọc được ranh giới đất/nước.
+	Build.box(self, Vector3(16.0, 0.30, 0.48), Vector3(0, 0.08, -56.15), edge)
+	for side in [-1.0, 1.0]:
+		Build.box(self, Vector3(0.45, 0.24, 12.8), Vector3(side * 7.72, 0.06, -62.55), edge)
+		for z in [-58.0, -62.0, -66.0]:
+			Build.cyl(self, 0.08, 0.10, 0.82, Vector3(side * 7.24, 0.40, z), wood, 8)
+	# Cầu ván nhỏ cho phép đi tới con đò mà không bước trên mặt nước.
+	Build.box(self, Vector3(2.45, 0.16, 4.45), Vector3(2.6, 0.11, -57.95), wood)
+	for z in [-56.15, -59.75]:
+		Build.cyl(self, 0.075, 0.09, 1.15, Vector3(1.52, 0.56, z), wood, 8)
+		Build.cyl(self, 0.075, 0.09, 1.15, Vector3(3.68, 0.56, z), wood, 8)
+	for i in range(4):
+		Build.box(self, Vector3(2.58, 0.035, 0.055), Vector3(2.6, 0.21, -56.42 - i * 1.02), Build.mat(Color(0.30, 0.18, 0.09), 0.82))
+	# Vệt trăng rời rạc trên mặt nước: đủ để đọc là dòng chảy, không biến thành chỉ dẫn đường.
+	var ripple_mat := Build.emis(Color(0.10, 0.24, 0.44), Color(0.16, 0.42, 0.78), 0.26)
+	for ripple_pos in [
+		Vector3(-4.45, 0.07, -58.25), Vector3(-2.85, 0.07, -60.05),
+		Vector3(-4.05, 0.07, -62.45), Vector3(0.15, 0.07, -63.55),
+		Vector3(-1.20, 0.07, -66.10), Vector3(4.90, 0.07, -65.05),
+	]:
+		var ripple := Build.box(self, Vector3(1.55, 0.012, 0.055), ripple_pos, ripple_mat)
+		ripple.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _build_shore_lantern(pos: Vector3) -> void:
+	var post := Node3D.new()
+	post.position = pos
+	add_child(post)
+	Build.cyl(post, 0.055, 0.075, 2.05, Vector3(0, 1.02, 0), Build.mat(Color(0.13, 0.08, 0.05), 0.9), 8)
+	var lantern := Build.lantern(post, 0.13, 0.24, Vector3(0, 2.0, 0))
+	Build.light_lantern(lantern, Color(1.0, 0.48, 0.16), 2.2)
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.54, 0.24)
+	light.light_energy = 1.75
+	light.omni_range = 8.5
+	light.position = Vector3(0, 1.9, 0)
+	post.add_child(light)
+
+
+func _build_bell(pos: Vector3, index: int) -> void:
+	var frame := Node3D.new()
+	frame.position = pos
+	add_child(frame)
+	var wood := Build.mat(Color(0.13, 0.08, 0.05), 0.9)
+	for side in [-0.58, 0.58]:
+		Build.cyl(frame, 0.065, 0.08, 2.1, Vector3(side, 1.05, 0), wood, 8)
+	Build.box(frame, Vector3(1.38, 0.10, 0.12), Vector3(0, 2.05, 0), wood)
+	Build.cyl(frame, 0.28, 0.18, 0.42, Vector3(0, 1.55, 0), Build.mat(Color(0.46, 0.28, 0.09), 0.4), 16)
+	Build.cyl(frame, 0.04, 0.04, 0.36, Vector3(0, 1.18, 0), Build.mat(Color(0.14, 0.09, 0.06)), 8)
+	var bell_light := OmniLight3D.new()
+	bell_light.light_color = Color(1.0, 0.82, 0.48)
+	bell_light.light_energy = 0.0
+	bell_light.omni_range = 5.0
+	bell_light.position = Vector3(0, 1.45, 0)
+	frame.add_child(bell_light)
+	_bell_lights.append(bell_light)
+
+
+func _build_boat() -> void:
 	var boat := Node3D.new()
-	boat.position = Vector3(2.5, 0.05, -59.2)
+	boat.position = BOATMAN_POS + Vector3(0, 0.22, -0.45)
 	add_child(boat)
-	Build.box(boat, Vector3(1.4, 0.3, 3.6), Vector3(0, 0.15, 0), Build.mat(Color(0.16, 0.11, 0.07), 0.85))
-	Build.box(boat, Vector3(1.2, 0.08, 0.5), Vector3(0, 0.34, 0.8), Build.mat(Color(0.2, 0.14, 0.09)))
-	_boatman = Build.faceless_npc(boat, Vector3(0, 0.3, -1.2), Color(0.12, 0.12, 0.14))
-	Build.cyl(_boatman, 0.025, 0.025, 2.6, Vector3(0.35, 1.0, 0.3), Build.mat(Color(0.4, 0.32, 0.18)))
-	m.add_interact(Vector3(2.5, 0, -58.6), 2.4, "Người chèo đò", Callable(self, "_talk_boatman"), false)
-	# ma trơi trên sông — 6 đốm hồn lang thang
-	for i in range(6):
-		var wnode := Node3D.new()
-		var wx := -5.5 + fmod(i * 2.1, 11.0)
-		var wz := -62.0 + fmod(i * 3.7, 12.0)
-		wnode.position = Vector3(wx, 0.3 + fmod(i * 0.8, 0.6), wz)
-		add_child(wnode)
-		Build.ball(wnode, 0.06, 0.12, Vector3.ZERO, Build.emis(Color(0.6, 0.9, 1.0), Color(0.4, 0.8, 1.0), 3.5, 0.5))
-		var wl := OmniLight3D.new()
-		wl.light_color = Color(0.5, 0.85, 1.0)
-		wl.light_energy = 0.5
-		wl.omni_range = 2.5
-		wnode.add_child(wl)
-		_will_o_wisps.append([wnode, wnode.position, i * 1.13])
-	# mộ gió đắp dở bên mép bến (Minh đang nặn cho người chèo đò khi bị cuốn đi)
-	var mg_pos := Vector3(-5.8, 0, -47.2)
-	Build.cyl(self, 0.45, 0.55, 0.22, mg_pos + Vector3(0, 0.11, 0), Build.mat(Color(0.12, 0.09, 0.07), 0.95), 12)
-	var effigy := Node3D.new()
-	effigy.position = mg_pos + Vector3(0.1, 0.22, 0)
-	add_child(effigy)
-	Build.cyl(effigy, 0.025, 0.02, 0.28, Vector3(0, 0.14, 0), Build.mat(Color(0.38, 0.3, 0.18), 0.9), 5)
-	Build.ball(effigy, 0.055, 0.1, Vector3(0.02, 0.32, 0), Build.mat(Color(0.42, 0.34, 0.2), 0.9))
-	Build.box(effigy, Vector3(0.18, 0.04, 0.04), Vector3(0, 0.24, 0), Build.mat(Color(0.38, 0.3, 0.18), 0.9))
-	m.add_interact(mg_pos, 1.8, "Mộ gió đắp dở", Callable(self, "_work_mo_gio"), false)
+	var wood := Build.mat(Color(0.17, 0.095, 0.05), 0.86)
+	Build.box(boat, Vector3(3.6, 0.28, 1.25), Vector3.ZERO, wood)
+	Build.box(boat, Vector3(3.9, 0.12, 0.16), Vector3(0, 0.28, -0.58), wood)
+	Build.box(boat, Vector3(3.9, 0.12, 0.16), Vector3(0, 0.28, 0.58), wood)
+	_boatman = Build.faceless_npc(boat, Vector3(0.45, 0.14, 0.05), Color(0.11, 0.10, 0.13), 0.8, false)
+	_boatman.rotation.y = PI
+	var pole := Build.cyl(boat, 0.025, 0.03, 3.1, Vector3(1.2, 1.4, 0.1), Build.mat(Color(0.22, 0.13, 0.07)), 8)
+	pole.rotation.z = -0.22
+	var boat_lantern := Build.lantern(boat, 0.11, 0.22, Vector3(-1.15, 0.62, 0.15))
+	Build.light_lantern(boat_lantern, Color(0.95, 0.38, 0.12), 1.8)
+
+
+func _build_memorial() -> void:
+	var soil := Build.mat(Color(0.22, 0.15, 0.10), 0.96)
+	Build.cyl(self, 0.9, 1.15, 0.22, MEMORIAL_POS + Vector3(0, 0.11, 0), soil, 10)
+	_memorial_stone = Build.box(self, Vector3(0.65, 0.78, 0.15), MEMORIAL_POS + Vector3(0, 0.48, -0.15), Build.mat(Color(0.26, 0.28, 0.30), 0.82))
+	_memorial_stone.rotation.x = -0.12
+	Build.cyl(self, 0.045, 0.06, 0.28, MEMORIAL_POS + Vector3(0.48, 0.15, 0.28), Build.mat(Color(0.12, 0.23, 0.12)), 7)
+
+
+func _make_lantern(pos: Vector3, phase: float) -> void:
+	var node := Node3D.new()
+	node.position = pos
+	add_child(node)
+	var body := Build.cyl(node, 0.11, 0.14, 0.08, Vector3.ZERO, Build.emis(Color(0.9, 0.34, 0.12), Color(1.0, 0.28, 0.08), 1.35), 8)
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_hoa_dang.append([node, phase])
 
 
 func enter_beat() -> void:
 	m.world.set_zone("c4")
-	m.world.set_moon_visible(false)
-	m.checkpoint = Vector3(0, 0, -46.0)
-	m.ui.set_objective("Bến sông Hoài — tìm đường qua sông")
-	m.say([
-		["Minh (nghĩ)", "Sông Hoài chảy ngược, hoa đăng trôi về thượng nguồn. Trăng nằm DƯỚI đáy sông."],
-		["Minh (nghĩ)", "Ma trơi đầy sông — mỗi đốm một hồn chưa ai lập mộ gió cho."],
-	])
+	m.world.set_moon_visible(true)
+	m.checkpoint = Vector3(0, 0, -46.5)
+	m.ui.set_objective("")
+	m.say([["Minh (nghĩ)", "Sông chảy ngược dưới trăng. Một con đò đợi sát bờ, như chưa từng rời đi."]])
+
+
+func _talk_boatman() -> void:
+	if not _boatman_met:
+		_boatman_met = true
+		m.narrative.heard_boatman = true
+		m.say([
+			["Người Chèo Đò", "Muốn qua sông thì gọi nước yên lại. Hai chiếc chuông kia đã im quá lâu."],
+		], func(): m.ui.set_objective("Hai tiếng chuông đang chờ ở hai bờ."))
+		return
+	if bell1_rung and bell2_rung and not _kim_taken:
+		m.say([["Người Chèo Đò", "Nước đã nghe. Thứ nó trả lại nằm trên bến."]])
+		return
+	if _kim_taken and not _memorial_carved:
+		m.say([["Người Chèo Đò", "Mang sắc ấy đến mộ vô danh. Đừng khắc tên người chết, chỉ khắc điều họ đã giữ." ]])
+		return
+	if _memorial_carved and not _ready_to_cross:
+		_ready_to_cross = true
+		_boatman_interact["prompt"] = "Lên đò qua sông"
+		m.say([["Người Chèo Đò", "Mộ đã có tiếng chuông giữ hộ. Lên đò đi."]])
+		return
+	if _ready_to_cross:
+		m.goto_chapter(5)
 
 
 func _ring_bell1() -> void:
-	if bell1_rung:
-		return
-	bell1_rung = true
-	m.ui.play_chime()
-	m.ui.toast("Quả chuông thứ nhất ngân — ánh trăng đọng lại thành SẮC KIM")
-	_kim_orb = Build.color_orb(self, _bell1_pos + Vector3(0, -0.6, 0.8), Color(1.0, 0.96, 0.82))
-	m.add_interact(Vector3(_bell1_pos.x, 0, _bell1_pos.z + 0.8), 1.8, "Nhận SẮC KIM", Callable(self, "_take_kim"), true)
-	if bell2_rung:
-		m.ui.set_objective("Quay lại chỗ người chèo đò")
-
-
-func _after_giai_oan() -> void:
-	_giai_oan_done = true
-	# đảm bảo có Kim & Thổ để đắp mộ gió (cấp ngầm nếu lỡ chưa nhặt)
-	var _keep = m.player.current_color
-	for c in ["tho", "kim"]:
-		if not m.player.has_color(c):
-			m.player.unlock_color(c)
-	if _keep != "":
-		m.player.set_color(_keep)
-	m.ui.update_colors()
-	m.ui.set_objective("Đắp mộ gió cho người chèo đò: đổi Sắc THỔ (5) đắp đất, rồi Sắc KIM (4) khắc tên — tới mộ gió bấm E")
-
-
-func _work_mo_gio() -> void:
-	# mộ gió: Thổ đắp nấm đất, Kim khắc tên lên bài vị — hai công dụng rõ của Sắc 4 & 5
-	if not _giai_oan_done:
-		m.say([["Minh (nghĩ)", "Hình nhân tôi nặn dở cho người chèo đò. Thắp chuông, nghe ông kể xong đã, rồi mới đắp mộ được."]])
-		return
-	if not _mound_done:
-		if m.player.current_color != "tho":
-			m.ui.toast("Nấm mộ còn dở. Đổi sang Sắc THỔ (phím 5) để đắp đất cho tròn.")
-			return
-		_mound_done = true
-		m.say([["Minh (nghĩ)", "Ánh vàng của Thổ tụ đất lại — nấm mộ gió tròn đầy dưới tay tôi."]],
-			func(): m.ui.set_objective("Giờ khắc tên lên bài vị: đổi Sắc KIM (phím 4), tới mộ gió bấm E"))
-		return
-	if not _name_carved:
-		if m.player.current_color != "kim":
-			m.ui.toast("Bài vị còn trống. Đổi sang Sắc KIM (phím 4) để khắc tên.")
-			return
-		_name_carved = true
-		m.say([
-			["Minh (nghĩ)", "Ánh Kim sắc như mũi dao. Tôi khắc lên bài vị cái tên người chèo đò — cuối cùng cũng có người nhớ."],
-		], func(): m.ui.set_objective("Mộ gió đã xong — quay lại người chèo đò"))
-		return
-	m.say([["Minh (nghĩ)", "Mộ gió đã tròn, bài vị đã có tên. Ông ấy yên rồi."]])
-
-
-var _boatman_met := false
-func _talk_boatman() -> void:
-	if bell1_rung and bell2_rung and not _giai_oan_done:
-		m.say([
-			["Người Chèo Đò", "Hai chuông cùng tỉnh. Nước thuận rồi. ...Thầy đứng nghe được không?"],
-			["Người Chèo Đò", "Đêm lụt, ta chở sáu bảy chuyến người chạy lụt. Chuyến cuối lật đò giữa dòng — ta không bơi được. Ta chết oan mà mấy chục năm không ai chịu nghe."],
-			["Người Chèo Đò", "*(gác chèo)* ...Nhẹ cả người. Mấy chục năm mới có người nghe ta kể hết."],
-		], Callable(self, "_after_giai_oan"))
-	elif bell1_rung and bell2_rung and _giai_oan_done and not _name_carved:
-		m.say([["Người Chèo Đò", "Đắp xong mộ gió cho ta đã, thầy — đắp đất, khắc tên. Xong rồi ta mới yên lòng mà chở."]])
-	elif bell1_rung and bell2_rung and _giai_oan_done and _name_carved:
-		m.say([
-			["Người Chèo Đò", "Thầy đắp mộ cho ta rồi. Giờ tới lượt thầy — trả ta một ký ức để qua sông."],
-			["Người Chèo Đò", "Trả gương mặt mẹ thì thầy còn tên để người khác gọi về. Trả tên mình thì giữ được mặt mẹ — nhưng có thể chẳng còn đường về."],
-		], Callable(self, "_prepare_choice_cinematic"))
-	elif not _boatman_met:
-		_boatman_met = true
-		m.say([
-			["Người Chèo Đò", "Qua sông không, thầy? Ta chở ai thì biết người đó — biết cả cái sào đèn của thầy. Nhưng sông đêm nay chảy ngược, ta chèo không lại."],
-			["Người Chèo Đò", "Đêm nước lên ta chở người chạy lụt, lật đò giữa dòng. Ta chết oan mà chưa ai chịu nghe ta kể."],
-			["Người Chèo Đò", "Thắp giùm ta hai quả chuông bến — một quả ưa ánh trăng, một quả ưa tiếng người."],
-		], func(): m.ui.set_objective("Thắp 2 quả chuông bến trên bãi sông (tới gần, bấm E)"))
-	else:
-		m.say([["Người Chèo Đò", "Chuông chưa tỉnh hết. Ta vẫn nghe sông chảy lên đấy, thầy."]])
-
-
-func _dolly_to_boatman(p: Vector3) -> void:
-	m.camera.global_position = p
-	m.camera.look_at(_boatman.global_position + Vector3(0, 1.0, 0))
-
-
-func _prepare_choice_cinematic() -> void:
-	m.free_cam = true
-	m.audio.sting()
-	var start := _boatman.global_position + Vector3(1.6, 1.9, 4.0)
-	var dst := _boatman.global_position + Vector3(0.6, 1.4, 2.0)
-	_dolly_to_boatman(start)
-	var tw := create_tween()
-	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 2.5)
-	tw.tween_interval(0.5)
-	tw.tween_callback(Callable(self, "_show_crossing_choice"))
-
-
-func _show_crossing_choice() -> void:
-	m.say([
-		{"choice_id": "c4_crossing_price", "choice": [
-			["Trả gương mặt của mẹ — giữ tên", [
-				["Người Chèo Đò", "Thầy giữ cái tên — người giữ tên là người còn đường về."],
-				["Người Chèo Đò", "...Mà lần trước qua sông, thầy cũng chọn y như vậy đấy."],
-				["Minh", "...Lần trước?"],
-			]],
-			["Trả tên của chính mình — giữ mặt mẹ", [
-				["Người Chèo Đò", "Thầy đưa ta cái tên. Người bỏ tên là người không định về nữa."],
-				["Người Chèo Đò", "Khách bỏ tên... thường là khách bỏ từ lâu rồi, chỉ chưa biết thôi."],
-			]],
-		]},
-	], Callable(self, "_begin_crossing_cinematic"))
-
-
-func _begin_crossing_cinematic() -> void:
-	m.say([
-		["Minh (nghĩ)", "Đò trôi vào sương. Hai bên bờ, phố trôi NGƯỢC qua như cuộn phim tua lui — đèn tắt dần, người thưa dần, rồi không còn gì."],
-	], Callable(self, "_on_c4_choice_done"))
-	create_tween().tween_property(_moon_l, "light_energy", 0.05, 4.0)
-	_hoa_speed = 2.4
-	var start: Vector3 = m.camera.global_position
-	var dst: Vector3 = start + Vector3(1.0, 0.5, 3.0)
-	var tw := create_tween()
-	tw.tween_method(Callable(self, "_dolly_to_boatman"), start, dst, 5.0)
-
-
-func _on_c4_choice_done() -> void:
-	# chốt an toàn: C5 cần Hỏa/Thủy/Thổ để soi 3 chứng cứ. Không còn cổng ép lấy Thổ nữa,
-	# nên cấp ngầm màu nào lỡ bỏ qua (giữ nguyên màu đang cầm).
-	var _keep = m.player.current_color
-	for c in ["hoa", "thuy", "tho"]:
-		if not m.player.has_color(c):
-			m.player.unlock_color(c)
-	if _keep != "":
-		m.player.set_color(_keep)
-	m.ui.update_colors()
-	_hoa_speed = 5.0
-	if m.narrative.name_kept == true:
-		m.ui.toast("Bóng hình thân thuộc mờ dần trong tâm trí...")
-	else:
-		m.ui.toast("Một phần ký ức bị lấy đi... Nhẹ bẫng.")
-	var tw = create_tween()
-	tw.tween_interval(1.0)
-	tw.tween_callback(func(): m.audio.sting())
-	tw.tween_interval(1.4)
-	tw.tween_callback(func():
-		m.free_cam = false
-		m.goto_chapter(5)
-	)
+	_ring_bell(0)
 
 
 func _ring_bell2() -> void:
-	if bell2_rung or not _reached_bell2():
+	_ring_bell(1)
+
+
+func _ring_bell(index: int) -> void:
+	if not _boatman_met:
+		m.say([["Minh (nghĩ)", "Chuông lạnh ngắt. Người chèo đò có vẻ biết vì sao chúng im lặng."]])
 		return
-	bell2_rung = true
+	if index == 0 and bell1_rung:
+		m.say([["Minh (nghĩ)", "Tiếng chuông trái vẫn rung rất khẽ trong ngực."]])
+		return
+	if index == 1 and bell2_rung:
+		m.say([["Minh (nghĩ)", "Tiếng chuông phải đã trả lời rồi."]])
+		return
+	if index == 0:
+		bell1_rung = true
+	else:
+		bell2_rung = true
+	_bell_lights[index].light_energy = 1.45
 	m.ui.play_chime()
-	m.ui.toast("Quả chuông thứ hai ngân — mặt sông phẳng lại một nửa")
-	if bell1_rung:
-		m.ui.set_objective("Quay lại chỗ người chèo đò")
+	var text := "Một tiếng chuông dội qua mặt nước."
+	if bell1_rung and bell2_rung:
+		text = "Hai tiếng chuông chạm nhau. Trên bến, một mảnh sáng sắc như lưỡi dao hiện ra."
+	m.say([["Minh (nghĩ)", text]], Callable(self, "_after_bell"))
 
 
-func _reached_bell2() -> bool:
-	return m.player.position.distance_to(Vector3(_bell2_pos.x, 0, _bell2_pos.z)) < 1.8
+func _after_bell() -> void:
+	if bell1_rung and bell2_rung and _kim_orb == null and not _kim_taken:
+		_kim_orb = Build.color_orb(self, KIM_POS + Vector3(0, 1.05, 0), Color(1.0, 0.88, 0.48))
+		m.add_interact(KIM_POS, 1.0, "Nhận SẮC KIM", Callable(self, "_take_kim"), true)
+		m.ui.set_objective("Một mảnh sáng xuất hiện giữa bến.")
+
+
+func _take_kim() -> void:
+	if _kim_orb == null:
+		return
+	_kim_orb.queue_free()
+	_kim_orb = null
+	_kim_taken = true
+	m.player.unlock_color("kim")
+	m.ui.update_colors()
+	m.say([["Minh (nghĩ)", "Sắc Kim lạnh và mỏng như tiếng chuông vừa tắt." ]], func(): m.ui.set_objective("Người chèo đò nhìn về phía mộ vô danh."))
+
+
+func _work_mo_gio() -> void:
+	if not _kim_taken:
+		m.say([["Minh (nghĩ)", "Tấm đá trơn, không có tên. Có lẽ nó chờ một nét khắc khác."]])
+		return
+	if m.player.current_color != "kim":
+		m.say([["Minh (nghĩ)", "Mặt đá bắt sáng trong đèn rồi lại tắt. Cần Sắc Kim. (Phím 4)"]])
+		return
+	if _memorial_carved:
+		m.say([["Minh (nghĩ)", "Trên đá chỉ còn một nét chuông. Vậy là đủ."]])
+		return
+	_memorial_carved = true
+	_memorial_interact["used"] = true
+	_memorial_stone.material_override = Build.emis(Color(0.55, 0.50, 0.36), Color(1.0, 0.77, 0.28), 0.45)
+	m.narrative.add_evidence("c4_bell_mark_on_memorial", "Sắc Kim khắc lên mộ vô danh một nét chuông, trả lại dấu vết cho người từng giữ bến.")
+	m.say([
+		["Minh (nghĩ)", "Tôi không khắc tên. Chỉ khắc hai nhịp chuông. Mặt đá ấm lên như vừa có người đặt tay lên."],
+	], func(): m.ui.set_objective("Quay lại người chèo đò."))
 
 
 func update(delta: float) -> void:
 	_time += delta
-	# ma trơi lơ lửng trên sông
-	for trio in _will_o_wisps:
-		var wnode: Node3D = trio[0]
-		var base: Vector3 = trio[1]
-		var ph: float = trio[2] + _time * 0.3
-		wnode.position = base + Vector3(sin(ph * 0.7) * 0.5, sin(ph * 1.1) * 0.25, cos(ph * 0.6) * 0.5)
-	# hoa đăng trôi ngược (+z là ngược về thượng nguồn ở đây)
-	for hd in _hoa_dang:
-		hd.position.z += delta * 0.35 * _hoa_speed
-		hd.position.y = 0.06 + sin(_time * 1.2 + hd.position.x) * 0.02
-		if hd.position.z > -59.0:
-			hd.position.z = -76.0
-	# phiến bùn sáng lên dưới ánh Thổ — chỉ còn hiệu ứng, không còn sa lầy chết
-	for pad in _pads:
-		if has_tho and m.player.current_color == "tho" and m.player.position.distance_to(Vector3(pad[1].x, 0, pad[1].z)) < 3.5:
-			pad[2] = 2.6
-		pad[2] = maxf(0.0, pad[2] - delta)
-		var mt: StandardMaterial3D = pad[0].material_override
-		mt.emission_energy_multiplier = lerpf(mt.emission_energy_multiplier, 1.5 if pad[2] > 0.0 else 0.0, 1.0 - pow(0.01, delta))
+	for pair in _hoa_dang:
+		var node: Node3D = pair[0]
+		var phase: float = pair[1]
+		node.position.y = 0.07 + sin(_time * 1.3 + phase) * 0.025
+		node.position.x += sin(_time * 0.16 + phase) * delta * 0.12
 
 
 func clamp_player(pos: Vector3) -> Vector3:
 	pos.x = clampf(pos.x, -7.4, 7.4)
-	pos.z = clampf(pos.z, RIVER_Z + 0.6, BANK_Z0 + 0.5)
+	pos.z = clampf(pos.z, -60.3, BANK_Z0 + 0.25)
 	return pos

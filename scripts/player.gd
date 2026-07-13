@@ -34,7 +34,7 @@ var facing_yaw := PI
 var force_walk := false       # cho bot chụp ảnh tư thế bước
 var _near_house := false      # đứng sát thềm nhà ai đó
 var _courtesy := 0.0          # 0 → 1: hạ sào + che đèn (phép lịch sự ban đêm)
-var first_person := false     # ẩn thân, đi theo hướng nhìn; sào đèn vẫn hiện
+var first_person := false     # ẩn thân và sào đèn, đi theo hướng nhìn
 var fp_yaw := PI
 var cam_relative := true   # WASD theo hướng camera (Ngôi-1 / Ngôi-3); false = theo trục thế giới (Follow)
 var view_yaw := PI         # hướng camera để xoay WASD
@@ -221,7 +221,7 @@ func _ready() -> void:
 	pole_holder.add_child(_hang)
 	Build.cyl(_hang, 0.007, 0.007, 0.3, Vector3(0, -0.15, 0), Build.mat(Color(0.3, 0.1, 0.08)))
 	# đèn lồng giấy lục giác nhỏ
-	_paper_mat = Build.emis(Color(1.0, 0.45, 0.25), Color(1.0, 0.42, 0.15), 2.8, 0.5)
+	_paper_mat = Build.emis(Color(1.0, 0.45, 0.25), Color(1.0, 0.42, 0.15), 1.7, 0.5)
 	_paper_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var paper := CylinderMesh.new()
 	paper.top_radius = 0.105
@@ -244,8 +244,8 @@ func _ready() -> void:
 
 	_light = OmniLight3D.new()
 	_light.light_color = Color(1.0, 0.62, 0.32)
-	_light.light_energy = 2.2
-	_light.omni_range = 9.0
+	_light.light_energy = 1.4
+	_light.omni_range = 7.0
 	_light.position.y = -0.43
 	_hang.add_child(_light)
 	# gom các phần THÂN (trừ sào đèn) để ẩn khi vào góc nhìn thứ nhất
@@ -410,7 +410,8 @@ func set_first_person(v: bool) -> void:
 	first_person = v
 	for c in _body_parts:
 		c.visible = not v
-	# góc nhìn thứ nhất: rút ngắn sào để đèn không chọc xuyên tường nhà
+	# Camera có light rig riêng; ẩn cả sào để đèn không che tâm ngắm.
+	_pole_holder.visible = not v
 	if v:
 		_pole_mi.scale.y = 0.55
 		_pole_mi.position.z = 0.24
@@ -455,10 +456,17 @@ func has_color(id: String) -> bool:
 	return unlocked.has(id)
 
 
+func lantern_light_color() -> Color:
+	var c: Color = COLOR_DEFS[current_color]["color"] if current_color != "" else Color(1.0, 0.42, 0.15)
+	# Màu Sắc nằm ở giấy đèn; ánh sáng thực cần gần trung tính để không nhuộm
+	# volumetric fog và làm mất chi tiết cảnh tối.
+	return c.lerp(Color.WHITE, 0.88)
+
+
 func set_color(id: String) -> void:
 	current_color = id
 	var c: Color = COLOR_DEFS[id]["color"] if id != "" else Color(1.0, 0.42, 0.15)
-	_light.light_color = c.lerp(Color(1, 1, 1), 0.15)
+	_light.light_color = lantern_light_color()
 	_paper_mat.emission = c
 	_paper_mat.albedo_color = c.lerp(Color(1, 1, 1), 0.35)
 
@@ -490,13 +498,23 @@ func update_move(delta: float, clamp_cb: Callable) -> void:
 		dir = dir.normalized()
 		position += dir * SPEED * delta
 		if first_person:
-			_target_yaw = fp_yaw
+			_target_yaw = fp_yaw - PI
 		else:
 			_target_yaw = atan2(dir.x, dir.z)
 	elif first_person:
-		_target_yaw = fp_yaw
+		_target_yaw = fp_yaw - PI
 	position = clamp_cb.call(position)
-	facing_yaw = _visual.rotation.y
+	facing_yaw = _target_yaw
+
+
+func face_lantern_direction(yaw: float) -> float:
+	# Camera thứ nhất nhìn theo fp_yaw - PI. Đồng bộ body ngay lúc đổi view để model không quay mặt vào camera.
+	_target_yaw = yaw - PI
+	if _visual != null:
+		_visual.rotation.y = _target_yaw
+	_prev_yaw = _target_yaw
+	facing_yaw = _target_yaw
+	return _target_yaw
 
 
 func _process(delta: float) -> void:
@@ -547,9 +565,9 @@ func _process(delta: float) -> void:
 	_courtesy = lerpf(_courtesy, 1.0 if _near_house else 0.0, 1.0 - pow(0.01, delta))
 	_pole_holder.rotation.x = -0.36 + 0.6 * _courtesy
 	_pole_holder.rotation.y = 0.5 + 0.55 * _courtesy
-	_light.light_energy = (2.2 + sin(_anim_t * 2.3) * 0.15) * (1.0 - 0.82 * _courtesy)
-	_light.omni_range = 9.0 - 5.5 * _courtesy
-	_paper_mat.emission_energy_multiplier = 2.8 - 2.25 * _courtesy
+	_light.light_energy = (1.4 + sin(_anim_t * 2.3) * 0.10) * (1.0 - 0.82 * _courtesy)
+	_light.omni_range = 7.0 - 4.0 * _courtesy
+	_paper_mat.emission_energy_multiplier = 1.7 - 1.35 * _courtesy
 
 	# tay phải cầm sào: gốc sào bám theo bàn tay phải của mesh (rotation giữ theo thân)
 	if _use_mesh and _hand_bone >= 0:
